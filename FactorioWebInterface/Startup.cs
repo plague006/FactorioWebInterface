@@ -23,6 +23,8 @@ namespace FactorioWebInterface
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+
+
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlite("Data Source=FactorioWebInterface.db"));
 
@@ -50,6 +52,12 @@ namespace FactorioWebInterface
                 options.User.RequireUniqueEmail = false;
             });
 
+            services.Configure<SecurityStampValidatorOptions>(options =>
+            {
+                // enables immediate logout, after updating the user's stat.
+                options.ValidationInterval = TimeSpan.Zero;
+            });
+
             //services.ConfigureApplicationCookie(options => options.LoginPath = "");
 
             services.AddHttpClient();
@@ -59,7 +67,10 @@ namespace FactorioWebInterface
 
             services.AddSingleton<IDiscordBot>(new DiscordBot(Configuration));
 
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
+            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1).AddRazorPagesOptions(options =>
+            {
+                options.Conventions.AddPageRoute("/Admin/Servers", "/Admin");
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

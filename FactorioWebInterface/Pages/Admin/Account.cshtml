@@ -1,0 +1,68 @@
+﻿@page
+@model FactorioWebInterface.Pages.Admin.AccountModel
+@{
+    ViewData["Title"] = "Account";
+}
+
+<h2>Account</h2>
+
+<div class="row">
+    <div class="col-md-4">
+        <h3>Username: @Model.UserName</h3>
+
+        @if (Model.HasPassword)
+        {
+            <form method="post">
+                <h4>Change password</h4>
+                <hr />
+                <div asp-validation-summary="All" class="text-danger"></div>
+                <div class="form-group">
+                    <label asp-for="Input.CurrentPassword"></label>
+                    <input asp-for="Input.CurrentPassword" class="form-control" />
+                    <span asp-validation-for="Input.Password" class="text-danger"></span>
+                </div>
+                <div class="form-group">
+                    <label asp-for="Input.Password"></label>
+                    <input asp-for="Input.Password" class="form-control" />
+                    <span asp-validation-for="Input.Password" class="text-danger"></span>
+                </div>
+                <div class="form-group">
+                    <label asp-for="Input.ConfirmPassword"></label>
+                    <input asp-for="Input.ConfirmPassword" class="form-control" />
+                    <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
+                </div>
+                <button type="submit" asp-page-handler="UpdatePassword" class="btn btn-default">Update Password</button>
+            </form>
+        }
+        else
+        {
+            <form method="post">
+                <h4>Create a password for your account.</h4>
+                <p>This let's you sign in without discord and gives sftp access (not implemnted yet.)</p>
+                <hr />
+                <div asp-validation-summary="All" class="text-danger"></div>
+                <div class="form-group">
+                    <label asp-for="Input.Password"></label>
+                    <input asp-for="Input.Password" class="form-control" />
+                    <span asp-validation-for="Input.Password" class="text-danger"></span>
+                </div>
+                <div class="form-group">
+                    <label asp-for="Input.ConfirmPassword"></label>
+                    <input asp-for="Input.ConfirmPassword" class="form-control" />
+                    <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
+                </div>
+                <button type="submit" asp-page-handler="CreatePassword" class="btn btn-default">Create Password</button>
+            </form>
+        }
+
+        @if (Model.PasswordUpdated)
+        {
+            <hr />
+            <p>Password updated</p>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+}

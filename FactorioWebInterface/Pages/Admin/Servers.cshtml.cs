@@ -7,11 +7,11 @@ using System.Threading.Tasks;
 
 namespace FactorioWebInterface.Pages.Admin
 {
-    public class IndexModel : PageModel
+    public class ServersModel : PageModel
     {
         private readonly UserManager<ApplicationUser> _userManger;
 
-        public IndexModel(UserManager<ApplicationUser> userManger)
+        public ServersModel(UserManager<ApplicationUser> userManger)
         {
             _userManger = userManger;
         }
@@ -20,15 +20,15 @@ namespace FactorioWebInterface.Pages.Admin
 
         public async Task<IActionResult> OnGetAsync(int? id)
         {
+            ID = id ?? 1;            
+            
             var user = await _userManger.GetUserAsync(User);
 
             if (user == null)
             {
-                HttpContext.Session.SetString("returnUrl", "Index/2");
-                return RedirectToPage("Login");
+                HttpContext.Session.SetString("returnUrl", "Servers/" + ID);
+                return RedirectToPage("SignIn");
             }
-
-            ID = id ?? 1;
 
             return Page();
         }

@@ -15,22 +15,20 @@ using System.Threading.Tasks;
 
 namespace FactorioWebInterface.Pages.Admin
 {
-    public class LoginModel : PageModel
+    public class SigninModel : PageModel
     {
-        private static readonly string redirect_url = "https://localhost:44303/admin/login";
-
         private readonly IConfiguration _configuration;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly UserManager<ApplicationUser> _userManager;
-        private readonly ILogger<LoginModel> _logger;
+        private readonly ILogger<SigninModel> _logger;
         private readonly IHttpClientFactory _clientFactory;
         private readonly IDiscordBot _discordBot;
 
-        public LoginModel(
+        public SigninModel(
             IConfiguration configuration,
             SignInManager<ApplicationUser> signInManager,
             UserManager<ApplicationUser> userManager,
-            ILogger<LoginModel> logger,
+            ILogger<SigninModel> logger,
             IHttpClientFactory clientFactory,
             IDiscordBot discordBot)
         {
@@ -41,6 +39,8 @@ namespace FactorioWebInterface.Pages.Admin
             _clientFactory = clientFactory;
             _discordBot = discordBot;
         }
+
+        private string RedirectUrl => $"{Request.Scheme}://{Request.Host}/admin/signin";
 
         [BindProperty]
         public InputModel Input { get; set; }
@@ -57,32 +57,40 @@ namespace FactorioWebInterface.Pages.Admin
             public string Password { get; set; }
         }
 
+        private async Task<bool> AllowedToSingIn(ApplicationUser user)
+        {
+            if (user.Suspended)
+            {
+                ModelState.AddModelError(string.Empty, "The account has been suspended.");
+                return false;
+            }
+
+            if (!await _userManager.IsInRoleAsync(user, Constants.AdminRole))
+            {
+                ModelState.AddModelError(string.Empty, "The account does not have the Admin role.");
+                return false;
+            }
+
+            return true;
+        }
+
         public async Task<IActionResult> OnGetAsync(string code)
         {
-            await _signInManager.SignOutAsync();
-
             if (code == null)
             {
-                //var client2 = _clientFactory.CreateClient();
-                //var guildID = _configuration[Constants.GuildIDKey];
-                //var botToken = _configuration[Constants.DiscordBotTokenKey];
-                //var guildRequest = new HttpRequestMessage(HttpMethod.Get, $"https://discordapp.com/api/guilds/{guildID}/roles");
-                //guildRequest.Headers.Add("Authorization", "Bot " + botToken);
-
-                //var guildResult = await client2.SendAsync(guildRequest);
-                //var guildContent = await guildResult.Content.ReadAsAsync<JArray>();
-
                 return Page();
             }
 
             // We have now been redirected from the discord authorization.
+
+            await _signInManager.SignOutAsync();
 
             var client = _clientFactory.CreateClient();
             string clientID = _configuration[Constants.ClientIDKey];
             string clientSecret = _configuration[Constants.ClientSecretKey];
 
             var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "https://discordapp.com/api/oauth2/token");
-            string parameters = $"client_id={clientID}&client_secret={clientSecret}&grant_type=authorization_code&code={code}&redirect_uri={redirect_url}";
+            string parameters = $"client_id={clientID}&client_secret={clientSecret}&grant_type=authorization_code&code={code}&redirect_uri={RedirectUrl}";
             tokenRequest.Content = new StringContent(parameters, Encoding.UTF8, "application/x-www-form-urlencoded");
 
             var tokenResult = await client.SendAsync(tokenRequest);
@@ -108,21 +116,22 @@ namespace FactorioWebInterface.Pages.Admin
             }
 
             var userContent = await userResult.Content.ReadAsAsync<JObject>();
-            var userID = userContent.Value<string>("id");
+            var userId = userContent.Value<string>("id");
 
-            var isAdmin = await _discordBot.IsAdminRoleAsync(userID);
-            if (!isAdmin)
-            {
-                ModelState.AddModelError(string.Empty, "Discord authorization failed - not an admin member of the Redmew guild.");
-                return Page();
-            }
-
-            var user = await _userManager.FindByIdAsync(userID);
+            var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
             {
+                // If the user doesn't have an account make one, but only if they have the admin role in the Redmew guild.
+                var isAdmin = await _discordBot.IsAdminRoleAsync(userId);
+                if (!isAdmin)
+                {
+                    ModelState.AddModelError(string.Empty, "Discord authorization failed - not an admin member of the Redmew guild.");
+                    return Page();
+                }
+
                 user = new ApplicationUser()
                 {
-                    Id = userID,
+                    Id = userId,
                     UserName = userContent.Value<string>("username")
                 };
                 var result = await _userManager.CreateAsync(user);
@@ -143,34 +152,46 @@ namespace FactorioWebInterface.Pages.Admin
                     return Page();
                 }
             }
+            else if (!await AllowedToSingIn(user))
+            {
+                return Page();
+            }
 
             await _signInManager.SignInAsync(user, isPersistent: false);
+            _logger.LogInformation($"User {user.UserName} signed in using discord.");
 
-            string returnUrl = HttpContext.Session.GetString("returnUrl") ?? "Index";
+            string returnUrl = HttpContext.Session.GetString("returnUrl") ?? "Servers";
             return Redirect(returnUrl);
         }
 
         public async Task<IActionResult> OnPostAsync()
         {
-            if (ModelState.IsValid)
+            await _signInManager.SignOutAsync();
+
+            if (!ModelState.IsValid)
             {
-                var result = await _signInManager.PasswordSignInAsync(Input.UserName, Input.Password, isPersistent: false, lockoutOnFailure: false);
-                if (result.Succeeded)
-                {
-                    _logger.LogInformation("User logged in.");
-
-                    string returnUrl = HttpContext.Session.GetString("returnUrl") ?? "Index";
-
-                    return Redirect(returnUrl);
-                }
-                else
-                {
-                    ModelState.AddModelError(string.Empty, "Invalid login attempt.");
-                    return Page();
-                }
+                ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+                return Page();
             }
 
-            // If we got this far, something failed, redisplay form
+            var user = await _userManager.FindByNameAsync(Input.UserName);
+
+            if (!await AllowedToSingIn(user))
+            {
+                return Page();
+            }
+
+            var result = await _signInManager.PasswordSignInAsync(Input.UserName, Input.Password, isPersistent: false, lockoutOnFailure: false);
+            if (result.Succeeded)
+            {
+                _logger.LogInformation($"User {user.UserName} signed in using password.");
+
+                string returnUrl = HttpContext.Session.GetString("returnUrl") ?? "Servers";
+
+                return Redirect(returnUrl);
+            }
+
+            // If we got this far, something failed, redisplay form.
             return Page();
         }
 
@@ -178,7 +199,7 @@ namespace FactorioWebInterface.Pages.Admin
         {
             string clientID = _configuration[Constants.ClientIDKey];
 
-            Response.Redirect($"https://discordapp.com/api/oauth2/authorize?response_type=code&client_id={clientID}&scope=identify%20guilds.join&redirect_uri={redirect_url}");
+            Response.Redirect($"https://discordapp.com/api/oauth2/authorize?response_type=code&client_id={clientID}&scope=identify%20guilds.join&redirect_uri={RedirectUrl}");
             return Page();
         }
     }

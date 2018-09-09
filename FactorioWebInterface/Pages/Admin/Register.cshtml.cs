@@ -14,12 +14,12 @@ namespace FactorioWebInterface.Pages.Admin
     {
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly UserManager<ApplicationUser> _userManager;
-        private readonly ILogger<LoginModel> _logger;
+        private readonly ILogger<SigninModel> _logger;
 
         public RegisterModel(
             UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
-            ILogger<LoginModel> logger
+            ILogger<SigninModel> logger
             )
         {
             _userManager = userManager;

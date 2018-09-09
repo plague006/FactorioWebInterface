@@ -29,8 +29,6 @@ namespace FactorioWebInterface.Pages
         {
             RemoveRoles();
 
-
-
             return Page();
         }
 

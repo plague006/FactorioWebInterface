@@ -1,6 +1,4 @@
-﻿using FactorioWebInterface.Data;
-using FactorioWebInterface.Models;
-using Microsoft.AspNetCore;
+﻿using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,9 +11,7 @@ namespace FactorioWebInterface
         {
             var host = CreateWebHostBuilder(args).Build();
 
-            //SeedData(host);
-
-            //Bot.StartAsync().GetAwaiter().GetResult();
+            //SeedData(host);            
 
             host.Run();
         }
