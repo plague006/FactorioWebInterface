@@ -190,9 +190,11 @@ namespace FactorioWebInterface.Pages.Admin
 
                 return Redirect(returnUrl);
             }
-
-            // If we got this far, something failed, redisplay form.
-            return Page();
+            else
+            {
+                ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+                return Page();
+            }
         }
 
         public IActionResult OnPostDiscord()
