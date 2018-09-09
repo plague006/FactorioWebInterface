@@ -1,0 +1,185 @@
+﻿using FactorioWebInterface.Data;
+using FactorioWebInterface.Models;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Linq;
+using System.ComponentModel.DataAnnotations;
+using System.Net.Http;
+using System.Text;
+using System.Threading.Tasks;
+
+
+namespace FactorioWebInterface.Pages.Admin
+{
+    public class LoginModel : PageModel
+    {
+        private static readonly string redirect_url = "https://localhost:44303/admin/login";
+
+        private readonly IConfiguration _configuration;
+        private readonly SignInManager<ApplicationUser> _signInManager;
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly ILogger<LoginModel> _logger;
+        private readonly IHttpClientFactory _clientFactory;
+        private readonly IDiscordBot _discordBot;
+
+        public LoginModel(
+            IConfiguration configuration,
+            SignInManager<ApplicationUser> signInManager,
+            UserManager<ApplicationUser> userManager,
+            ILogger<LoginModel> logger,
+            IHttpClientFactory clientFactory,
+            IDiscordBot discordBot)
+        {
+            _configuration = configuration;
+            _signInManager = signInManager;
+            _userManager = userManager;
+            _logger = logger;
+            _clientFactory = clientFactory;
+            _discordBot = discordBot;
+        }
+
+        [BindProperty]
+        public InputModel Input { get; set; }
+
+        public string ReturnUrl { get; set; }
+
+        public class InputModel
+        {
+            [Required]
+            public string UserName { get; set; }
+
+            [Required]
+            [DataType(DataType.Password)]
+            public string Password { get; set; }
+        }
+
+        public async Task<IActionResult> OnGetAsync(string code)
+        {
+            await _signInManager.SignOutAsync();
+
+            if (code == null)
+            {
+                //var client2 = _clientFactory.CreateClient();
+                //var guildID = _configuration[Constants.GuildIDKey];
+                //var botToken = _configuration[Constants.DiscordBotTokenKey];
+                //var guildRequest = new HttpRequestMessage(HttpMethod.Get, $"https://discordapp.com/api/guilds/{guildID}/roles");
+                //guildRequest.Headers.Add("Authorization", "Bot " + botToken);
+
+                //var guildResult = await client2.SendAsync(guildRequest);
+                //var guildContent = await guildResult.Content.ReadAsAsync<JArray>();
+
+                return Page();
+            }
+
+            // We have now been redirected from the discord authorization.
+
+            var client = _clientFactory.CreateClient();
+            string clientID = _configuration[Constants.ClientIDKey];
+            string clientSecret = _configuration[Constants.ClientSecretKey];
+
+            var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "https://discordapp.com/api/oauth2/token");
+            string parameters = $"client_id={clientID}&client_secret={clientSecret}&grant_type=authorization_code&code={code}&redirect_uri={redirect_url}";
+            tokenRequest.Content = new StringContent(parameters, Encoding.UTF8, "application/x-www-form-urlencoded");
+
+            var tokenResult = await client.SendAsync(tokenRequest);
+
+            if (!tokenResult.IsSuccessStatusCode)
+            {
+                ModelState.AddModelError(string.Empty, "Discord authorization failed.");
+                return Page();
+            }
+
+            var content = await tokenResult.Content.ReadAsAsync<JObject>();
+            string access_token = content.Value<string>("access_token");
+
+            var userRequest = new HttpRequestMessage(HttpMethod.Get, "https://discordapp.com/api/users/@me");
+            userRequest.Headers.Add("Authorization", "Bearer " + access_token);
+
+            var userResult = await client.SendAsync(userRequest);
+
+            if (!userResult.IsSuccessStatusCode)
+            {
+                ModelState.AddModelError(string.Empty, "Discord authorization failed.");
+                return Page();
+            }
+
+            var userContent = await userResult.Content.ReadAsAsync<JObject>();
+            var userID = userContent.Value<string>("id");
+
+            var isAdmin = await _discordBot.IsAdminRoleAsync(userID);
+            if (!isAdmin)
+            {
+                ModelState.AddModelError(string.Empty, "Discord authorization failed - not an admin member of the Redmew guild.");
+                return Page();
+            }
+
+            var user = await _userManager.FindByIdAsync(userID);
+            if (user == null)
+            {
+                user = new ApplicationUser()
+                {
+                    Id = userID,
+                    UserName = userContent.Value<string>("username")
+                };
+                var result = await _userManager.CreateAsync(user);
+                if (!result.Succeeded)
+                {
+                    foreach (var error in result.Errors)
+                        ModelState.AddModelError(string.Empty, error.Description);
+
+                    return Page();
+                }
+
+                result = await _userManager.AddToRoleAsync(user, Constants.AdminRole);
+                if (!result.Succeeded)
+                {
+                    foreach (var error in result.Errors)
+                        ModelState.AddModelError(string.Empty, error.Description);
+
+                    return Page();
+                }
+            }
+
+            await _signInManager.SignInAsync(user, isPersistent: false);
+
+            string returnUrl = HttpContext.Session.GetString("returnUrl") ?? "Index";
+            return Redirect(returnUrl);
+        }
+
+        public async Task<IActionResult> OnPostAsync()
+        {
+            if (ModelState.IsValid)
+            {
+                var result = await _signInManager.PasswordSignInAsync(Input.UserName, Input.Password, isPersistent: false, lockoutOnFailure: false);
+                if (result.Succeeded)
+                {
+                    _logger.LogInformation("User logged in.");
+
+                    string returnUrl = HttpContext.Session.GetString("returnUrl") ?? "Index";
+
+                    return Redirect(returnUrl);
+                }
+                else
+                {
+                    ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+                    return Page();
+                }
+            }
+
+            // If we got this far, something failed, redisplay form
+            return Page();
+        }
+
+        public IActionResult OnPostDiscord()
+        {
+            string clientID = _configuration[Constants.ClientIDKey];
+
+            Response.Redirect($"https://discordapp.com/api/oauth2/authorize?response_type=code&client_id={clientID}&scope=identify%20guilds.join&redirect_uri={redirect_url}");
+            return Page();
+        }
+    }
+}
