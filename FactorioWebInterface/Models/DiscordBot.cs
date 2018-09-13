@@ -32,10 +32,14 @@ namespace FactorioWebInterface.Models
             DiscordClient.MessageCreated += async e =>
             {
                 if (e.Message.Content.ToLower().StartsWith("!hamping"))
+                {
                     await e.Message.RespondAsync("hampong!");
+                }
             };
 
             DiscordClient.ConnectAsync().GetAwaiter().GetResult();
+
+
         }
 
         /// <summary>

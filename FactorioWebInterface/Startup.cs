@@ -1,4 +1,5 @@
 using FactorioWebInterface.Data;
+using FactorioWebInterface.Hubs;
 using FactorioWebInterface.Models;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -23,8 +24,6 @@ namespace FactorioWebInterface
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-
-
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlite("Data Source=FactorioWebInterface.db"));
 
@@ -66,11 +65,15 @@ namespace FactorioWebInterface
             services.AddMemoryCache();
 
             services.AddSingleton<IDiscordBot>(new DiscordBot(Configuration));
+            services.AddSingleton<IFactorioServerManager, FactorioServerManager>();
+
 
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1).AddRazorPagesOptions(options =>
             {
                 options.Conventions.AddPageRoute("/Admin/Servers", "/Admin");
             });
+
+            services.AddSignalR();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -93,6 +96,12 @@ namespace FactorioWebInterface
             app.UseAuthentication();
 
             app.UseSession();
+
+            app.UseSignalR(routes =>
+            {
+                routes.MapHub<ChatHub>("/ChatHub");
+                routes.MapHub<ServerHub>("/ServerHub");
+            });
 
             app.UseMvc();
         }

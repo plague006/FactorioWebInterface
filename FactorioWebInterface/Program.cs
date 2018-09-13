@@ -9,9 +9,9 @@ namespace FactorioWebInterface
     {
         public static void Main(string[] args)
         {
-            var host = CreateWebHostBuilder(args).Build();
-
-            //SeedData(host);            
+            var host = CreateWebHostBuilder(args).Build();            
+            
+            //SeedData(host);                 
 
             host.Run();
         }
