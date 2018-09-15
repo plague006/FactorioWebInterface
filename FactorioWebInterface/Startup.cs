@@ -64,9 +64,9 @@ namespace FactorioWebInterface
             services.AddSession();
             services.AddMemoryCache();
 
-            services.AddSingleton<IDiscordBot>(new DiscordBot(Configuration));
+            services.AddSingleton<IDiscordBot, DiscordBot>();
+            services.AddSingleton<IFactorioProcessRelay, FactorioProcessRelay>();
             services.AddSingleton<IFactorioServerManager, FactorioServerManager>();
-
 
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1).AddRazorPagesOptions(options =>
             {
@@ -100,7 +100,7 @@ namespace FactorioWebInterface
             app.UseSignalR(routes =>
             {
                 routes.MapHub<ChatHub>("/ChatHub");
-                routes.MapHub<ServerHub>("/ServerHub");
+                routes.MapHub<FactorioProcessHub>("/ServerHub");
             });
 
             app.UseMvc();

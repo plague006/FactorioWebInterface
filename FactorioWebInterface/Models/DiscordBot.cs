@@ -35,6 +35,11 @@ namespace FactorioWebInterface.Models
                 {
                     await e.Message.RespondAsync("hampong!");
                 }
+
+                if (e.Message.Content.ToLower().StartsWith("!humping"))
+                {
+                    await e.Message.RespondAsync("humpong!");
+                }
             };
 
             DiscordClient.ConnectAsync().GetAwaiter().GetResult();

@@ -46,8 +46,13 @@ namespace FactorioWebInterface.Pages.Admin
 
         public async Task<IActionResult> OnPostStartAsync()
         {
-            var server = _factorioServerManager.GetServer(1);
-            server.Start(Input.Id);
+            //var server = _factorioServerManager.GetServer(1);
+            //server.Start(Input.Id);
+
+            if (Input.Id != 0)
+            {
+                _factorioServerManager.StartWrapper(Input.Id);
+            }
 
             return Page();
         }

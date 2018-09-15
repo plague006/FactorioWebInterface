@@ -1,0 +1,132 @@
+2018-09-15 20:18:16: Starting wrapper 1 C:/factorio/Factorio1/bin/x64/factorio.exe --start-server C:/factorio/Factorio1/bin/x64/test.zip --server-settings C:/factorio/Factorio1/bin/x64/server-settings.json
+2018-09-15 20:18:19: Connected
+2018-09-15 20:18:19: Starting factorio process
+fileName: C:/factorio/Factorio1/bin/x64/factorio.exe arguments: --start-server C:/factorio/Factorio1/bin/x64/test.zip --server-settings C:/factorio/Factorio1/bin/x64/server-settings.json 
+2018-09-15 20:18:19: Started factorio process
+2018-09-15 20:18:19:    0.000 2018-09-15 21:18:19; Factorio 0.16.51 (build 36654, win64, alpha)
+2018-09-15 20:18:19:    0.000 Operating system: Windows 10 (version 1803) 
+2018-09-15 20:18:19:    0.000 Program arguments: "C:/factorio/Factorio1/bin/x64/factorio.exe" "--start-server" "C:/factorio/Factorio1/bin/x64/test.zip" "--server-settings" "C:/factorio/Factorio1/bin/x64/server-settings.json" 
+2018-09-15 20:18:19:    0.001 Read data path: C:/factorio/Factorio1/data
+2018-09-15 20:18:19:    0.001 Write data path: C:/factorio/Factorio1 [722253/975394MB]
+2018-09-15 20:18:19:    0.001 Binaries path: C:/factorio/Factorio1/bin
+2018-09-15 20:18:19:    0.012 System info: [CPU: Intel(R) Core(TM) i7-8700K CPU @ 3.70GHz, 12 cores, RAM: 8432/16324 MB, page: 11276/18756 MB, virtual: 4254/134217727 MB, extended virtual: 0 MB]
+2018-09-15 20:18:19:    0.013 Running in headless mode
+2018-09-15 20:18:19:    0.021 Loading mod core 0.0.0 (data.lua)
+2018-09-15 20:18:19:    0.062 Loading mod base 0.16.51 (data.lua)
+2018-09-15 20:18:19:    0.375 Loading mod base 0.16.51 (data-updates.lua)
+2018-09-15 20:18:19:    0.412 Checksum for core: 840319042
+2018-09-15 20:18:19:    0.412 Checksum of base: 3323233190
+2018-09-15 20:18:19:    0.490 Info PlayerData.cpp:65: Local player-data.json available, timestamp 1536970169
+2018-09-15 20:18:19:    0.490 Info PlayerData.cpp:72: Cloud player-data.json unavailable
+2018-09-15 20:18:19:    0.507 Custom inputs active: 0
+2018-09-15 20:18:20:    1.426 0 packages available to download (experimental updates disabled).
+2018-09-15 20:18:20:    1.428 Factorio initialised
+2018-09-15 20:18:20:    1.443 Info ServerSynchronizer.cpp:29: nextHeartbeatSequenceNumber(0) initialized Synchronizer nextTickClosureTick(0).
+2018-09-15 20:18:20:    1.443 Info ServerMultiplayerManager.cpp:699: mapTick(4294967295) changing state from(Ready) to(PreparedToHostGame)
+2018-09-15 20:18:20:    1.443 Info ServerMultiplayerManager.cpp:699: mapTick(4294967295) changing state from(PreparedToHostGame) to(CreatingGame)
+2018-09-15 20:18:20:    1.444 Loading map C:\factorio\Factorio1\bin\x64\test.zip: 1243680 bytes.
+2018-09-15 20:18:20:    1.582 Loading Level.dat: 966440 bytes.
+2018-09-15 20:18:20:    1.586 Info Scenario.cpp:136: Map version 0.16.51-0
+2018-09-15 20:18:20:    1.604 Loading script.dat: 176 bytes.
+2018-09-15 20:18:20:    1.611 Checksum for script C:/factorio/Factorio1/temp/currently-playing/control.lua: 950616531
+2018-09-15 20:18:20:    1.611 Info UDPSocket.cpp:27: Opening socket at (IP ADDR:({0.0.0.0:34197}))
+2018-09-15 20:18:20:    1.612 Hosting game at IP ADDR:({0.0.0.0:34197})
+2018-09-15 20:18:20:    1.612 Info HttpSharedState.cpp:54: Downloading https://auth.factorio.com/generate-server-padlock-2
+2018-09-15 20:18:21:    1.975 Info HttpSharedState.cpp:145: Status code: 200
+2018-09-15 20:18:21:    1.975 Info AuthServerConnector.cpp:109: Obtained serverPadlock for serverHash (iOiIHlJrLtoHkUHghX0Y84uaT7iS52X7) from the auth server.
+2018-09-15 20:18:21:    1.975 Info ServerMultiplayerManager.cpp:699: mapTick(1) changing state from(CreatingGame) to(InGame)
+2018-09-15 20:18:21:    1.978 Info ServerRouter.cpp:596: Asking pingpong servers (pingpong1.factorio.com:34197, pingpong2.factorio.com:34197) for own address
+2018-09-15 20:18:21:    1.978 Info UDPSocket.cpp:39: Opening socket for broadcast
+2018-09-15 20:18:21:    2.067 Info ServerRouter.cpp:491: Own address is IP ADDR:({5.67.84.11:34197})
+2018-09-15 20:18:21:    2.453 Info MatchingServer.cpp:86: Matching server game `3194484` has been created.
+2018-09-15 20:18:21:    2.456 Info ServerMultiplayerManager.cpp:628: Matching server connection resumed
+2018-09-15 20:18:35:   16.399 ConnectionRequestReplyConfirm (type(ConnectionRequestReplyConfirm) ) from(IP ADDR:({192.168.0.1:50846}))
+2018-09-15 20:18:35:   16.399 Refusing connection for address (IP ADDR:({192.168.0.1:50846})), username (grilledham). UserVerificationMissing
+2018-09-15 20:18:36:   16.874 ConnectionRequestReplyConfirm (type(ConnectionRequestReplyConfirm) ) from(IP ADDR:({192.168.0.1:50847}))
+2018-09-15 20:18:36:   16.875 Refusing connection for address (IP ADDR:({192.168.0.1:50847})), username (grilledham). PasswordMissing
+2018-09-15 20:18:36:   17.299 Warning TransmissionControlHelper.cpp:176: Fragment 0001 failed too many times
+2018-09-15 20:18:36:   17.770 Warning TransmissionControlHelper.cpp:176: Fragment 0005 failed too many times
+2018-09-15 20:18:38:   19.480 ConnectionRequestReplyConfirm (type(ConnectionRequestReplyConfirm) ) from(IP ADDR:({192.168.0.1:50848}))
+2018-09-15 20:18:38:   19.480 Info ServerRouter.cpp:409: Replying to connectionRequest for address(IP ADDR:({192.168.0.1:50848})).
+2018-09-15 20:18:38:   19.480 Info ServerSynchronizer.cpp:557: nextHeartbeatSequenceNumber(516) adding peer(1)
+2018-09-15 20:18:38:   19.501 Info ServerMultiplayerManager.cpp:699: mapTick(1049) changing state from(InGame) to(InGameSavingMap)
+2018-09-15 20:18:38:   19.501 Info ServerMultiplayerManager.cpp:795: mapTick(1049) received stateChanged peerID(1) oldState(Ready) newState(ConnectedWaitingForMap)
+2018-09-15 20:18:38:   19.705 Info ServerMultiplayerManager.cpp:855: MapTick(1049) Serving map(C:\factorio\Factorio1\temp\mp-save-0.zip) for peer(1) size(777554) crc(2048589001)
+2018-09-15 20:18:38:   19.705 Info ServerMultiplayerManager.cpp:699: mapTick(1049) changing state from(InGameSavingMap) to(InGame)
+2018-09-15 20:18:38:   19.789 Info ServerMultiplayerManager.cpp:795: mapTick(1053) received stateChanged peerID(1) oldState(ConnectedWaitingForMap) newState(ConnectedDownloadingMap)
+2018-09-15 20:18:39:   19.929 Info ServerMultiplayerManager.cpp:795: mapTick(1061) received stateChanged peerID(1) oldState(ConnectedDownloadingMap) newState(ConnectedLoadingMap)
+2018-09-15 20:18:39:   20.082 Info ServerMultiplayerManager.cpp:795: mapTick(1070) received stateChanged peerID(1) oldState(ConnectedLoadingMap) newState(TryingToCatchUp)
+2018-09-15 20:18:39:   20.115 Info ServerMultiplayerManager.cpp:795: mapTick(1072) received stateChanged peerID(1) oldState(TryingToCatchUp) newState(WaitingForCommandToStartSendingTickClosures)
+2018-09-15 20:18:39:   20.115 Info GameActionHandler.cpp:3476: MapTick (1072) processed PlayerJoinGame peerID(1) playerIndex(0) mode(connect ) 
+2018-09-15 20:18:39:   20.182 Info ServerMultiplayerManager.cpp:795: mapTick(1076) received stateChanged peerID(1) oldState(WaitingForCommandToStartSendingTickClosures) newState(InGame)
+2018-09-15 20:18:39: 2018-09-15 21:18:39 [JOIN] grilledham joined the game
+2018-09-15 20:18:42: 2018-09-15 21:18:42 [CHAT] grilledham: cake
+2018-09-15 20:18:55: 2018-09-15 21:18:55 [CHAT] grilledham: cake
+2018-09-15 20:19:17: Lost connection
+2018-09-15 20:21:39: Starting wrapper 1 C:/factorio/Factorio1/bin/x64/factorio.exe --start-server C:/factorio/Factorio1/bin/x64/test.zip --server-settings C:/factorio/Factorio1/bin/x64/server-settings.json
+2018-09-15 20:21:41: Connected
+2018-09-15 20:21:41: Starting factorio process
+fileName: C:/factorio/Factorio1/bin/x64/factorio.exe arguments: --start-server C:/factorio/Factorio1/bin/x64/test.zip --server-settings C:/factorio/Factorio1/bin/x64/server-settings.json 
+2018-09-15 20:21:41: Started factorio process
+2018-09-15 20:21:41:    0.000 2018-09-15 21:21:41; Factorio 0.16.51 (build 36654, win64, alpha)
+2018-09-15 20:21:41:    0.000 Operating system: Windows 10 (version 1803) 
+2018-09-15 20:21:41:    0.000 Program arguments: "C:/factorio/Factorio1/bin/x64/factorio.exe" "--start-server" "C:/factorio/Factorio1/bin/x64/test.zip" "--server-settings" "C:/factorio/Factorio1/bin/x64/server-settings.json" 
+2018-09-15 20:21:41:    0.001 Read data path: C:/factorio/Factorio1/data
+2018-09-15 20:21:41:    0.001 Write data path: C:/factorio/Factorio1 [722240/975394MB]
+2018-09-15 20:21:41:    0.001 Binaries path: C:/factorio/Factorio1/bin
+2018-09-15 20:21:41:    0.005 System info: [CPU: Intel(R) Core(TM) i7-8700K CPU @ 3.70GHz, 12 cores, RAM: 8540/16324 MB, page: 11787/18756 MB, virtual: 4254/134217727 MB, extended virtual: 0 MB]
+2018-09-15 20:21:41:    0.005 Running in headless mode
+2018-09-15 20:21:41:    0.008 Loading mod core 0.0.0 (data.lua)
+2018-09-15 20:21:41:    0.017 Loading mod base 0.16.51 (data.lua)
+2018-09-15 20:21:42:    0.110 Loading mod base 0.16.51 (data-updates.lua)
+2018-09-15 20:21:42:    0.141 Checksum for core: 840319042
+2018-09-15 20:21:42:    0.141 Checksum of base: 3323233190
+2018-09-15 20:21:42:    0.198 Info PlayerData.cpp:65: Local player-data.json available, timestamp 1537042718
+2018-09-15 20:21:42:    0.198 Info PlayerData.cpp:72: Cloud player-data.json unavailable
+2018-09-15 20:21:42:    0.199 Custom inputs active: 0
+2018-09-15 20:21:43:    1.311 0 packages available to download (experimental updates disabled).
+2018-09-15 20:21:43:    1.312 Factorio initialised
+2018-09-15 20:21:43:    1.314 Info ServerSynchronizer.cpp:29: nextHeartbeatSequenceNumber(0) initialized Synchronizer nextTickClosureTick(0).
+2018-09-15 20:21:43:    1.315 Info ServerMultiplayerManager.cpp:699: mapTick(4294967295) changing state from(Ready) to(PreparedToHostGame)
+2018-09-15 20:21:43:    1.315 Info ServerMultiplayerManager.cpp:699: mapTick(4294967295) changing state from(PreparedToHostGame) to(CreatingGame)
+2018-09-15 20:21:43:    1.315 Loading map C:\factorio\Factorio1\bin\x64\test.zip: 1243680 bytes.
+2018-09-15 20:21:43:    1.399 Loading Level.dat: 966440 bytes.
+2018-09-15 20:21:43:    1.402 Info Scenario.cpp:136: Map version 0.16.51-0
+2018-09-15 20:21:43:    1.421 Loading script.dat: 176 bytes.
+2018-09-15 20:21:43:    1.423 Checksum for script C:/factorio/Factorio1/temp/currently-playing/control.lua: 950616531
+2018-09-15 20:21:43:    1.423 Info UDPSocket.cpp:27: Opening socket at (IP ADDR:({0.0.0.0:34197}))
+2018-09-15 20:21:43:    1.423 Hosting game at IP ADDR:({0.0.0.0:34197})
+2018-09-15 20:21:43:    1.423 Info HttpSharedState.cpp:54: Downloading https://auth.factorio.com/generate-server-padlock-2
+2018-09-15 20:21:43:    1.855 Info HttpSharedState.cpp:145: Status code: 200
+2018-09-15 20:21:43:    1.855 Info AuthServerConnector.cpp:109: Obtained serverPadlock for serverHash (sJDl0LdR8qTSGGecmjjSoYWy4rw9kWGp) from the auth server.
+2018-09-15 20:21:43:    1.855 Info ServerMultiplayerManager.cpp:699: mapTick(1) changing state from(CreatingGame) to(InGame)
+2018-09-15 20:21:43:    1.855 Info ServerRouter.cpp:596: Asking pingpong servers (pingpong1.factorio.com:34197, pingpong2.factorio.com:34197) for own address
+2018-09-15 20:21:43:    1.856 Info UDPSocket.cpp:39: Opening socket for broadcast
+2018-09-15 20:21:43:    1.943 Info ServerRouter.cpp:491: Own address is IP ADDR:({5.67.84.11:34197})
+2018-09-15 20:21:44:    2.326 Info MatchingServer.cpp:86: Matching server game `3194511` has been created.
+2018-09-15 20:21:44:    2.332 Info ServerMultiplayerManager.cpp:628: Matching server connection resumed
+2018-09-15 20:21:57:   15.191 ConnectionRequestReplyConfirm (type(ConnectionRequestReplyConfirm) ) from(IP ADDR:({192.168.0.1:56388}))
+2018-09-15 20:21:57:   15.194 Info ServerRouter.cpp:578: Generated hmac(LRofHf3S0BmuNXRmLW0Slw==) and serverKey(I2woLHhZB/2/oc+v+2GXOw==) for username(grilledham) differ. Generated from message(grilledham_cbLgXsEuu6Huto+MKTh9hVRNnwUM+amFJqMW9UwGAyk=_180915201838).
+2018-09-15 20:21:57:   15.194 Refusing connection for address (IP ADDR:({192.168.0.1:56388})), username (grilledham). UserVerificationMismatch
+2018-09-15 20:21:57:   15.669 ConnectionRequestReplyConfirm (type(ConnectionRequestReplyConfirm) ) from(IP ADDR:({192.168.0.1:56389}))
+2018-09-15 20:21:57:   15.670 Info ServerRouter.cpp:409: Replying to connectionRequest for address(IP ADDR:({192.168.0.1:56389})).
+2018-09-15 20:21:57:   15.670 Info ServerSynchronizer.cpp:557: nextHeartbeatSequenceNumber(407) adding peer(1)
+2018-09-15 20:21:57:   15.690 Info ServerMultiplayerManager.cpp:699: mapTick(828) changing state from(InGame) to(InGameSavingMap)
+2018-09-15 20:21:57:   15.706 Info ServerMultiplayerManager.cpp:795: mapTick(828) received stateChanged peerID(1) oldState(Ready) newState(ConnectedWaitingForMap)
+2018-09-15 20:21:57:   15.909 Info ServerMultiplayerManager.cpp:855: MapTick(828) Serving map(C:\factorio\Factorio1\temp\mp-save-0.zip) for peer(1) size(777551) crc(1404504558)
+2018-09-15 20:21:57:   15.909 Info ServerMultiplayerManager.cpp:699: mapTick(828) changing state from(InGameSavingMap) to(InGame)
+2018-09-15 20:21:57:   15.959 Info ServerMultiplayerManager.cpp:795: mapTick(830) received stateChanged peerID(1) oldState(ConnectedWaitingForMap) newState(ConnectedDownloadingMap)
+2018-09-15 20:21:58:   16.077 Warning TransmissionControlHelper.cpp:176: Fragment 0001 failed too many times
+2018-09-15 20:21:58:   16.162 Info ServerMultiplayerManager.cpp:795: mapTick(843) received stateChanged peerID(1) oldState(ConnectedDownloadingMap) newState(ConnectedLoadingMap)
+2018-09-15 20:21:58:   16.296 Info ServerMultiplayerManager.cpp:795: mapTick(851) received stateChanged peerID(1) oldState(ConnectedLoadingMap) newState(TryingToCatchUp)
+2018-09-15 20:21:58:   16.364 Info ServerMultiplayerManager.cpp:795: mapTick(855) received stateChanged peerID(1) oldState(TryingToCatchUp) newState(WaitingForCommandToStartSendingTickClosures)
+2018-09-15 20:21:58:   16.364 Info GameActionHandler.cpp:3476: MapTick (855) processed PlayerJoinGame peerID(1) playerIndex(0) mode(connect ) 
+2018-09-15 20:21:58:   16.431 Info ServerMultiplayerManager.cpp:795: mapTick(859) received stateChanged peerID(1) oldState(WaitingForCommandToStartSendingTickClosures) newState(InGame)
+2018-09-15 20:21:58: 2018-09-15 21:21:58 [JOIN] grilledham joined the game
+2018-09-15 20:22:01: 2018-09-15 21:22:01 [CHAT] grilledham: boo
+2018-09-15 20:22:04: bob
+2018-09-15 20:22:31: bill
+2018-09-15 20:22:52: bo
+2018-09-15 20:25:12: 2018-09-15 21:25:12 [CHAT] grilledham: g
+2018-09-15 20:25:47: Lost connection
+2018-09-15 20:26:20: Connected

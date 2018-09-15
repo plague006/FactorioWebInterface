@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore;
+﻿using FactorioWebInterface.Models;
+using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,8 +10,11 @@ namespace FactorioWebInterface
     {
         public static void Main(string[] args)
         {
-            var host = CreateWebHostBuilder(args).Build();            
-            
+            var host = CreateWebHostBuilder(args).Build();
+
+            // This makes sure the FactorioServerManger is started when the web interface starts
+            host.Services.GetService<IFactorioServerManager>();
+
             //SeedData(host);                 
 
             host.Run();
