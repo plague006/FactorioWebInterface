@@ -4,10 +4,12 @@ const CleanWebpackPlugin = require("clean-webpack-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 
 module.exports = {
-    entry: "./src/index.ts",
+    entry: {
+        servers: "./src/ts/servers.ts"
+    },
     output: {
         path: path.resolve(__dirname, "wwwroot"),
-        filename: "[name].js",
+        filename: "js/[name].js",
         publicPath: "/"
     },
     resolve: {
@@ -19,19 +21,19 @@ module.exports = {
                 test: /\.ts$/,
                 use: "ts-loader"
             },
-            {
-                test: /\.css$/,
-                use: [MiniCssExtractPlugin.loader, "css-loader"]
-            }
+            //{
+            //    test: /\.css$/,
+            //    use: [MiniCssExtractPlugin.loader, "css-loader"]
+            //}
         ]
     },
     plugins: [
-        new CleanWebpackPlugin(["wwwroot/*"]),
-        new HtmlWebpackPlugin({
-            template: "./src/index.html"
-        }),
-        new MiniCssExtractPlugin({
-            filename: "css/[name].css"
-        })
+        //new CleanWebpackPlugin(["wwwroot/*"]),
+        //new HtmlWebpackPlugin({
+        //    template: "./src/index.html"
+        //}),
+        //new MiniCssExtractPlugin({
+        //    filename: "css/[name].css"
+        //})
     ]
 };

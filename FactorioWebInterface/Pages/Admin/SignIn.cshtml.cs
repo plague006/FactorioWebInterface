@@ -176,8 +176,9 @@ namespace FactorioWebInterface.Pages.Admin
 
             var user = await _userManager.FindByNameAsync(Input.UserName);
 
-            if (!await AllowedToSingIn(user))
+            if (user == null || !await AllowedToSingIn(user))
             {
+                ModelState.AddModelError(string.Empty, "Invalid login attempt.");
                 return Page();
             }
 

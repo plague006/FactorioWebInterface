@@ -1,5 +1,4 @@
-﻿import "./css/main.css";
-import * as signalR from "@aspnet/signalr";
+﻿import * as signalR from "@aspnet/signalr";
 
 const divMessages: HTMLDivElement = document.querySelector("#divMessages");
 const tbMessage: HTMLInputElement = document.querySelector("#tbMessage");
@@ -30,7 +29,7 @@ tbMessage.addEventListener("keyup", (e: KeyboardEvent) => {
 
 btnSend.addEventListener("click", send);
 
-function send() {    
+function send() {
     connection.send("newMessage", username, tbMessage.value)
         .then(() => tbMessage.value = "");
 }

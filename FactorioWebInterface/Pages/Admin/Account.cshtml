@@ -4,6 +4,10 @@
     ViewData["Title"] = "Account";
 }
 
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+}
+
 <h2>Account</h2>
 
 <div class="row">
@@ -19,7 +23,7 @@
                 <div class="form-group">
                     <label asp-for="Input.CurrentPassword"></label>
                     <input asp-for="Input.CurrentPassword" class="form-control" />
-                    <span asp-validation-for="Input.Password" class="text-danger"></span>
+                    <span asp-validation-for="Input.CurrentPassword" class="text-danger"></span>
                 </div>
                 <div class="form-group">
                     <label asp-for="Input.Password"></label>
@@ -63,6 +67,4 @@
     </div>
 </div>
 
-@section Scripts {
-    @await Html.PartialAsync("_ValidationScriptsPartial")
-}
+

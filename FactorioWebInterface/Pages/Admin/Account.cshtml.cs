@@ -1,4 +1,5 @@
 ﻿using FactorioWebInterface.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -9,6 +10,7 @@ using System.Threading.Tasks;
 
 namespace FactorioWebInterface.Pages.Admin
 {
+    [Authorize(Roles ="Admin, Root")]
     public class AccountModel : PageModel
     {
         private readonly SignInManager<ApplicationUser> _signInManager;
