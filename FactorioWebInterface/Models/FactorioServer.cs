@@ -39,17 +39,19 @@ namespace FactorioWebInterface.Models
         {
             channel = await bot.DiscordClient.GetChannelAsync(487652968221376531);
 
-            bot.DiscordClient.MessageCreated += async e =>
+            bot.DiscordClient.MessageCreated += e =>
             {
                 if (e.Author.IsBot)
                 {
-                    return;
+                    return Task.FromResult(0);
                 }
 
                 if (e.Message.ChannelId == 487652968221376531)
                 {
                     SendMessage(e.Message.Content);
                 }
+
+                return Task.FromResult(0);
             };
         }
 

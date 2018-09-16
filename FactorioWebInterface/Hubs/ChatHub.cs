@@ -1,18 +1,16 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.AspNetCore.SignalR;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace FactorioWebInterface.Hubs
 {
-    [AllowAnonymous]
     public class ChatHub : Hub
     {
-        public async Task SendMessage(string user, string message)
+        public async Task NewMessage(string username, string message)
         {
-            await Clients.All.SendAsync("ReceiveMessage", user, message.Length);   
-
-            
-            
+            await Clients.All.SendAsync("messageReceived", username, message);
         }
     }
 }

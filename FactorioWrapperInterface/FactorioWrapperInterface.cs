@@ -2,14 +2,14 @@
 
 namespace FactorioWrapperInterface
 {
-    public interface IClientMethods
+    public interface IFactorioProcessClientMethods
     {
         Task SendToFactorio(string data);
         Task Stop();
         Task ForceStop();
     }
 
-    public interface IServerMethods
+    public interface IFactorioProcessServerMethods
     {
         Task RegisterServerId(string serverId);
         Task SendFactorioOutputData(string data);

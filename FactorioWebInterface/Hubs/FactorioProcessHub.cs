@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace FactorioWebInterface.Hubs
 {
     [AllowAnonymous]
-    public class FactorioProcessHub : Hub<IClientMethods>, IServerMethods
+    public class FactorioProcessHub : Hub<IFactorioProcessClientMethods>, IFactorioProcessServerMethods
     {
         private IFactorioProcessRelay _factorioProcessRelay;
 

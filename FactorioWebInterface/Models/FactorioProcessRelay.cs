@@ -11,9 +11,9 @@ namespace FactorioWebInterface.Models
     {
         private ConcurrentDictionary<string, string> serverToConnectionId = new ConcurrentDictionary<string, string>();
 
-        private IHubContext<FactorioProcessHub, IClientMethods> _factorioProcessHub;
+        private IHubContext<FactorioProcessHub, IFactorioProcessClientMethods> _factorioProcessHub;
 
-        public FactorioProcessRelay(IHubContext<FactorioProcessHub, IClientMethods> factorioProcessHub)
+        public FactorioProcessRelay(IHubContext<FactorioProcessHub, IFactorioProcessClientMethods> factorioProcessHub)
         {
             _factorioProcessHub = factorioProcessHub;
         }

@@ -91,6 +91,7 @@ namespace FactorioWebInterface
             }
 
             app.UseHttpsRedirection();
+            app.UseDefaultFiles();
             app.UseStaticFiles();
 
             app.UseAuthentication();
@@ -99,7 +100,8 @@ namespace FactorioWebInterface
 
             app.UseSignalR(routes =>
             {
-                routes.MapHub<ChatHub>("/ChatHub");
+                routes.MapHub<ChatHub>("/hub");
+                routes.MapHub<FactorioControlHub>("/FactorioControlHub");
                 routes.MapHub<FactorioProcessHub>("/ServerHub");
             });
 

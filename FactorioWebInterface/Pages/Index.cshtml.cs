@@ -25,7 +25,7 @@ namespace FactorioWebInterface.Pages
 
         }
 
-        public async Task<IActionResult> OnPostRemoveRolesAsync()
+        public IActionResult OnPostRemoveRoles()
         {
             RemoveRoles();
 

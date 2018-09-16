@@ -109,7 +109,7 @@ namespace FactorioWrapper
                 await Reconnect();
             };
 
-            connection.On<string>(nameof(IClientMethods.SendToFactorio), async data =>
+            connection.On<string>(nameof(IFactorioProcessClientMethods.SendToFactorio), async data =>
             {
                 try
                 {
@@ -131,7 +131,7 @@ namespace FactorioWrapper
                 }
             });
 
-            connection.On(nameof(IClientMethods.Stop), async () =>
+            connection.On(nameof(IFactorioProcessClientMethods.Stop), async () =>
             {
                 try
                 {
@@ -145,7 +145,7 @@ namespace FactorioWrapper
                 }
             });
 
-            connection.On(nameof(IClientMethods.ForceStop), () =>
+            connection.On(nameof(IFactorioProcessClientMethods.ForceStop), () =>
             {
                 try
                 {
@@ -215,7 +215,7 @@ namespace FactorioWrapper
 
             try
             {
-                connection.SendAsync(nameof(IServerMethods.SendFactorioOutputData), data);
+                connection.SendAsync(nameof(IFactorioProcessServerMethods.SendFactorioOutputData), data);
             }
             catch (Exception e)
             {
@@ -232,7 +232,7 @@ namespace FactorioWrapper
 
             try
             {
-                connection.SendAsync(nameof(IServerMethods.SendWrapperData), data);
+                connection.SendAsync(nameof(IFactorioProcessServerMethods.SendWrapperData), data);
             }
             catch (Exception e)
             {
@@ -245,7 +245,7 @@ namespace FactorioWrapper
             try
             {
                 await hubConnection.StartAsync();
-                await hubConnection.InvokeAsync(nameof(IServerMethods.RegisterServerId), serverId);
+                await hubConnection.InvokeAsync(nameof(IFactorioProcessServerMethods.RegisterServerId), serverId);
                 return true;
             }
             catch (Exception)
