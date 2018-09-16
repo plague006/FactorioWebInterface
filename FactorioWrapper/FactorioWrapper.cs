@@ -1,5 +1,6 @@
 ﻿using FactorioWrapperInterface;
 using Microsoft.AspNetCore.SignalR.Client;
+using Serilog;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -13,7 +14,8 @@ namespace FactorioWrapper
         //private static readonly string url = "https://localhost:44303/ServerHub";
         private static readonly string url = "http://54.38.76.175/ServerHub";
 
-        private static SemaphoreSlim LogLock = new SemaphoreSlim(1, 1);
+        // This is to stop multiple threads writing to the factorio process concurrently.
+        private static SemaphoreSlim factorioProcessLock = new SemaphoreSlim(1, 1);
 
         private static volatile bool exit = false;
         private static volatile HubConnection connection;
@@ -23,16 +25,24 @@ namespace FactorioWrapper
         private static string factorioArguments;
         private static string serverId;
 
-        static void Main(string[] args)
-        {
+        public static void Main(string[] args)
+        {            
             MainAsync(args).GetAwaiter().GetResult();
         }
 
         private static async Task MainAsync(string[] args)
         {
+            string path = AppDomain.CurrentDomain.BaseDirectory;
+            path = Path.Combine(path, "logs/log.txt");
+
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Information()
+                .WriteTo.Async(a => a.File(path, rollingInterval: RollingInterval.Day))
+                .CreateLogger();
+
             if (args.Length < 2)
             {
-                await LogAsync("Missing arguments");
+                Log.Fatal("Missing arguments");
                 return;
             }
 
@@ -40,7 +50,7 @@ namespace FactorioWrapper
             factorioFileName = args[1];
             factorioArguments = string.Join(" ", args, 2, args.Length - 2);
 
-            await LogAsync($"Starting wrapper {serverId} {factorioFileName} {factorioArguments}");
+            Log.Information("Starting wrapper {serverId} {factorioFileName} {factorioArguments}", serverId, factorioFileName, factorioArguments);
 
             while (!exit)
             {
@@ -50,16 +60,43 @@ namespace FactorioWrapper
                 }
                 catch (Exception e)
                 {
-                    var message = $"Wrapper Exception\n{e.ToString()}\n";
-                    await LogAsync(message);
+                    Log.Error(e, "Wrapper Exception");
                 }
             }
 
             SendWrapperData("Exiting wrapper");
-            await LogAsync("Exiting wrapper");
+            Log.Information("Exiting wrapper");
+
+            Log.CloseAndFlush();
         }
 
         private static async Task RestartWrapperAsync()
+        {
+            if (connection == null)
+            {
+                BuildConenction();
+            }
+
+            await Reconnect();
+
+            if (factorioProcess == null)
+            {
+                StartFactorioProcess();
+            }
+
+            while (!exit)
+            {
+                if (factorioProcess.HasExited)
+                {
+                    Log.Information("Factorio process exited");
+                    exit = true;
+                    return;
+                }
+                await Task.Delay(1000);
+            }
+        }
+
+        private static void BuildConenction()
         {
             connection = new HubConnectionBuilder()
                 .WithUrl(url)
@@ -68,26 +105,31 @@ namespace FactorioWrapper
             connection.Closed += async (error) =>
             {
                 connected = false;
-                await LogAsync("Lost connection");
+                Log.Information("Lost connection");
                 await Reconnect();
             };
 
             connection.On<string>(nameof(IClientMethods.SendToFactorio), async data =>
-             {
-                 try
-                 {
-                     var p = factorioProcess;
-                     if (p != null && !p.HasExited)
-                     {
-                         await LogAsync(data);
-                         p.StandardInput.WriteLine(data);
-                     }
-                 }
-                 catch (Exception e)
-                 {
-                     await LogAsync($"Error sending data to factorio process\n{e.ToString()}");
-                 }
-             });
+            {
+                try
+                {
+                    await factorioProcessLock.WaitAsync();
+
+                    var p = factorioProcess;
+                    if (p != null && !p.HasExited)
+                    {
+                        await p.StandardInput.WriteLineAsync(data);
+                    }
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e, "Error sending data to factorio process");
+                }
+                finally
+                {
+                    factorioProcessLock.Release();
+                }
+            });
 
             connection.On(nameof(IClientMethods.Stop), async () =>
             {
@@ -99,50 +141,31 @@ namespace FactorioWrapper
                 }
                 catch (Exception e)
                 {
-                    await LogAsync(e.ToString());
+                    Log.Error(e, "Error stopping factorio process");
                 }
             });
 
-            connection.On(nameof(IClientMethods.ForceStop), async () =>
+            connection.On(nameof(IClientMethods.ForceStop), () =>
             {
                 try
                 {
                     var p = factorioProcess;
                     if (p != null && !p.HasExited)
                     {
-
                         p.Kill();
                     }
                     exit = true;
                 }
                 catch (Exception e)
                 {
-                    await LogAsync(e.ToString());
+                    Log.Error(e, "Error force stopping factorio process");
                 }
             });
-
-            await Reconnect();
-
-            if (factorioProcess == null)
-            {
-                await StartFactorioProcess();
-            }
-
-            while (!exit)
-            {
-                if (factorioProcess.HasExited)
-                {
-                    await LogAsync("Factorio process exited");
-                    exit = true;
-                    return;
-                }
-                await Task.Delay(1000);
-            }
         }
 
-        private static async Task StartFactorioProcess()
+        private static void StartFactorioProcess()
         {
-            await LogAsync($"Starting factorio process\nfileName: {factorioFileName} arguments: {factorioArguments} ");
+            Log.Information("Starting factorio process {factorioFileName} {factorioArguments}", factorioFileName, factorioArguments);
 
             factorioProcess = new Process();
             var startInfo = factorioProcess.StartInfo;
@@ -170,7 +193,7 @@ namespace FactorioWrapper
             }
             catch (Exception e)
             {
-                await LogAsync(e.ToString());
+                Log.Error(e, "Error starting factorio process");
                 exit = true;
                 return;
             }
@@ -178,7 +201,9 @@ namespace FactorioWrapper
             factorioProcess.BeginOutputReadLine();
             factorioProcess.BeginErrorReadLine();
 
-            await LogAsync("Started factorio process");
+            factorioProcess.StandardInput.AutoFlush = true;
+
+            Log.Information("Started factorio process");
         }
 
         private static void SendFactorioOutputData(string data)
@@ -192,9 +217,9 @@ namespace FactorioWrapper
             {
                 connection.SendAsync(nameof(IServerMethods.SendFactorioOutputData), data);
             }
-            catch (Exception)
+            catch (Exception e)
             {
-
+                Log.Error(e, "Error sending factorio output data");
             }
         }
 
@@ -209,23 +234,9 @@ namespace FactorioWrapper
             {
                 connection.SendAsync(nameof(IServerMethods.SendWrapperData), data);
             }
-            catch (Exception)
+            catch (Exception e)
             {
-
-            }
-        }
-
-        private static async Task LogAsync(string data)
-        {
-            await LogLock.WaitAsync();
-            try
-            {
-                var time = DateTime.UtcNow;
-                await File.AppendAllTextAsync("wrapperawait LogAsync.txt", $"{time}: {data}\n");
-            }
-            finally
-            {
-                LogLock.Release();
+                Log.Error(e, "Error sending wrapper output data");
             }
         }
 
@@ -250,7 +261,7 @@ namespace FactorioWrapper
                 await Task.Delay(1000);
             }
             connected = true;
-            await LogAsync("Connected");
+            Log.Information("Connected");
         }
     }
 }
