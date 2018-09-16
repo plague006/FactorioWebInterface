@@ -3,6 +3,10 @@ using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
+using Serilog;
+using Serilog.Events;
+using System;
+using System.IO;
 
 namespace FactorioWebInterface
 {
@@ -10,19 +14,43 @@ namespace FactorioWebInterface
     {
         public static void Main(string[] args)
         {
-            var host = CreateWebHostBuilder(args).Build();
+            string path = AppDomain.CurrentDomain.BaseDirectory;
+            path = Path.Combine(path, "logs/log.txt");
 
-            // This makes sure the FactorioServerManger is started when the web interface starts
-            host.Services.GetService<IFactorioServerManager>();
+            Log.Logger = new LoggerConfiguration()
+           .MinimumLevel.Debug()
+           .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+           .Enrich.FromLogContext()
+           .WriteTo.Console()
+           .WriteTo.Async(a => a.File(path, rollingInterval: RollingInterval.Day))
+           .CreateLogger();
 
-            //SeedData(host);                 
+            try
+            {
+                Log.Information("Starting factorio web interface");
+                var host = CreateWebHostBuilder(args).Build();
 
-            host.Run();
+                // This makes sure the FactorioServerManger is started when the web interface starts
+                host.Services.GetService<IFactorioServerManager>();
+
+                //SeedData(host);                 
+
+                host.Run();
+            }
+            catch (Exception e)
+            {
+                Log.Fatal(e, "Host terminated unexpectedly");
+            }
+            finally
+            {
+                Log.CloseAndFlush();
+            }
         }
 
         public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
             WebHost.CreateDefaultBuilder(args)
-                .UseStartup<Startup>();
+                .UseStartup<Startup>()
+                .UseSerilog();
 
         private static void SeedData(IWebHost host)
         {

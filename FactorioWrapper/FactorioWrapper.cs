@@ -26,7 +26,7 @@ namespace FactorioWrapper
         private static string serverId;
 
         public static void Main(string[] args)
-        {            
+        {
             MainAsync(args).GetAwaiter().GetResult();
         }
 
@@ -50,7 +50,7 @@ namespace FactorioWrapper
             factorioFileName = args[1];
             factorioArguments = string.Join(" ", args, 2, args.Length - 2);
 
-            Log.Information("Starting wrapper {serverId} {factorioFileName} {factorioArguments}", serverId, factorioFileName, factorioArguments);
+            Log.Information("Starting wrapper serverId: {serverId} factorioFileName: {factorioFileName} factorioArguments: {factorioArguments}", serverId, factorioFileName, factorioArguments);
 
             while (!exit)
             {
@@ -165,7 +165,7 @@ namespace FactorioWrapper
 
         private static void StartFactorioProcess()
         {
-            Log.Information("Starting factorio process {factorioFileName} {factorioArguments}", factorioFileName, factorioArguments);
+            Log.Information("Starting factorio process factorioFileName: {factorioFileName} factorioArguments: {factorioArguments}", factorioFileName, factorioArguments);
 
             factorioProcess = new Process();
             var startInfo = factorioProcess.StartInfo;
