@@ -4,18 +4,19 @@ namespace FactorioWebInterface.Models
 {
     public interface IFactorioControlServerMethods
     {
-        Task Start(int serverId);
-        Task Load(int serverId, string saveFilePath);
-        Task Stop(int serverId);
-        Task ForceStop(int serverId);
-        Task GetStatus(int serverId);
-        Task SendToFactorio(int serverId, string data);
+        Task SetServerId(int serverId);
+        Task Start();
+        Task Load(string saveFilePath);
+        Task Stop();
+        Task ForceStop();
+        Task<FactorioServerStatus> GetStatus();
+        Task SendToFactorio(string data);
     }
 
     public interface IFactorioControlClientMethods
     {
-        Task FactorioOutputData(int serverId, string data);
-        Task FactorioWrapperOutputData(int serverId, string data);
-        Task FactorioWebInterfaceData(int serverId, string data);
+        Task FactorioOutputData(string data);
+        Task FactorioWrapperOutputData(string data);
+        Task FactorioWebInterfaceData(string data);
     }
 }

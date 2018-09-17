@@ -64,8 +64,7 @@ namespace FactorioWebInterface
             services.AddSession();
             services.AddMemoryCache();
 
-            services.AddSingleton<IDiscordBot, DiscordBot>();
-            services.AddSingleton<IFactorioProcessRelay, FactorioProcessRelay>();
+            services.AddSingleton<IDiscordBot, DiscordBot>();            
             services.AddSingleton<IFactorioServerManager, FactorioServerManager>();
 
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1).AddRazorPagesOptions(options =>

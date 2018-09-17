@@ -35,7 +35,7 @@ namespace FactorioWebInterface.Pages.Admin
 
             var user = await _userManger.GetUserAsync(User);
 
-            if (user == null)
+            if (user == null || user.Suspended)
             {
                 HttpContext.Session.SetString("returnUrl", "Servers/" + ID);
                 return RedirectToPage("SignIn");
@@ -44,14 +44,19 @@ namespace FactorioWebInterface.Pages.Admin
             return Page();
         }
 
-        public IActionResult OnPostStart()
+        public async Task<IActionResult> OnPostStartAsync()
         {
-            //var server = _factorioServerManager.GetServer(1);
-            //server.Start(Input.Id);
+            var user = await _userManger.GetUserAsync(User);
+
+            if (user == null || user.Suspended)
+            {
+                HttpContext.Session.SetString("returnUrl", "Servers/" + 1);
+                return RedirectToPage("SignIn");
+            }
 
             if (Input.Id != 0)
             {
-                _factorioServerManager.StartWrapper(Input.Id);
+                _factorioServerManager.Start(Input.Id);
             }
 
             return Page();

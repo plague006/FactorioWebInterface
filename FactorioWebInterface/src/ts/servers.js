@@ -6,13 +6,17 @@ var tbMessage = document.querySelector("#tbMessage");
 var btnSend = document.querySelector("#btnSend");
 var username = new Date().getTime();
 var connection = new signalR.HubConnectionBuilder()
-    .withUrl("/hub")
+    .withUrl("/FactorioControlHub")
     .build();
-connection.start().catch(function (err) { return document.write(err); });
-connection.on("messageReceived", function (username, message) {
+connection.start()
+    .then(function () {
+    connection.invoke("SetServerId", "1");
+})
+    .catch(function (err) { return document.write(err); });
+connection.on("FactorioOutputData", function (data) {
     var m = document.createElement("div");
     m.innerHTML =
-        "<div class=\"message__author\">" + username + "</div><div>" + message + "</div>";
+        "<div>" + data + "</div>";
     divMessages.appendChild(m);
     divMessages.scrollTop = divMessages.scrollHeight;
 });
@@ -23,6 +27,6 @@ tbMessage.addEventListener("keyup", function (e) {
 });
 btnSend.addEventListener("click", send);
 function send() {
-    connection.send("newMessage", username, tbMessage.value)
+    connection.send("SendToFactorio", tbMessage.value)
         .then(function () { return tbMessage.value = ""; });
 }

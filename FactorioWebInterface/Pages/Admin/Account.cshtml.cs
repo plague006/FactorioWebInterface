@@ -1,5 +1,5 @@
 ﻿using FactorioWebInterface.Data;
-using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace FactorioWebInterface.Pages.Admin
 {
-    [Authorize(Roles ="Admin, Root")]
+    //[Authorize(Roles = Constants.AdminRole + Constants.RootRole) ]
     public class AccountModel : PageModel
     {
         private readonly SignInManager<ApplicationUser> _signInManager;
@@ -57,6 +57,13 @@ namespace FactorioWebInterface.Pages.Admin
         public async Task<IActionResult> OnGetAsync(bool passwordUpdated)
         {
             var user = await _userManager.GetUserAsync(User);
+
+            if (user == null || user.Suspended)
+            {
+                HttpContext.Session.SetString("returnUrl", "Account");
+                return RedirectToPage("SignIn");
+            }
+
             UserName = user.UserName;
 
             HasPassword = await _userManager.HasPasswordAsync(user);
@@ -68,6 +75,13 @@ namespace FactorioWebInterface.Pages.Admin
         public async Task<IActionResult> OnPostCreatePasswordAsync()
         {
             var user = await _userManager.GetUserAsync(User);
+
+            if (user == null || user.Suspended)
+            {
+                HttpContext.Session.SetString("returnUrl", "Account");
+                return RedirectToPage("SignIn");
+            }
+
             HasPassword = await _userManager.HasPasswordAsync(user);
 
             if (!ModelState.IsValid)
@@ -102,6 +116,13 @@ namespace FactorioWebInterface.Pages.Admin
         public async Task<IActionResult> OnPostUpdatePasswordAsync()
         {
             var user = await _userManager.GetUserAsync(User);
+
+            if (user == null || user.Suspended)
+            {
+                HttpContext.Session.SetString("returnUrl", "Account");
+                return RedirectToPage("SignIn");
+            }
+
             HasPassword = await _userManager.HasPasswordAsync(user);
 
             if (!ModelState.IsValid)

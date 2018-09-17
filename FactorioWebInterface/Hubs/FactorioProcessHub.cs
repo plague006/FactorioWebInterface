@@ -3,7 +3,6 @@ using FactorioWrapperInterface;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using System;
-using System.Diagnostics;
 using System.Threading.Tasks;
 
 namespace FactorioWebInterface.Hubs
@@ -11,11 +10,11 @@ namespace FactorioWebInterface.Hubs
     [AllowAnonymous]
     public class FactorioProcessHub : Hub<IFactorioProcessClientMethods>, IFactorioProcessServerMethods
     {
-        private IFactorioProcessRelay _factorioProcessRelay;
+        private readonly IFactorioServerManager _factorioServerManger;
 
-        public FactorioProcessHub(IFactorioProcessRelay factorioProcessRelay)
+        public FactorioProcessHub(IFactorioServerManager factorioServerManger)
         {
-            _factorioProcessRelay = factorioProcessRelay;
+            _factorioServerManger = factorioServerManger;
         }
 
         public override Task OnDisconnectedAsync(Exception exception)
@@ -23,19 +22,18 @@ namespace FactorioWebInterface.Hubs
             string connectionId = Context.ConnectionId;
             if (Context.Items.TryGetValue(connectionId, out object serverId))
             {
-                string id = (string)serverId;
-                _factorioProcessRelay.ServerDisconnected(id, connectionId);
+                int id = (int)serverId;
+                Groups.RemoveFromGroupAsync(connectionId, id.ToString());
             }
             return base.OnDisconnectedAsync(exception);
         }
 
-        public Task RegisterServerId(string serverId)
+        public Task RegisterServerId(int serverId)
         {
             string connectionId = Context.ConnectionId;
             Context.Items[connectionId] = serverId;
 
-            _factorioProcessRelay.ServerConnected(serverId, connectionId);
-            return Task.FromResult(0);
+            return Groups.AddToGroupAsync(connectionId, serverId.ToString());           
         }
 
         public Task SendFactorioOutputData(string data)
@@ -43,9 +41,8 @@ namespace FactorioWebInterface.Hubs
             string connectionId = Context.ConnectionId;
             if (Context.Items.TryGetValue(connectionId, out object serverId))
             {
-                string id = (string)serverId;
-                Debug.WriteLine($"serverId: {id}, data: {data}");
-                _factorioProcessRelay.RaiseFactorioDataReceived(id, data);
+                int id = (int)serverId;
+                _factorioServerManger.FactorioDataReceived(id, data);
             }
 
             return Task.FromResult(0);
@@ -56,9 +53,8 @@ namespace FactorioWebInterface.Hubs
             string connectionId = Context.ConnectionId;
             if (Context.Items.TryGetValue(connectionId, out object serverId))
             {
-                string id = (string)serverId;
-                Debug.WriteLine($"serverId: {id}, data: {data}");
-                _factorioProcessRelay.RaiseFactorioWrapperDataReceived(id, data);
+                int id = (int)serverId;
+                _factorioServerManger.FactorioWrapperDataReceived(id, data);
             }
 
             return Task.FromResult(0);

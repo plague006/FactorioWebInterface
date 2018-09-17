@@ -23,11 +23,18 @@ namespace FactorioWrapper
         private static volatile Process factorioProcess;
         private static string factorioFileName;
         private static string factorioArguments;
-        private static string serverId;
+        private static int serverId;
 
         public static void Main(string[] args)
         {
-            MainAsync(args).GetAwaiter().GetResult();
+            try
+            {
+                MainAsync(args).GetAwaiter().GetResult();
+            }
+            finally
+            {
+                Log.CloseAndFlush();
+            }
         }
 
         private static async Task MainAsync(string[] args)
@@ -46,7 +53,11 @@ namespace FactorioWrapper
                 return;
             }
 
-            serverId = args[0];
+            if (!int.TryParse(args[0], out serverId))
+            {
+                Log.Information("serverId is not a integer.");
+                return;
+            }
             factorioFileName = args[1];
             factorioArguments = string.Join(" ", args, 2, args.Length - 2);
 
@@ -65,9 +76,7 @@ namespace FactorioWrapper
             }
 
             SendWrapperData("Exiting wrapper");
-            Log.Information("Exiting wrapper");
-
-            Log.CloseAndFlush();
+            Log.Information("Exiting wrapper serverId: {serverId}", serverId);
         }
 
         private static async Task RestartWrapperAsync()
@@ -88,7 +97,7 @@ namespace FactorioWrapper
             {
                 if (factorioProcess.HasExited)
                 {
-                    Log.Information("Factorio process exited");
+                    Log.Information("Factorio process exited serverId: {serverId}", serverId);
                     exit = true;
                     return;
                 }
@@ -105,7 +114,7 @@ namespace FactorioWrapper
             connection.Closed += async (error) =>
             {
                 connected = false;
-                Log.Information("Lost connection");
+                Log.Information("Lost connection serverId: {serverId}", serverId);
                 await Reconnect();
             };
 
@@ -123,7 +132,7 @@ namespace FactorioWrapper
                 }
                 catch (Exception e)
                 {
-                    Log.Error(e, "Error sending data to factorio process");
+                    Log.Error(e, "Error sending data to factorio process serverId: {serverId}", serverId);
                 }
                 finally
                 {
@@ -141,7 +150,7 @@ namespace FactorioWrapper
                 }
                 catch (Exception e)
                 {
-                    Log.Error(e, "Error stopping factorio process");
+                    Log.Error(e, "Error stopping factorio process serverId: {serverId}", serverId);
                 }
             });
 
@@ -158,14 +167,14 @@ namespace FactorioWrapper
                 }
                 catch (Exception e)
                 {
-                    Log.Error(e, "Error force stopping factorio process");
+                    Log.Error(e, "Error force stopping factorio process serverId: {serverId}", serverId);
                 }
             });
         }
 
         private static void StartFactorioProcess()
         {
-            Log.Information("Starting factorio process factorioFileName: {factorioFileName} factorioArguments: {factorioArguments}", factorioFileName, factorioArguments);
+            Log.Information("Starting factorio process factorioFileName: {factorioFileName} factorioArguments: {factorioArguments} serverId: {serverId}", factorioFileName, factorioArguments, serverId);
 
             factorioProcess = new Process();
             var startInfo = factorioProcess.StartInfo;
@@ -193,7 +202,7 @@ namespace FactorioWrapper
             }
             catch (Exception e)
             {
-                Log.Error(e, "Error starting factorio process");
+                Log.Error(e, "Error starting factorio process serverId: {serverId}", serverId);
                 exit = true;
                 return;
             }
@@ -203,7 +212,7 @@ namespace FactorioWrapper
 
             factorioProcess.StandardInput.AutoFlush = true;
 
-            Log.Information("Started factorio process");
+            Log.Information("Started factorio process serverId: {serverId}", serverId);
         }
 
         private static void SendFactorioOutputData(string data)
@@ -219,7 +228,7 @@ namespace FactorioWrapper
             }
             catch (Exception e)
             {
-                Log.Error(e, "Error sending factorio output data");
+                Log.Error(e, "Error sending factorio output data serverId: {serverId}", serverId);
             }
         }
 
@@ -236,7 +245,7 @@ namespace FactorioWrapper
             }
             catch (Exception e)
             {
-                Log.Error(e, "Error sending wrapper output data");
+                Log.Error(e, "Error sending wrapper output data serverId: {serverId}", serverId);
             }
         }
 
@@ -261,7 +270,7 @@ namespace FactorioWrapper
                 await Task.Delay(1000);
             }
             connected = true;
-            Log.Information("Connected");
+            Log.Information("Connected serverId: {serverId}", serverId);
         }
     }
 }

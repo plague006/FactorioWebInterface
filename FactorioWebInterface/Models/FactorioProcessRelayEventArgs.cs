@@ -1,19 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-
-namespace FactorioWebInterface.Models
+﻿namespace FactorioWebInterface.Models
 {
     public class FactorioProcessRelayEventArgs
     {
-        public FactorioProcessRelayEventArgs(string serverId, string data)
+        public FactorioProcessRelayEventArgs(int serverId, string data)
         {
             ServerId = serverId;
             Data = data;
         }
 
-        public string ServerId { get; }
+        public int ServerId { get; }
         public string Data { get; }
     }
 }
