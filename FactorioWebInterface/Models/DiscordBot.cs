@@ -12,8 +12,6 @@ namespace FactorioWebInterface.Models
 {
     public class DiscordBot : IDiscordBot
     {
-        private static CommandsNextModule commands;
-
         private readonly IConfiguration _configuration;
         private readonly DbContextFactory _dbContextFactory;
         private readonly ulong guildId;
@@ -43,22 +41,9 @@ namespace FactorioWebInterface.Models
                 TokenType = TokenType.Bot
             });
 
-            DiscordClient.MessageCreated += async e =>
-            {
-                if (e.Message.Content.ToLower().StartsWith("!hamping"))
-                {
-                    await e.Message.RespondAsync("hampong!");
-                }
-
-                if (e.Message.Content.ToLower().StartsWith("!humping"))
-                {
-                    await e.Message.RespondAsync("humpong!");
-                }
-            };
-
             var d = new DependencyCollectionBuilder().AddInstance(this).Build();
 
-            commands = DiscordClient.UseCommandsNext(new CommandsNextConfiguration
+            var commands = DiscordClient.UseCommandsNext(new CommandsNextConfiguration
             {
                 StringPrefix = ";;",
                 Dependencies = d,
