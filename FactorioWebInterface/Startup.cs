@@ -27,6 +27,8 @@ namespace FactorioWebInterface
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlite("Data Source=FactorioWebInterface.db"));
 
+            services.AddSingleton<DbContextFactory, DbContextFactory>();
+
             services.AddIdentity<ApplicationUser, IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>();
 
@@ -63,6 +65,8 @@ namespace FactorioWebInterface
 
             services.AddSession();
             services.AddMemoryCache();
+
+            
 
             services.AddSingleton<IDiscordBot, DiscordBot>();            
             services.AddSingleton<IFactorioServerManager, FactorioServerManager>();

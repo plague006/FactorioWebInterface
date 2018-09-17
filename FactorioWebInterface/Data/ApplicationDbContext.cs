@@ -15,6 +15,8 @@ namespace FactorioWebInterface.Data
 
         }
 
+        public DbSet<DiscordServers> DiscordServers { get; set; }
+
         /// <summary>
         /// This just changes the default names for the tables, becasue I didn't like all the tables
         /// being called 'AspNetTableName'.
