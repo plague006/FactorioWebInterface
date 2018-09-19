@@ -2,13 +2,13 @@
 {
     public interface IFactorioServerManager
     {
-        bool Start(int serverId);
-        bool Load(int serverId, string saveFilePath);
-        void Stop(int serverId);
-        void ForceStop(int serverId);
-        FactorioServerStatus GetStatus(int serverId);
-        void SendToFactorio(int serverId, string data);
-        void FactorioDataReceived(int serverId, string data);
-        void FactorioWrapperDataReceived(int serverId, string data);
+        bool Start(string serverId);
+        bool Load(string serverId, string saveFilePath);
+        void Stop(string serverId);
+        void ForceStop(string serverId);
+        FactorioServerStatus GetStatus(string serverId);
+        void SendToFactorio(string serverId, string data);
+        void FactorioDataReceived(string serverId, string data);
+        void FactorioWrapperDataReceived(string serverId, string data);
     }
 }

@@ -3,7 +3,10 @@
 const divMessages: HTMLDivElement = document.querySelector("#divMessages");
 const tbMessage: HTMLInputElement = document.querySelector("#tbMessage");
 const btnSend: HTMLButtonElement = document.querySelector("#btnSend");
-const username = new Date().getTime();
+const serverIdInput: HTMLInputElement = document.getElementById('serverIdInput') as HTMLInputElement;
+const startButton: HTMLButtonElement = document.getElementById('startButton') as HTMLButtonElement;
+const stopButton: HTMLButtonElement = document.getElementById('stopButton') as HTMLButtonElement;
+const forceStopButton: HTMLButtonElement = document.getElementById('forceStopButton') as HTMLButtonElement;
 
 const connection = new signalR.HubConnectionBuilder()
     .withUrl("/FactorioControlHub")
@@ -11,7 +14,7 @@ const connection = new signalR.HubConnectionBuilder()
 
 connection.start()
     .then(() => {
-        connection.invoke("SetServerId", "1");
+        connection.invoke("SetServerId", serverIdInput.value);
     })
     .catch(err => document.write(err));
 
@@ -36,4 +39,19 @@ btnSend.addEventListener("click", send);
 function send() {
     connection.send("SendToFactorio", tbMessage.value)
         .then(() => tbMessage.value = "");
+}
+
+startButton.onclick = () => {
+    connection.invoke("Start")
+        .then(() => console.log("started"));
+}
+
+stopButton.onclick = () => {
+    connection.invoke("Stop")
+        .then(() => console.log("stopped"));
+}
+
+forceStopButton.onclick = () => {
+    connection.invoke("ForceStop")
+        .then(() => console.log("force stopped"));
 }

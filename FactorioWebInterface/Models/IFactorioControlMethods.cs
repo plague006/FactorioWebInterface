@@ -4,7 +4,7 @@ namespace FactorioWebInterface.Models
 {
     public interface IFactorioControlServerMethods
     {
-        Task SetServerId(int serverId);
+        Task SetServerId(string serverId);
         Task Start();
         Task Load(string saveFilePath);
         Task Stop();

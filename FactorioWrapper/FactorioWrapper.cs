@@ -23,10 +23,22 @@ namespace FactorioWrapper
         private static volatile Process factorioProcess;
         private static string factorioFileName;
         private static string factorioArguments;
-        private static int serverId;
+        private static string serverId;
 
         public static void Main(string[] args)
         {
+            string logPath = args.Length == 0
+                ? "logs/log.txt"
+                : $"logs/{args[0]}/log.txt";
+
+            string path = AppDomain.CurrentDomain.BaseDirectory;
+            path = Path.Combine(path, logPath);
+
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Information()
+                .WriteTo.Async(a => a.File(path, rollingInterval: RollingInterval.Day))
+                .CreateLogger();
+
             try
             {
                 MainAsync(args).GetAwaiter().GetResult();
@@ -39,25 +51,13 @@ namespace FactorioWrapper
 
         private static async Task MainAsync(string[] args)
         {
-            string path = AppDomain.CurrentDomain.BaseDirectory;
-            path = Path.Combine(path, "logs/log.txt");
-
-            Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Information()
-                .WriteTo.Async(a => a.File(path, rollingInterval: RollingInterval.Day))
-                .CreateLogger();
-
-            if (args.Length < 2)
+            if (args.Length < 3)
             {
                 Log.Fatal("Missing arguments");
                 return;
             }
 
-            if (!int.TryParse(args[0], out serverId))
-            {
-                Log.Information("serverId is not a integer.");
-                return;
-            }
+            serverId = args[0];
             factorioFileName = args[1];
             factorioArguments = string.Join(" ", args, 2, args.Length - 2);
 
@@ -76,7 +76,7 @@ namespace FactorioWrapper
             }
 
             SendWrapperData("Exiting wrapper");
-            Log.Information("Exiting wrapper serverId: {serverId}", serverId);
+            Log.Information("Exiting wrapper");
         }
 
         private static async Task RestartWrapperAsync()
@@ -97,7 +97,7 @@ namespace FactorioWrapper
             {
                 if (factorioProcess.HasExited)
                 {
-                    Log.Information("Factorio process exited serverId: {serverId}", serverId);
+                    Log.Information("Factorio process exited");
                     exit = true;
                     return;
                 }
@@ -114,7 +114,7 @@ namespace FactorioWrapper
             connection.Closed += async (error) =>
             {
                 connected = false;
-                Log.Information("Lost connection serverId: {serverId}", serverId);
+                Log.Information("Lost connection");
                 await Reconnect();
             };
 
@@ -132,7 +132,7 @@ namespace FactorioWrapper
                 }
                 catch (Exception e)
                 {
-                    Log.Error(e, "Error sending data to factorio process serverId: {serverId}", serverId);
+                    Log.Error(e, "Error sending data to factorio process");
                 }
                 finally
                 {
@@ -150,7 +150,7 @@ namespace FactorioWrapper
                 }
                 catch (Exception e)
                 {
-                    Log.Error(e, "Error stopping factorio process serverId: {serverId}", serverId);
+                    Log.Error(e, "Error stopping factorio process");
                 }
             });
 
@@ -167,14 +167,14 @@ namespace FactorioWrapper
                 }
                 catch (Exception e)
                 {
-                    Log.Error(e, "Error force stopping factorio process serverId: {serverId}", serverId);
+                    Log.Error(e, "Error force stopping factorio process");
                 }
             });
         }
 
         private static void StartFactorioProcess()
         {
-            Log.Information("Starting factorio process factorioFileName: {factorioFileName} factorioArguments: {factorioArguments} serverId: {serverId}", factorioFileName, factorioArguments, serverId);
+            Log.Information("Starting factorio process factorioFileName: {factorioFileName} factorioArguments: {factorioArguments}", factorioFileName, factorioArguments);
 
             factorioProcess = new Process();
             var startInfo = factorioProcess.StartInfo;
@@ -202,7 +202,7 @@ namespace FactorioWrapper
             }
             catch (Exception e)
             {
-                Log.Error(e, "Error starting factorio process serverId: {serverId}", serverId);
+                Log.Error(e, "Error starting factorio process");
                 exit = true;
                 return;
             }
@@ -212,7 +212,7 @@ namespace FactorioWrapper
 
             factorioProcess.StandardInput.AutoFlush = true;
 
-            Log.Information("Started factorio process serverId: {serverId}", serverId);
+            Log.Information("Started factorio process");
         }
 
         private static void SendFactorioOutputData(string data)
@@ -228,7 +228,7 @@ namespace FactorioWrapper
             }
             catch (Exception e)
             {
-                Log.Error(e, "Error sending factorio output data serverId: {serverId}", serverId);
+                Log.Error(e, "Error sending factorio output data");
             }
         }
 
@@ -245,7 +245,7 @@ namespace FactorioWrapper
             }
             catch (Exception e)
             {
-                Log.Error(e, "Error sending wrapper output data serverId: {serverId}", serverId);
+                Log.Error(e, "Error sending wrapper output data");
             }
         }
 
@@ -270,7 +270,7 @@ namespace FactorioWrapper
                 await Task.Delay(1000);
             }
             connected = true;
-            Log.Information("Connected serverId: {serverId}", serverId);
+            Log.Information("Connected");
         }
     }
 }

@@ -11,7 +11,7 @@ namespace FactorioWrapperInterface
 
     public interface IFactorioProcessServerMethods
     {
-        Task RegisterServerId(int serverId);
+        Task RegisterServerId(string serverId);
         Task SendFactorioOutputData(string data);
         Task SendWrapperData(string data);
     }

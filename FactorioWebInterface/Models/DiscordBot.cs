@@ -1,6 +1,7 @@
 ﻿using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using FactorioWebInterface.Data;
+using FactorioWebInterface.Utils;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
@@ -23,6 +24,8 @@ namespace FactorioWebInterface.Models
 
         public DiscordClient DiscordClient { get; private set; }
 
+        public event EventHandler<IDiscordBot, ServerMessageEventArgs> FactorioDiscordDataReceived;
+
         public DiscordBot(IConfiguration configuration, DbContextFactory dbContextFactory)
         {
             _configuration = configuration;
@@ -42,6 +45,8 @@ namespace FactorioWebInterface.Models
             });
 
             var d = new DependencyCollectionBuilder().AddInstance(this).Build();
+
+            DiscordClient.MessageCreated += DiscordClient_MessageCreated;
 
             var commands = DiscordClient.UseCommandsNext(new CommandsNextConfiguration
             {
@@ -64,6 +69,31 @@ namespace FactorioWebInterface.Models
             }
 
             await discordTask;
+        }
+
+        private async Task DiscordClient_MessageCreated(DSharpPlus.EventArgs.MessageCreateEventArgs e)
+        {
+            if (e.Author.IsCurrent)
+            {
+                return;
+            }
+
+            string serverId;
+            try
+            {
+                await discordLock.WaitAsync();
+
+                if (!discordToServer.TryGetValue(e.Channel.Id, out serverId))
+                {
+                    return;
+                }
+            }
+            finally
+            {
+                discordLock.Release();
+            }
+
+            FactorioDiscordDataReceived?.Invoke(this, new ServerMessageEventArgs(serverId, e.Message.Content));
         }
 
         /// <summary>
@@ -167,6 +197,27 @@ namespace FactorioWebInterface.Models
             {
                 discordLock.Release();
             }
+        }
+
+        public async Task SendToFactorioChannel(string serverId, string data)
+        {
+            ulong channelId;
+            try
+            {
+                await discordLock.WaitAsync();
+                if (!serverdToDiscord.TryGetValue(serverId, out channelId))
+                {
+                    return;
+                }
+            }
+            finally
+            {
+                discordLock.Release();
+            }
+
+            // todo cache channels.            
+            var channel = await DiscordClient.GetChannelAsync(channelId);
+            await channel.SendMessageAsync(data);
         }
     }
 }

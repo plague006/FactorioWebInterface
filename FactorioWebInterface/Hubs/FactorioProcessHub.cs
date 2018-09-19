@@ -22,18 +22,18 @@ namespace FactorioWebInterface.Hubs
             string connectionId = Context.ConnectionId;
             if (Context.Items.TryGetValue(connectionId, out object serverId))
             {
-                int id = (int)serverId;
-                Groups.RemoveFromGroupAsync(connectionId, id.ToString());
+                string id = (string)serverId;
+                Groups.RemoveFromGroupAsync(connectionId, id);
             }
             return base.OnDisconnectedAsync(exception);
         }
 
-        public Task RegisterServerId(int serverId)
+        public Task RegisterServerId(string serverId)
         {
             string connectionId = Context.ConnectionId;
             Context.Items[connectionId] = serverId;
 
-            return Groups.AddToGroupAsync(connectionId, serverId.ToString());           
+            return Groups.AddToGroupAsync(connectionId, serverId.ToString());
         }
 
         public Task SendFactorioOutputData(string data)
@@ -41,7 +41,7 @@ namespace FactorioWebInterface.Hubs
             string connectionId = Context.ConnectionId;
             if (Context.Items.TryGetValue(connectionId, out object serverId))
             {
-                int id = (int)serverId;
+                string id = (string)serverId;
                 _factorioServerManger.FactorioDataReceived(id, data);
             }
 
@@ -53,7 +53,7 @@ namespace FactorioWebInterface.Hubs
             string connectionId = Context.ConnectionId;
             if (Context.Items.TryGetValue(connectionId, out object serverId))
             {
-                int id = (int)serverId;
+                string id = (string)serverId;
                 _factorioServerManger.FactorioWrapperDataReceived(id, data);
             }
 
