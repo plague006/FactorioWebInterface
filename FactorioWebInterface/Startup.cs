@@ -86,6 +86,7 @@ namespace FactorioWebInterface
             {
                 app.UseDeveloperExceptionPage();
                 app.UseDatabaseErrorPage();
+                app.UseBrowserLink();
             }
             else
             {
