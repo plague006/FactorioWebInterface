@@ -6,6 +6,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace FactorioWebInterface.Models
 {
@@ -16,6 +18,7 @@ namespace FactorioWebInterface.Models
         private IHubContext<FactorioControlHub, IFactorioControlClientMethods> _factorioControlHub;
         private readonly ILogger<FactorioServerManager> _logger;
 
+        private SemaphoreSlim serverLock = new SemaphoreSlim(1, 1);
         private Dictionary<string, FactorioServerData> servers = FactorioServerData.Servers;
 
         public FactorioServerManager
@@ -143,6 +146,28 @@ namespace FactorioWebInterface.Models
         public void FactorioWrapperDataReceived(string serverId, string data)
         {
             _factorioControlHub.Clients.Groups(serverId).FactorioWrapperOutputData(data);
+        }
+
+        public async Task StatusChanged(string serverId, FactorioServerStatus newStatus, FactorioServerStatus oldStatus)
+        {
+            try
+            {
+                await serverLock.WaitAsync();
+
+                if (!servers.TryGetValue(serverId, out var serverData))
+                {
+                    _logger.LogError("Unknow serverId: {serverId}", serverId);
+                }
+
+                serverData.Status = newStatus;
+
+            }
+            finally
+            {
+                serverLock.Release();
+            }
+
+            await _factorioControlHub.Clients.Group(serverId).FactorioStatusChanged(nameof(newStatus), nameof(oldStatus));
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using FactorioWebInterface.Models;
+using FactorioWrapperInterface;
 using Microsoft.AspNetCore.SignalR;
 using System;
 using System.Threading.Tasks;
@@ -21,6 +22,8 @@ namespace FactorioWebInterface.Hubs
 
             await Groups.RemoveFromGroupAsync(connectionId, serverId);
             await Groups.AddToGroupAsync(connectionId, serverId);
+
+            await Clients.Caller.FactorioStatusChanged(nameof(FactorioServerStatus.Stopped), nameof(FactorioServerStatus.Unknown));
         }
 
         public override Task OnDisconnectedAsync(Exception exception)
@@ -101,6 +104,6 @@ namespace FactorioWebInterface.Hubs
             }
 
             return Task.FromResult(0);
-        }
+        }        
     }
 }

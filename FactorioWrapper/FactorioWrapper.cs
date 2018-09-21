@@ -170,6 +170,34 @@ namespace FactorioWrapper
                     Log.Error(e, "Error force stopping factorio process");
                 }
             });
+
+            connection.On(nameof(IFactorioProcessClientMethods.GetStatus), () =>
+            {
+                try
+                {
+                    var p = factorioProcess;
+                    if (p == null)
+                    {
+                        connection.SendAsync(nameof(IFactorioProcessServerMethods.StatusChanged), FactorioServerStatus.Unknown, FactorioServerStatus.Unknown);
+                        return;
+                    }
+                    if (p.HasExited)
+                    {
+                        connection.SendAsync(nameof(IFactorioProcessServerMethods.StatusChanged), FactorioServerStatus.Stopped, FactorioServerStatus.Unknown);
+                        return;
+                    }
+                    else
+                    {
+                        connection.SendAsync(nameof(IFactorioProcessServerMethods.StatusChanged), FactorioServerStatus.Running, FactorioServerStatus.Unknown);
+                        return;
+                    }
+
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e, "Error getting factorio process status");
+                }
+            });
         }
 
         private static void StartFactorioProcess()

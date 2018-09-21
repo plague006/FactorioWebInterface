@@ -1,20 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using FactorioWrapperInterface;
+using System.Collections.Generic;
 
 namespace FactorioWebInterface.Models
 {
-    public enum FactorioServerStatus
-    {
-        Unknown,
-        Stopped,
-        Crashed,
-        Stopping,
-        Starting,
-        Killing,
-        Killed,
-        Updating,
-        Updated,
-        Running,
-    }
     public class FactorioServerData
     {
         public string ServerId { get; set; }

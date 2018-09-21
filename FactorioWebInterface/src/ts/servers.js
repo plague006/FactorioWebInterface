@@ -8,6 +8,8 @@ var serverIdInput = document.getElementById('serverIdInput');
 var startButton = document.getElementById('startButton');
 var stopButton = document.getElementById('stopButton');
 var forceStopButton = document.getElementById('forceStopButton');
+var getStatusButton = document.getElementById('getStatusButton');
+var statusText = document.getElementById('statusText');
 var connection = new signalR.HubConnectionBuilder()
     .withUrl("/FactorioControlHub")
     .build();
@@ -22,6 +24,24 @@ connection.on("FactorioOutputData", function (data) {
         "<div>" + data + "</div>";
     divMessages.appendChild(m);
     divMessages.scrollTop = divMessages.scrollHeight;
+});
+connection.on("FactorioWrapperOutputData", function (data) {
+    var m = document.createElement("div");
+    m.innerHTML =
+        "<div>Wrapper: " + data + "</div>";
+    divMessages.appendChild(m);
+    divMessages.scrollTop = divMessages.scrollHeight;
+});
+connection.on("FactorioWebInterfaceData", function (data) {
+    var m = document.createElement("div");
+    m.innerHTML =
+        "<div>Web: " + data + "</div>";
+    divMessages.appendChild(m);
+    divMessages.scrollTop = divMessages.scrollHeight;
+});
+connection.on('FactorioStatusChanged', function (newStatus, oldStatus) {
+    console.log("new: " + newStatus + ", old: " + oldStatus);
+    statusText.value = newStatus;
 });
 tbMessage.addEventListener("keyup", function (e) {
     if (e.keyCode === 13) {

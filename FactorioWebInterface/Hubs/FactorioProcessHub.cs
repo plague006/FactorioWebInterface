@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using System;
 using System.Threading.Tasks;
+using FactorioServerStatus = FactorioWrapperInterface.FactorioServerStatus;
 
 namespace FactorioWebInterface.Hubs
 {
@@ -55,6 +56,18 @@ namespace FactorioWebInterface.Hubs
             {
                 string id = (string)serverId;
                 _factorioServerManger.FactorioWrapperDataReceived(id, data);
+            }
+
+            return Task.FromResult(0);
+        }
+
+        public Task StatusChanged(FactorioServerStatus newStatus, FactorioServerStatus oldStatus)
+        {
+            string connectionId = Context.ConnectionId;
+            if (Context.Items.TryGetValue(connectionId, out object serverId))
+            {
+                string id = (string)serverId;
+                return _factorioServerManger.StatusChanged(id, newStatus, oldStatus);
             }
 
             return Task.FromResult(0);

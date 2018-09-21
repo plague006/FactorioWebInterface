@@ -7,6 +7,8 @@ const serverIdInput: HTMLInputElement = document.getElementById('serverIdInput')
 const startButton: HTMLButtonElement = document.getElementById('startButton') as HTMLButtonElement;
 const stopButton: HTMLButtonElement = document.getElementById('stopButton') as HTMLButtonElement;
 const forceStopButton: HTMLButtonElement = document.getElementById('forceStopButton') as HTMLButtonElement;
+const getStatusButton: HTMLButtonElement = document.getElementById('getStatusButton') as HTMLButtonElement;
+const statusText: HTMLInputElement = document.getElementById('statusText') as HTMLInputElement;
 
 const connection = new signalR.HubConnectionBuilder()
     .withUrl("/FactorioControlHub")
@@ -26,6 +28,31 @@ connection.on("FactorioOutputData", (data: string) => {
 
     divMessages.appendChild(m);
     divMessages.scrollTop = divMessages.scrollHeight;
+});
+
+connection.on("FactorioWrapperOutputData", (data: string) => {
+    let m = document.createElement("div");
+
+    m.innerHTML =
+        `<div>Wrapper: ${data}</div>`;
+
+    divMessages.appendChild(m);
+    divMessages.scrollTop = divMessages.scrollHeight;
+});
+
+connection.on("FactorioWebInterfaceData", (data: string) => {
+    let m = document.createElement("div");
+
+    m.innerHTML =
+        `<div>Web: ${data}</div>`;
+
+    divMessages.appendChild(m);
+    divMessages.scrollTop = divMessages.scrollHeight;
+});
+
+connection.on('FactorioStatusChanged', (newStatus: string, oldStatus: string) => {
+    console.log(`new: ${newStatus}, old: ${oldStatus}`);
+    statusText.value = newStatus;
 });
 
 tbMessage.addEventListener("keyup", (e: KeyboardEvent) => {

@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using FactorioWrapperInterface;
+using System.Threading.Tasks;
 
 namespace FactorioWebInterface.Models
 {
@@ -18,5 +19,6 @@ namespace FactorioWebInterface.Models
         Task FactorioOutputData(string data);
         Task FactorioWrapperOutputData(string data);
         Task FactorioWebInterfaceData(string data);
+        Task FactorioStatusChanged(string newStatus, string oldStatus);
     }
 }
