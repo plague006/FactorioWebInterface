@@ -8,7 +8,9 @@ namespace FactorioWebInterface.Models
 {
     public class DiscordBotCommands
     {
-        private static readonly DiscordColor infoColor = new DiscordColor(0, 127, 255);
+        public static readonly DiscordColor infoColor = new DiscordColor(0, 127, 255);
+        public static readonly DiscordColor successColor = DiscordColor.Green;
+        public static readonly DiscordColor failureColor = DiscordColor.Red;
 
         private readonly DiscordBot _discordBot;
 
@@ -28,7 +30,7 @@ namespace FactorioWebInterface.Models
                 var embed = new DiscordEmbedBuilder()
                 {
                     Description = $"Unknow command name see ;;help for command information.",
-                    Color = DiscordColor.Red
+                    Color = failureColor
                 }
                 .Build();
 
@@ -39,7 +41,7 @@ namespace FactorioWebInterface.Models
                 var embed = new DiscordEmbedBuilder()
                 {
                     Description = $"Invalid use of {commandName} see ;;help {commandName} for help with this command.",
-                    Color = DiscordColor.Red
+                    Color = failureColor
                 }
                 .Build();
 
@@ -75,7 +77,7 @@ namespace FactorioWebInterface.Models
                 var embed = new DiscordEmbedBuilder()
                 {
                     Description = $"Facotrio server {serverId} has been connected to this channel",
-                    Color = DiscordColor.Green
+                    Color = successColor
                 }
                 .Build();
 
@@ -86,7 +88,7 @@ namespace FactorioWebInterface.Models
                 var embed = new DiscordEmbedBuilder()
                 {
                     Description = $"Error connecting the facotrio server {serverId} to this channel",
-                    Color = DiscordColor.Red
+                    Color = failureColor
                 }
                 .Build();
 
@@ -102,10 +104,14 @@ namespace FactorioWebInterface.Models
             string serverId = await _discordBot.UnSetServer(ctx.Channel.Id);
             if (serverId != null)
             {
+                string description = serverId == Constants.AdminChannelID
+                    ? $"Admin has been disconnected from this channel"
+                    : $"Facotrio server {serverId} has been disconnected from this channel";
+
                 var embed = new DiscordEmbedBuilder()
                 {
-                    Description = $"Facotrio server {serverId} has been disconnected from this channel",
-                    Color = DiscordColor.Green
+                    Description = description,
+                    Color = successColor
                 }
                 .Build();
 
@@ -116,7 +122,37 @@ namespace FactorioWebInterface.Models
                 var embed = new DiscordEmbedBuilder()
                 {
                     Description = $"Error disconnecting the facotrio server from this channel",
-                    Color = DiscordColor.Red
+                    Color = failureColor
+                }
+                .Build();
+
+                await ctx.RespondAsync(embed: embed);
+            }
+        }
+
+        [Command("setadmin")]
+        [RequireUserPermissions(DSharpPlus.Permissions.ManageChannels)]
+        [Description("Connects the factorio server to this channel.")]
+        public async Task SetAdmin(CommandContext ctx)
+        {
+            bool success = await _discordBot.SetServer(Constants.AdminChannelID, ctx.Channel.Id);
+            if (success)
+            {
+                var embed = new DiscordEmbedBuilder()
+                {
+                    Description = $"Admin has been connected to this channel",
+                    Color = successColor
+                }
+                .Build();
+
+                await ctx.RespondAsync(embed: embed);
+            }
+            else
+            {
+                var embed = new DiscordEmbedBuilder()
+                {
+                    Description = $"Error connecting Admin to this channel",
+                    Color = failureColor
                 }
                 .Build();
 

@@ -222,8 +222,11 @@ namespace FactorioWrapper
                 return;
             }
 
+            data = data.Replace("\\n", "\n");
+
             try
             {
+
                 connection.SendAsync(nameof(IFactorioProcessServerMethods.SendFactorioOutputData), data);
             }
             catch (Exception e)

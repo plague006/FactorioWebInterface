@@ -1,5 +1,6 @@
 ﻿using DSharpPlus;
 using DSharpPlus.CommandsNext;
+using DSharpPlus.Entities;
 using FactorioWebInterface.Data;
 using FactorioWebInterface.Utils;
 using Microsoft.Extensions.Configuration;
@@ -41,8 +42,8 @@ namespace FactorioWebInterface.Models
             DiscordClient = new DiscordClient(new DiscordConfiguration
             {
                 Token = _configuration[Constants.DiscordBotTokenKey],
-                TokenType = TokenType.Bot
-            });
+                TokenType = TokenType.Bot                
+            });            
 
             var d = new DependencyCollectionBuilder().AddInstance(this).Build();
 
@@ -68,7 +69,7 @@ namespace FactorioWebInterface.Models
                 }
             }
 
-            await discordTask;
+            await discordTask;            
         }
 
         private async Task DiscordClient_MessageCreated(DSharpPlus.EventArgs.MessageCreateEventArgs e)
@@ -215,9 +216,43 @@ namespace FactorioWebInterface.Models
                 discordLock.Release();
             }
 
-            // todo cache channels.            
             var channel = await DiscordClient.GetChannelAsync(channelId);
-            await channel.SendMessageAsync(data);
+            var c= await channel.SendMessageAsync(data);
+            new Optional<string>()
+            c.ModifyAsync();
+        }
+
+        public async Task SendEmbedToFactorioChannel(string serverId, string data)
+        {
+            ulong channelId;
+            try
+            {
+                await discordLock.WaitAsync();
+                if (!serverdToDiscord.TryGetValue(serverId, out channelId))
+                {
+                    return;
+                }
+            }
+            finally
+            {
+                discordLock.Release();
+            }
+
+            var channel = await DiscordClient.GetChannelAsync(channelId);
+
+            var embed = new DiscordEmbedBuilder()
+            {
+                Description = data,
+                Color = DiscordBotCommands.infoColor,
+
+            };
+
+            await channel.SendMessageAsync(embed: embed);
+        }
+
+        public Task SendToFactorioAdminChannel(string data)
+        {
+            return SendToFactorioChannel(Constants.AdminChannelID, data);
         }
     }
 }

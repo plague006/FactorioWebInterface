@@ -5,13 +5,13 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 
 namespace FactorioWebInterface.Models
 {
     public class FactorioServerManager : IFactorioServerManager
     {
         private readonly IDiscordBot _discordBot;
-
         private IHubContext<FactorioProcessHub, IFactorioProcessClientMethods> _factorioProcessHub;
         private IHubContext<FactorioControlHub, IFactorioControlClientMethods> _factorioControlHub;
         private readonly ILogger<FactorioServerManager> _logger;
@@ -102,20 +102,47 @@ namespace FactorioWebInterface.Models
 
         public void FactorioDataReceived(string serverId, string data)
         {
-            int index = data.IndexOf("[CHAT]");
-            if (index >= 0)
-            {
-                var message = data.Substring(index);
+            _factorioControlHub.Clients.Groups(serverId).FactorioOutputData(data);
 
-                _discordBot.SendToFactorioChannel(serverId, message);
+            var match = Regex.Match(data, @"(\[[^\[\]]+\])\s*((?:.|\s)*)\s*");
+            if (!match.Success || match.Index > 20)
+            {
+                return;
             }
 
-            _factorioControlHub.Clients.Groups(serverId.ToString()).FactorioOutputData(data);
+            var groups = match.Groups;
+            string tag = groups[1].Value;
+            string content = groups[2].Value;
+
+            switch (tag)
+            {
+                case "[CHAT]":
+                    //todo sanitize.
+                    _discordBot.SendToFactorioChannel(serverId, content);
+                    break;
+                case "[CHAT-RAW]":
+                    _discordBot.SendToFactorioChannel(serverId, content);
+                    break;
+                case "[ADMIN]":
+                    _discordBot.SendToFactorioAdminChannel(content);
+                    break;
+                case "[JOIN]":
+                    _discordBot.SendToFactorioChannel(serverId, "**" + content + "**");
+                    break;
+                case "[LEAVE]":
+                    _discordBot.SendToFactorioChannel(serverId, "**" + content + "**");
+                    break;
+                case "[EMBED]":
+                    _discordBot.SendEmbedToFactorioChannel(serverId, content);
+                    break;
+                default:
+                    break;
+            }
         }
 
         public void FactorioWrapperDataReceived(string serverId, string data)
         {
-            _factorioControlHub.Clients.Groups(serverId.ToString()).FactorioWrapperOutputData(data);
+            _factorioControlHub.Clients.Groups(serverId).FactorioWrapperOutputData(data);
         }
     }
 }

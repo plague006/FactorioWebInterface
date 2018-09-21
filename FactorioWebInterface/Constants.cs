@@ -9,5 +9,6 @@
         public const string ClientSecretKey = "ClientSecret";
         public const string GuildIDKey = "GuildID";
         public const string AdminRoleIDKey = "AdminRoleID";
+        public const string AdminChannelID = "ADMIN";
     }
 }
