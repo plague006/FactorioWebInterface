@@ -42,8 +42,8 @@ namespace FactorioWebInterface.Models
             DiscordClient = new DiscordClient(new DiscordConfiguration
             {
                 Token = _configuration[Constants.DiscordBotTokenKey],
-                TokenType = TokenType.Bot                
-            });            
+                TokenType = TokenType.Bot
+            });
 
             var d = new DependencyCollectionBuilder().AddInstance(this).Build();
 
@@ -69,7 +69,7 @@ namespace FactorioWebInterface.Models
                 }
             }
 
-            await discordTask;            
+            await discordTask;
         }
 
         private async Task DiscordClient_MessageCreated(DSharpPlus.EventArgs.MessageCreateEventArgs e)
@@ -217,9 +217,7 @@ namespace FactorioWebInterface.Models
             }
 
             var channel = await DiscordClient.GetChannelAsync(channelId);
-            var c= await channel.SendMessageAsync(data);
-            new Optional<string>()
-            c.ModifyAsync();
+            await channel.SendMessageAsync(data);
         }
 
         public async Task SendEmbedToFactorioChannel(string serverId, string data)
