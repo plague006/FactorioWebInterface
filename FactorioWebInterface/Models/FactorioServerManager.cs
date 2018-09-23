@@ -259,7 +259,42 @@ namespace FactorioWebInterface.Models
                 serverLock.Release();
             }
 
-            await _factorioControlHub.Clients.Group(serverId).FactorioStatusChanged(newStatus.ToString(), oldStatus.ToString());
+            Task t1 = null;
+            if (oldStatus == FactorioServerStatus.Starting && newStatus == FactorioServerStatus.Running)
+            {
+                var embed = new DiscordEmbedBuilder()
+                {
+                    Description = "Server has started",
+                    Color = DiscordBot.successColor
+                };
+                t1 = _discordBot.SendEmbedToFactorioChannel(serverId, embed);
+            }
+            else if (oldStatus == FactorioServerStatus.Stopping && newStatus == FactorioServerStatus.Stopped
+                || oldStatus == FactorioServerStatus.Killing && newStatus == FactorioServerStatus.Killed)
+            {
+                var embed = new DiscordEmbedBuilder()
+                {
+                    Description = "Server has stopped",
+                    Color = DiscordBot.infoColor
+                };
+                t1 = _discordBot.SendEmbedToFactorioChannel(serverId, embed);
+            }
+            else if (newStatus == FactorioServerStatus.Crashed)
+            {
+                var embed = new DiscordEmbedBuilder()
+                {
+                    Description = "Server has crashed",
+                    Color = DiscordBot.failureColor
+                };
+                t1 = _discordBot.SendEmbedToFactorioChannel(serverId, embed);
+            }
+
+            var t2 = _factorioControlHub.Clients.Group(serverId).FactorioStatusChanged(newStatus.ToString(), oldStatus.ToString());
+            if (t1 != null)
+            {
+                await t1;
+            }
+            await t2;
         }
     }
 }
