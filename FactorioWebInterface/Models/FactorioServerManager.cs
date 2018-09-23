@@ -1,4 +1,6 @@
-﻿using FactorioWebInterface.Hubs;
+﻿using DSharpPlus;
+using DSharpPlus.Entities;
+using FactorioWebInterface.Hubs;
 using FactorioWrapperInterface;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
@@ -13,6 +15,8 @@ namespace FactorioWebInterface.Models
 {
     public class FactorioServerManager : IFactorioServerManager
     {
+        private static readonly Regex tag_regex = new Regex(@"(\[[^\[\]]+\])\s*((?:.|\s)*)\s*", RegexOptions.Compiled);
+
         private readonly IDiscordBot _discordBot;
         private IHubContext<FactorioProcessHub, IFactorioProcessClientMethods> _factorioProcessHub;
         private IHubContext<FactorioControlHub, IFactorioControlClientMethods> _factorioControlHub;
@@ -39,7 +43,9 @@ namespace FactorioWebInterface.Models
 
         private void FactorioDiscordDataReceived(IDiscordBot sender, ServerMessageEventArgs eventArgs)
         {
-            SendToFactorio(eventArgs.ServerId, eventArgs.Data);
+            string data = $"/silent-command game.print('[Discord] {eventArgs.User.Username}: {eventArgs.Message}')";
+            SendToFactorioProcess(eventArgs.ServerId, data);
+            SendToFactorioControl(eventArgs.ServerId, $"[Discord] {eventArgs.User.Username}: {eventArgs.Message}");
         }
 
         public bool Start(string serverId)
@@ -92,22 +98,42 @@ namespace FactorioWebInterface.Models
             _factorioProcessHub.Clients.Groups(serverId).ForceStop();
         }
 
-        public FactorioServerStatus GetStatus(string serverId)
+        public async Task<FactorioServerStatus> GetStatus(string serverId)
         {
-            throw new System.NotImplementedException();
+            try
+            {
+                await serverLock.WaitAsync();
+
+                if (!servers.TryGetValue(serverId, out var serverData))
+                {
+                    _logger.LogError("Unknow serverId: {serverId}", serverId);
+                    //todo throw error?
+                    return FactorioServerStatus.Unknown;
+                }
+
+                return serverData.Status;
+            }
+            finally
+            {
+                serverLock.Release();
+            }
         }
 
-        public void SendToFactorio(string serverId, string data)
+        public void SendToFactorioProcess(string serverId, string data)
         {
             _factorioProcessHub.Clients.Group(serverId).SendToFactorio(data);
+        }
+
+        public void SendToFactorioControl(string serverId, string data)
+        {
             _factorioControlHub.Clients.Group(serverId).FactorioOutputData(data);
         }
 
         public void FactorioDataReceived(string serverId, string data)
         {
-            _factorioControlHub.Clients.Groups(serverId).FactorioOutputData(data);
+            SendToFactorioControl(serverId, data);
 
-            var match = Regex.Match(data, @"(\[[^\[\]]+\])\s*((?:.|\s)*)\s*");
+            var match = tag_regex.Match(data);
             if (!match.Success || match.Index > 20)
             {
                 return;
@@ -120,24 +146,90 @@ namespace FactorioWebInterface.Models
             switch (tag)
             {
                 case "[CHAT]":
-                    //todo sanitize.
+                    content = Formatter.Sanitize(content);
                     _discordBot.SendToFactorioChannel(serverId, content);
                     break;
-                case "[CHAT-RAW]":
+                case "[DISCORD]":
+                    content = content.Replace("\\n", "\n");
+                    content = Formatter.Sanitize(content);
                     _discordBot.SendToFactorioChannel(serverId, content);
                     break;
-                case "[ADMIN]":
+                case "[DISCORD-RAW]":
+                    content = content.Replace("\\n", "\n");
+                    _discordBot.SendToFactorioChannel(serverId, content);
+                    break;
+                case "[DISCORD-ADMIN]":
+                    content = content.Replace("\\n", "\n");
+                    content = Formatter.Sanitize(content);
+                    _discordBot.SendToFactorioAdminChannel(content);
+                    break;
+                case "[DISCORD-ADMIN-RAW]":
+                    content = content.Replace("\\n", "\n");
                     _discordBot.SendToFactorioAdminChannel(content);
                     break;
                 case "[JOIN]":
+                    content = Formatter.Sanitize(content);
                     _discordBot.SendToFactorioChannel(serverId, "**" + content + "**");
                     break;
                 case "[LEAVE]":
+                    content = Formatter.Sanitize(content);
                     _discordBot.SendToFactorioChannel(serverId, "**" + content + "**");
                     break;
-                case "[EMBED]":
-                    _discordBot.SendEmbedToFactorioChannel(serverId, content);
-                    break;
+                case "[DISCORD-EMBED]":
+                    {
+                        content = content.Replace("\\n", "\n");
+                        content = Formatter.Sanitize(content);
+
+                        var embed = new DiscordEmbedBuilder()
+                        {
+                            Description = content,
+                            Color = DiscordBot.infoColor
+                        };
+
+                        _discordBot.SendEmbedToFactorioChannel(serverId, embed);
+                        break;
+                    }
+                case "[DISCORD-EMBED-RAW]":
+                    {
+                        content = content.Replace("\\n", "\n");
+
+                        var embed = new DiscordEmbedBuilder()
+                        {
+                            Description = content,
+                            Color = DiscordBot.infoColor
+                        };
+
+                        _discordBot.SendEmbedToFactorioChannel(serverId, embed);
+                        break;
+                    }
+
+                case "[DISCORD-ADMIN-EMBED]":
+                    {
+                        content = content.Replace("\\n", "\n");
+                        content = Formatter.Sanitize(content);
+
+                        var embed = new DiscordEmbedBuilder()
+                        {
+                            Description = content,
+                            Color = DiscordBot.infoColor
+                        };
+
+                        _discordBot.SendEmbedToFactorioAdminChannel(embed);
+                        break;
+                    }
+                case "[DISCORD-ADMIN-EMBED-RAW]":
+                    {
+                        content = content.Replace("\\n", "\n");
+
+                        var embed = new DiscordEmbedBuilder()
+                        {
+                            Description = content,
+                            Color = DiscordBot.infoColor
+                        };
+
+                        _discordBot.SendEmbedToFactorioAdminChannel(embed);
+                        break;
+                    }
                 default:
                     break;
             }
@@ -145,7 +237,7 @@ namespace FactorioWebInterface.Models
 
         public void FactorioWrapperDataReceived(string serverId, string data)
         {
-            _factorioControlHub.Clients.Groups(serverId).FactorioWrapperOutputData(data);
+            SendToFactorioControl(serverId, data);
         }
 
         public async Task StatusChanged(string serverId, FactorioServerStatus newStatus, FactorioServerStatus oldStatus)
@@ -167,7 +259,7 @@ namespace FactorioWebInterface.Models
                 serverLock.Release();
             }
 
-            await _factorioControlHub.Clients.Group(serverId).FactorioStatusChanged(nameof(newStatus), nameof(oldStatus));
+            await _factorioControlHub.Clients.Group(serverId).FactorioStatusChanged(newStatus.ToString(), oldStatus.ToString());
         }
     }
 }

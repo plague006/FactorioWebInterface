@@ -15,7 +15,7 @@ namespace FactorioWebInterface.Hubs
             _factorioServerManager = factorioServerManager;
         }
 
-        public async Task SetServerId(string serverId)
+        public async Task<FactorioContorlClientData> SetServerId(string serverId)
         {
             string connectionId = Context.ConnectionId;
             Context.Items[connectionId] = serverId;
@@ -23,7 +23,11 @@ namespace FactorioWebInterface.Hubs
             await Groups.RemoveFromGroupAsync(connectionId, serverId);
             await Groups.AddToGroupAsync(connectionId, serverId);
 
-            await Clients.Caller.FactorioStatusChanged(nameof(FactorioServerStatus.Stopped), nameof(FactorioServerStatus.Unknown));
+            var status = await _factorioServerManager.GetStatus(serverId);
+            return new FactorioContorlClientData()
+            {
+                Status = status.ToString()
+            };
         }
 
         public override Task OnDisconnectedAsync(Exception exception)
@@ -49,19 +53,19 @@ namespace FactorioWebInterface.Hubs
             return Task.FromResult(0);
         }
 
-        public Task<FactorioServerStatus> GetStatus()
+        public async Task<string> GetStatus()
         {
             string connectionId = Context.ConnectionId;
             if (Context.Items.TryGetValue(connectionId, out object serverId))
             {
                 string id = (string)serverId;
-                var status = _factorioServerManager.GetStatus(id);
-                return Task.FromResult(status);
+                var status = await _factorioServerManager.GetStatus(id);
+                return status.ToString();
             }
             else
             {
                 // todo throw error?
-                return Task.FromResult(FactorioServerStatus.Unknown);
+                return FactorioServerStatus.Unknown.ToString();
             }
         }
 
@@ -76,7 +80,7 @@ namespace FactorioWebInterface.Hubs
             if (Context.Items.TryGetValue(connectionId, out object serverId))
             {
                 string id = (string)serverId;
-                _factorioServerManager.SendToFactorio(id, data);
+                _factorioServerManager.SendToFactorioProcess(id, data);
             }
 
             return Task.FromResult(0);
@@ -104,6 +108,6 @@ namespace FactorioWebInterface.Hubs
             }
 
             return Task.FromResult(0);
-        }        
+        }
     }
 }

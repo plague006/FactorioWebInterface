@@ -14,11 +14,17 @@ const connection = new signalR.HubConnectionBuilder()
     .withUrl("/FactorioControlHub")
     .build();
 
-connection.start()
-    .then(() => {
-        connection.invoke("SetServerId", serverIdInput.value);
-    })
-    .catch(err => document.write(err));
+async function init() {
+    try {
+        await connection.start();
+        let data = await connection.invoke("SetServerId", serverIdInput.value);        
+        statusText.value = data.status;
+    } catch (ex) {
+        console.log(ex.message);
+    }
+}
+
+init();
 
 connection.on("FactorioOutputData", (data: string) => {
     let m = document.createElement("div");
@@ -53,6 +59,14 @@ connection.on("FactorioWebInterfaceData", (data: string) => {
 connection.on('FactorioStatusChanged', (newStatus: string, oldStatus: string) => {
     console.log(`new: ${newStatus}, old: ${oldStatus}`);
     statusText.value = newStatus;
+
+    let m = document.createElement("div");
+
+    m.innerHTML =
+        `<div>[STATUS]: Changed from ${oldStatus} to ${newStatus}</div>`;
+
+    divMessages.appendChild(m);
+    divMessages.scrollTop = divMessages.scrollHeight;
 });
 
 tbMessage.addEventListener("keyup", (e: KeyboardEvent) => {
@@ -81,4 +95,11 @@ stopButton.onclick = () => {
 forceStopButton.onclick = () => {
     connection.invoke("ForceStop")
         .then(() => console.log("force stopped"));
+}
+
+getStatusButton.onclick = () => {
+    connection.invoke("GetStatus").then((data) => {
+        console.log(`status: ${data}`);
+        statusText.value = data;
+    });
 }

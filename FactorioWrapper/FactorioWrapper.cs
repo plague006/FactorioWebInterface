@@ -4,6 +4,7 @@ using Serilog;
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -17,6 +18,8 @@ namespace FactorioWrapper
         // This is to stop multiple threads writing to the factorio process concurrently.
         private static SemaphoreSlim factorioProcessLock = new SemaphoreSlim(1, 1);
 
+        public static Regex outputRegex = new Regex(@"\d+\.\d+ (.+)", RegexOptions.Compiled);
+
         private static volatile bool exit = false;
         private static volatile HubConnection connection;
         private static volatile bool connected = false;
@@ -24,6 +27,7 @@ namespace FactorioWrapper
         private static string factorioFileName;
         private static string factorioArguments;
         private static string serverId;
+        private static volatile FactorioServerStatus status;
 
         public static void Main(string[] args)
         {
@@ -43,8 +47,17 @@ namespace FactorioWrapper
             {
                 MainAsync(args).GetAwaiter().GetResult();
             }
+            catch(Exception e)
+            {
+                Log.Error(e, "Wrapper Exception");
+            }
             finally
             {
+                if (connection != null)
+                {
+                    connection.StopAsync().GetAwaiter().GetResult();
+                    connection.DisposeAsync().GetAwaiter().GetResult();                    
+                }
                 Log.CloseAndFlush();
             }
         }
@@ -75,7 +88,24 @@ namespace FactorioWrapper
                 }
             }
 
-            SendWrapperData("Exiting wrapper");
+            switch (status)
+            {
+                case FactorioServerStatus.Stopping:
+                    ChangeStatus(FactorioServerStatus.Stopped);
+                    break;
+                case FactorioServerStatus.Killing:
+                    ChangeStatus(FactorioServerStatus.Killed);
+                    break;
+                case FactorioServerStatus.Starting:
+                case FactorioServerStatus.Running:
+                    ChangeStatus(FactorioServerStatus.Crashed);
+                    break;
+                default:
+                    Log.Error("Previous status {status} was unexpected when exiting wrapper.", status);
+                    break;
+            }
+
+            await SendWrapperData("Exiting wrapper");
             Log.Information("Exiting wrapper");
         }
 
@@ -114,6 +144,12 @@ namespace FactorioWrapper
             connection.Closed += async (error) =>
             {
                 connected = false;
+
+                if (exit)
+                {
+                    return;
+                }
+
                 Log.Information("Lost connection");
                 await Reconnect();
             };
@@ -142,11 +178,11 @@ namespace FactorioWrapper
 
             connection.On(nameof(IFactorioProcessClientMethods.Stop), async () =>
             {
+                ChangeStatus(FactorioServerStatus.Stopping);
+
                 try
                 {
                     Process.Start("kill", $"-2 {factorioProcess.Id}");
-                    await Task.Delay(2000);
-                    exit = true;
                 }
                 catch (Exception e)
                 {
@@ -156,6 +192,8 @@ namespace FactorioWrapper
 
             connection.On(nameof(IFactorioProcessClientMethods.ForceStop), () =>
             {
+                ChangeStatus(FactorioServerStatus.Killing);
+
                 try
                 {
                     var p = factorioProcess;
@@ -163,7 +201,6 @@ namespace FactorioWrapper
                     {
                         p.Kill();
                     }
-                    exit = true;
                 }
                 catch (Exception e)
                 {
@@ -214,10 +251,7 @@ namespace FactorioWrapper
             startInfo.RedirectStandardOutput = true;
             startInfo.RedirectStandardError = true;
 
-            factorioProcess.OutputDataReceived += (s, e) =>
-            {
-                SendFactorioOutputData(e.Data);
-            };
+            factorioProcess.OutputDataReceived += FactorioProcess_OutputDataReceived;
 
             factorioProcess.ErrorDataReceived += (s, e) =>
             {
@@ -240,7 +274,33 @@ namespace FactorioWrapper
 
             factorioProcess.StandardInput.AutoFlush = true;
 
+            ChangeStatus(FactorioServerStatus.Starting);
+
             Log.Information("Started factorio process");
+        }
+
+        private static void FactorioProcess_OutputDataReceived(object sender, DataReceivedEventArgs e)
+        {
+            var data = e.Data;
+            SendFactorioOutputData(data);
+
+            if (status != FactorioServerStatus.Starting)
+            {
+                return;
+            }
+
+            var match = outputRegex.Match(data);
+            if (!match.Success)
+            {
+                SendFactorioOutputData(data);
+            }
+
+            string line = match.Groups[1].Value;
+
+            if (line.StartsWith("Factorio initialised"))
+            {
+                ChangeStatus(FactorioServerStatus.Running);
+            }
         }
 
         private static void SendFactorioOutputData(string data)
@@ -250,21 +310,43 @@ namespace FactorioWrapper
                 return;
             }
 
-            data = data.Replace("\\n", "\n");
-
             try
             {
-
                 connection.SendAsync(nameof(IFactorioProcessServerMethods.SendFactorioOutputData), data);
             }
             catch (Exception e)
             {
                 Log.Error(e, "Error sending factorio output data");
             }
+
         }
 
-        private static void SendWrapperData(string data)
+        private static Task SendWrapperData(string data)
         {
+            if (!connected)
+            {
+                return Task.FromResult(0);
+            }
+
+            try
+            {
+                return connection.SendAsync(nameof(IFactorioProcessServerMethods.SendWrapperData), data);
+            }
+            catch (Exception e)
+            {
+                Log.Error(e, "Error sending wrapper output data");
+            }
+
+            return Task.FromResult(0);
+        }
+
+        private static void ChangeStatus(FactorioServerStatus newStatus)
+        {
+            var oldStatus = status;
+            status = newStatus;
+
+            Log.Information("Factorio status changed from {oldStatus} to {newStatus}", oldStatus, newStatus);
+
             if (!connected)
             {
                 return;
@@ -272,11 +354,11 @@ namespace FactorioWrapper
 
             try
             {
-                connection.SendAsync(nameof(IFactorioProcessServerMethods.SendWrapperData), data);
+                connection.SendAsync(nameof(IFactorioProcessServerMethods.StatusChanged), newStatus, oldStatus);
             }
             catch (Exception e)
             {
-                Log.Error(e, "Error sending wrapper output data");
+                Log.Error(e, "Error sending factorio status data");
             }
         }
 

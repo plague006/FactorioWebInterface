@@ -3,14 +3,19 @@ using System.Threading.Tasks;
 
 namespace FactorioWebInterface.Models
 {
+    public class FactorioContorlClientData
+    {
+        public string Status { get; set; }
+    }
+
     public interface IFactorioControlServerMethods
     {
-        Task SetServerId(string serverId);
+        Task<FactorioContorlClientData> SetServerId(string serverId);
         Task Start();
         Task Load(string saveFilePath);
         Task Stop();
         Task ForceStop();
-        Task<FactorioServerStatus> GetStatus();
+        Task<string> GetStatus();
         Task SendToFactorio(string data);
     }
 

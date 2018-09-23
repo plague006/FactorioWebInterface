@@ -14,6 +14,10 @@ namespace FactorioWebInterface.Models
 {
     public class DiscordBot : IDiscordBot
     {
+        public static readonly DiscordColor infoColor = new DiscordColor(0, 127, 255);
+        public static readonly DiscordColor successColor = DiscordColor.Green;
+        public static readonly DiscordColor failureColor = DiscordColor.Red;
+
         private readonly IConfiguration _configuration;
         private readonly DbContextFactory _dbContextFactory;
         private readonly ulong guildId;
@@ -94,7 +98,7 @@ namespace FactorioWebInterface.Models
                 discordLock.Release();
             }
 
-            FactorioDiscordDataReceived?.Invoke(this, new ServerMessageEventArgs(serverId, e.Message.Content));
+            FactorioDiscordDataReceived?.Invoke(this, new ServerMessageEventArgs(serverId, e.Author, e.Message.Content));
         }
 
         /// <summary>
@@ -220,7 +224,7 @@ namespace FactorioWebInterface.Models
             await channel.SendMessageAsync(data);
         }
 
-        public async Task SendEmbedToFactorioChannel(string serverId, string data)
+        public async Task SendEmbedToFactorioChannel(string serverId, DiscordEmbed embed)
         {
             ulong channelId;
             try
@@ -238,19 +242,17 @@ namespace FactorioWebInterface.Models
 
             var channel = await DiscordClient.GetChannelAsync(channelId);
 
-            var embed = new DiscordEmbedBuilder()
-            {
-                Description = data,
-                Color = DiscordBotCommands.infoColor,
-
-            };
-
             await channel.SendMessageAsync(embed: embed);
         }
 
         public Task SendToFactorioAdminChannel(string data)
         {
             return SendToFactorioChannel(Constants.AdminChannelID, data);
+        }
+
+        public Task SendEmbedToFactorioAdminChannel(DiscordEmbed embed)
+        {
+            return SendEmbedToFactorioChannel(Constants.AdminChannelID, embed);
         }
     }
 }

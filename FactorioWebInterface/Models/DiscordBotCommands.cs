@@ -1,17 +1,12 @@
 ﻿using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
-using System;
 using System.Threading.Tasks;
 
 namespace FactorioWebInterface.Models
 {
     public class DiscordBotCommands
     {
-        public static readonly DiscordColor infoColor = new DiscordColor(0, 127, 255);
-        public static readonly DiscordColor successColor = DiscordColor.Green;
-        public static readonly DiscordColor failureColor = DiscordColor.Red;
-
         private readonly DiscordBot _discordBot;
 
         public DiscordBotCommands(DiscordBot discordBot)
@@ -30,7 +25,7 @@ namespace FactorioWebInterface.Models
                 var embed = new DiscordEmbedBuilder()
                 {
                     Description = $"Unknow command name see ;;help for command information.",
-                    Color = failureColor
+                    Color = DiscordBot.failureColor
                 }
                 .Build();
 
@@ -41,7 +36,7 @@ namespace FactorioWebInterface.Models
                 var embed = new DiscordEmbedBuilder()
                 {
                     Description = $"Invalid use of {commandName} see ;;help {commandName} for help with this command.",
-                    Color = failureColor
+                    Color = DiscordBot.failureColor
                 }
                 .Build();
 
@@ -54,12 +49,10 @@ namespace FactorioWebInterface.Models
         [Hidden]
         public async Task Ping(CommandContext ctx)
         {
-            var diff = DateTimeOffset.Now - ctx.Message.Timestamp;
-
             var embed = new DiscordEmbedBuilder()
             {
-                Title = $"pong in {diff.TotalMilliseconds}ms",
-                Color = infoColor
+                Title = $"pong in {ctx.Client.Ping}ms",
+                Color = DiscordBot.infoColor
             }
             .Build();
 
@@ -77,7 +70,7 @@ namespace FactorioWebInterface.Models
                 var embed = new DiscordEmbedBuilder()
                 {
                     Description = $"Facotrio server {serverId} has been connected to this channel",
-                    Color = successColor
+                    Color = DiscordBot.successColor
                 }
                 .Build();
 
@@ -88,7 +81,7 @@ namespace FactorioWebInterface.Models
                 var embed = new DiscordEmbedBuilder()
                 {
                     Description = $"Error connecting the facotrio server {serverId} to this channel",
-                    Color = failureColor
+                    Color = DiscordBot.failureColor
                 }
                 .Build();
 
@@ -111,7 +104,7 @@ namespace FactorioWebInterface.Models
                 var embed = new DiscordEmbedBuilder()
                 {
                     Description = description,
-                    Color = successColor
+                    Color = DiscordBot.successColor
                 }
                 .Build();
 
@@ -122,7 +115,7 @@ namespace FactorioWebInterface.Models
                 var embed = new DiscordEmbedBuilder()
                 {
                     Description = $"Error disconnecting the facotrio server from this channel",
-                    Color = failureColor
+                    Color = DiscordBot.failureColor
                 }
                 .Build();
 
@@ -141,7 +134,7 @@ namespace FactorioWebInterface.Models
                 var embed = new DiscordEmbedBuilder()
                 {
                     Description = $"Admin has been connected to this channel",
-                    Color = successColor
+                    Color = DiscordBot.successColor
                 }
                 .Build();
 
@@ -152,7 +145,7 @@ namespace FactorioWebInterface.Models
                 var embed = new DiscordEmbedBuilder()
                 {
                     Description = $"Error connecting Admin to this channel",
-                    Color = failureColor
+                    Color = DiscordBot.failureColor
                 }
                 .Build();
 

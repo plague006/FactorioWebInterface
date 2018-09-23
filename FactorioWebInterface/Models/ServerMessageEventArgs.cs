@@ -1,14 +1,18 @@
-﻿namespace FactorioWebInterface.Models
+﻿using DSharpPlus.Entities;
+
+namespace FactorioWebInterface.Models
 {
     public class ServerMessageEventArgs
     {
-        public ServerMessageEventArgs(string serverId, string data)
+        public ServerMessageEventArgs(string serverId, DiscordUser user, string message)
         {
             ServerId = serverId;
-            Data = data;
+            User = user;
+            Message = message;
         }
 
         public string ServerId { get; }
-        public string Data { get; }
+        public DiscordUser User { get; }
+        public string Message { get; }
     }
 }

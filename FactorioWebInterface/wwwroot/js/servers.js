@@ -2697,56 +2697,77 @@ var VERSION = "1.1.0-preview2-35157";
 /*!***************************!*\
   !*** ./src/ts/servers.ts ***!
   \***************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
+/*! no exports provided */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _aspnet_signalr__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @aspnet/signalr */ "./node_modules/@aspnet/signalr/dist/esm/index.js");
+var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 
-Object.defineProperty(exports, "__esModule", { value: true });
-var signalR = __webpack_require__(/*! @aspnet/signalr */ "./node_modules/@aspnet/signalr/dist/esm/index.js");
-var divMessages = document.querySelector("#divMessages");
-var tbMessage = document.querySelector("#tbMessage");
-var btnSend = document.querySelector("#btnSend");
-var serverIdInput = document.getElementById('serverIdInput');
-var startButton = document.getElementById('startButton');
-var stopButton = document.getElementById('stopButton');
-var forceStopButton = document.getElementById('forceStopButton');
-var getStatusButton = document.getElementById('getStatusButton');
-var statusText = document.getElementById('statusText');
-var connection = new signalR.HubConnectionBuilder()
+const divMessages = document.querySelector("#divMessages");
+const tbMessage = document.querySelector("#tbMessage");
+const btnSend = document.querySelector("#btnSend");
+const serverIdInput = document.getElementById('serverIdInput');
+const startButton = document.getElementById('startButton');
+const stopButton = document.getElementById('stopButton');
+const forceStopButton = document.getElementById('forceStopButton');
+const getStatusButton = document.getElementById('getStatusButton');
+const statusText = document.getElementById('statusText');
+const connection = new _aspnet_signalr__WEBPACK_IMPORTED_MODULE_0__["HubConnectionBuilder"]()
     .withUrl("/FactorioControlHub")
     .build();
-connection.start()
-    .then(function () {
-    connection.invoke("SetServerId", serverIdInput.value);
-})
-    .catch(function (err) { return document.write(err); });
-connection.on("FactorioOutputData", function (data) {
-    var m = document.createElement("div");
+function init() {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            yield connection.start();
+            let data = yield connection.invoke("SetServerId", serverIdInput.value);
+            statusText.value = data.status;
+        }
+        catch (ex) {
+            console.log(ex.message);
+        }
+    });
+}
+init();
+connection.on("FactorioOutputData", (data) => {
+    let m = document.createElement("div");
     m.innerHTML =
-        "<div>" + data + "</div>";
+        `<div>${data}</div>`;
     divMessages.appendChild(m);
     divMessages.scrollTop = divMessages.scrollHeight;
 });
-connection.on("FactorioWrapperOutputData", function (data) {
-    var m = document.createElement("div");
+connection.on("FactorioWrapperOutputData", (data) => {
+    let m = document.createElement("div");
     m.innerHTML =
-        "<div>Wrapper: " + data + "</div>";
+        `<div>Wrapper: ${data}</div>`;
     divMessages.appendChild(m);
     divMessages.scrollTop = divMessages.scrollHeight;
 });
-connection.on("FactorioWebInterfaceData", function (data) {
-    var m = document.createElement("div");
+connection.on("FactorioWebInterfaceData", (data) => {
+    let m = document.createElement("div");
     m.innerHTML =
-        "<div>Web: " + data + "</div>";
+        `<div>Web: ${data}</div>`;
     divMessages.appendChild(m);
     divMessages.scrollTop = divMessages.scrollHeight;
 });
-connection.on('FactorioStatusChanged', function (newStatus, oldStatus) {
-    console.log("new: " + newStatus + ", old: " + oldStatus);
+connection.on('FactorioStatusChanged', (newStatus, oldStatus) => {
+    console.log(`new: ${newStatus}, old: ${oldStatus}`);
     statusText.value = newStatus;
+    let m = document.createElement("div");
+    m.innerHTML =
+        `<div>[STATUS]: Changed from ${oldStatus} to ${newStatus}</div>`;
+    divMessages.appendChild(m);
+    divMessages.scrollTop = divMessages.scrollHeight;
 });
-tbMessage.addEventListener("keyup", function (e) {
+tbMessage.addEventListener("keyup", (e) => {
     if (e.keyCode === 13) {
         send();
     }
@@ -2754,19 +2775,25 @@ tbMessage.addEventListener("keyup", function (e) {
 btnSend.addEventListener("click", send);
 function send() {
     connection.send("SendToFactorio", tbMessage.value)
-        .then(function () { return tbMessage.value = ""; });
+        .then(() => tbMessage.value = "");
 }
-startButton.onclick = function () {
+startButton.onclick = () => {
     connection.invoke("Start")
-        .then(function () { return console.log("started"); });
+        .then(() => console.log("started"));
 };
-stopButton.onclick = function () {
+stopButton.onclick = () => {
     connection.invoke("Stop")
-        .then(function () { return console.log("stopped"); });
+        .then(() => console.log("stopped"));
 };
-forceStopButton.onclick = function () {
+forceStopButton.onclick = () => {
     connection.invoke("ForceStop")
-        .then(function () { return console.log("force stopped"); });
+        .then(() => console.log("force stopped"));
+};
+getStatusButton.onclick = () => {
+    connection.invoke("GetStatus").then((data) => {
+        console.log(`status: ${data}`);
+        statusText.value = data;
+    });
 };
 
 
