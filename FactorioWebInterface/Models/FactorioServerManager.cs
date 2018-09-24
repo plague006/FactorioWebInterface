@@ -48,9 +48,22 @@ namespace FactorioWebInterface.Models
             _discordBot.FactorioDiscordDataReceived += FactorioDiscordDataReceived;
         }
 
+        private string SanitizeDiscordChat(string message)
+        {
+            StringBuilder sb = new StringBuilder(message);
+
+            sb.Replace("'", "\\'");
+            sb.Replace("\n", " ");
+
+            return sb.ToString();
+        }
+
         private void FactorioDiscordDataReceived(IDiscordBot sender, ServerMessageEventArgs eventArgs)
         {
-            string data = $"/silent-command game.print('[Discord] {eventArgs.User.Username}: {eventArgs.Message}')";
+            var name = SanitizeDiscordChat(eventArgs.User.Username);
+            var message = SanitizeDiscordChat(eventArgs.Message);
+
+            string data = $"/silent-command game.print('[Discord] {name}: {message}')";
             SendToFactorioProcess(eventArgs.ServerId, data);
             SendToFactorioControl(eventArgs.ServerId, $"[Discord] {eventArgs.User.Username}: {eventArgs.Message}");
         }
