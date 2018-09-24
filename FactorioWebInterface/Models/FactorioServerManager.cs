@@ -1,12 +1,16 @@
 ﻿using DSharpPlus;
 using DSharpPlus.Entities;
+using FactorioWebInterface.Data;
 using FactorioWebInterface.Hubs;
 using FactorioWrapperInterface;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,8 +22,9 @@ namespace FactorioWebInterface.Models
         private static readonly Regex tag_regex = new Regex(@"(\[[^\[\]]+\])\s*((?:.|\s)*)\s*", RegexOptions.Compiled);
 
         private readonly IDiscordBot _discordBot;
-        private IHubContext<FactorioProcessHub, IFactorioProcessClientMethods> _factorioProcessHub;
-        private IHubContext<FactorioControlHub, IFactorioControlClientMethods> _factorioControlHub;
+        private readonly IHubContext<FactorioProcessHub, IFactorioProcessClientMethods> _factorioProcessHub;
+        private readonly IHubContext<FactorioControlHub, IFactorioControlClientMethods> _factorioControlHub;
+        private readonly DbContextFactory _dbContextFactory;
         private readonly ILogger<FactorioServerManager> _logger;
 
         private SemaphoreSlim serverLock = new SemaphoreSlim(1, 1);
@@ -30,12 +35,14 @@ namespace FactorioWebInterface.Models
             IDiscordBot discordBot,
             IHubContext<FactorioProcessHub, IFactorioProcessClientMethods> factorioProcessHub,
             IHubContext<FactorioControlHub, IFactorioControlClientMethods> factorioControlHub,
+            DbContextFactory dbContextFactory,
             ILogger<FactorioServerManager> logger
         )
         {
             _discordBot = discordBot;
             _factorioProcessHub = factorioProcessHub;
             _factorioControlHub = factorioControlHub;
+            _dbContextFactory = dbContextFactory;
             _logger = logger;
 
             _discordBot.FactorioDiscordDataReceived += FactorioDiscordDataReceived;
@@ -119,9 +126,9 @@ namespace FactorioWebInterface.Models
             }
         }
 
-        public void SendToFactorioProcess(string serverId, string data)
+        public Task SendToFactorioProcess(string serverId, string data)
         {
-            _factorioProcessHub.Clients.Group(serverId).SendToFactorio(data);
+            return _factorioProcessHub.Clients.Group(serverId).SendToFactorio(data);
         }
 
         public void SendToFactorioControl(string serverId, string data)
@@ -240,6 +247,37 @@ namespace FactorioWebInterface.Models
             SendToFactorioControl(serverId, data);
         }
 
+        private async Task ServerStarted(string serverId)
+        {
+            var embed = new DiscordEmbedBuilder()
+            {
+                Description = "Server has started",
+                Color = DiscordBot.successColor
+            };
+            var t1 = _discordBot.SendEmbedToFactorioChannel(serverId, embed);
+
+            List<Regular> regulars;
+            using (var db = _dbContextFactory.Create())
+            {
+                regulars = await db.Regulars.ToListAsync();
+            }
+
+            var sb = new StringBuilder("/silent-command local r = global.regulars local t = {");
+            foreach (var regualr in regulars)
+            {
+                sb.Append('\'');
+                sb.Append(regualr.Name);
+                sb.Append('\'');
+                sb.Append(',');
+            }
+            sb.Remove(sb.Length - 1, 1);
+            sb.Append("} for k,v in ipairs(t) do r[v] = true end");
+
+            string command = sb.ToString();
+            await SendToFactorioProcess(serverId, command);
+            await t1;
+        }
+
         public async Task StatusChanged(string serverId, FactorioServerStatus newStatus, FactorioServerStatus oldStatus)
         {
             try
@@ -262,12 +300,7 @@ namespace FactorioWebInterface.Models
             Task t1 = null;
             if (oldStatus == FactorioServerStatus.Starting && newStatus == FactorioServerStatus.Running)
             {
-                var embed = new DiscordEmbedBuilder()
-                {
-                    Description = "Server has started",
-                    Color = DiscordBot.successColor
-                };
-                t1 = _discordBot.SendEmbedToFactorioChannel(serverId, embed);
+                t1 = ServerStarted(serverId);
             }
             else if (oldStatus == FactorioServerStatus.Stopping && newStatus == FactorioServerStatus.Stopped
                 || oldStatus == FactorioServerStatus.Killing && newStatus == FactorioServerStatus.Killed)
@@ -295,6 +328,32 @@ namespace FactorioWebInterface.Models
                 await t1;
             }
             await t2;
+        }
+
+        public async Task<List<Regular>> GetRegularsAsync()
+        {
+            var db = _dbContextFactory.Create();
+            return await db.Regulars.ToListAsync();
+        }
+
+        public async Task AddRegularsFromStringAsync(string data)
+        {
+            var db = _dbContextFactory.Create();
+            var regulars = db.Regulars;
+
+            var names = data.Split(',').Select(x => x.Trim());
+            foreach (var name in names)
+            {
+                var regular = new Regular()
+                {
+                    Name = name,
+                    Date = DateTimeOffset.Now,
+                    PromotedBy = "<From old list>"
+                };
+                regulars.Add(regular);
+            }
+
+            await db.SaveChangesAsync();
         }
     }
 }

@@ -1,4 +1,6 @@
-﻿using FactorioWrapperInterface;
+﻿using FactorioWebInterface.Data;
+using FactorioWrapperInterface;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace FactorioWebInterface.Models
@@ -10,9 +12,11 @@ namespace FactorioWebInterface.Models
         void Stop(string serverId);
         void ForceStop(string serverId);
         Task<FactorioServerStatus> GetStatus(string serverId);
-        void SendToFactorioProcess(string serverId, string data);
+        Task SendToFactorioProcess(string serverId, string data);
         void FactorioDataReceived(string serverId, string data);
         void FactorioWrapperDataReceived(string serverId, string data);
         Task StatusChanged(string serverId, FactorioServerStatus newStatus, FactorioServerStatus oldStatus);
+        Task<List<Regular>> GetRegularsAsync();
+        Task AddRegularsFromStringAsync(string data);
     }
 }
