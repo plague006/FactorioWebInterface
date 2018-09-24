@@ -14,6 +14,13 @@ namespace FactorioWebInterface.Models
 {
     public class DiscordBot : IDiscordBot
     {
+        private class DiscordMessage
+        {
+            public DiscordChannel Channel { get; set; }
+            public string Content { get; set; }
+            public DiscordEmbed Embed { get; set; }
+        }
+
         public static readonly DiscordColor infoColor = new DiscordColor(0, 127, 255);
         public static readonly DiscordColor successColor = DiscordColor.Green;
         public static readonly DiscordColor failureColor = DiscordColor.Red;
@@ -26,6 +33,8 @@ namespace FactorioWebInterface.Models
         private readonly SemaphoreSlim discordLock = new SemaphoreSlim(1, 1);
         private readonly Dictionary<ulong, string> discordToServer = new Dictionary<ulong, string>();
         private readonly Dictionary<string, ulong> serverdToDiscord = new Dictionary<string, ulong>();
+
+        private SingleConsumerQueue<DiscordMessage> messageQueue;
 
         public DiscordClient DiscordClient { get; private set; }
 
@@ -72,6 +81,11 @@ namespace FactorioWebInterface.Models
                     serverdToDiscord[ds.ServerId] = ds.DiscordChannelId;
                 }
             }
+
+            messageQueue = new SingleConsumerQueue<DiscordMessage>(async m =>
+            {
+                await DiscordClient.SendMessageAsync(m.Channel, m.Content, false, m.Embed);
+            });
 
             await discordTask;
         }
@@ -221,7 +235,13 @@ namespace FactorioWebInterface.Models
             }
 
             var channel = await DiscordClient.GetChannelAsync(channelId);
-            await channel.SendMessageAsync(data);
+
+            var message = new DiscordMessage()
+            {
+                Channel = channel,
+                Content = data
+            };
+            messageQueue.Enqueue(message);
         }
 
         public async Task SendEmbedToFactorioChannel(string serverId, DiscordEmbed embed)
@@ -242,7 +262,12 @@ namespace FactorioWebInterface.Models
 
             var channel = await DiscordClient.GetChannelAsync(channelId);
 
-            await channel.SendMessageAsync(embed: embed);
+            var message = new DiscordMessage()
+            {
+                Channel = channel,
+                Embed = embed
+            };
+            messageQueue.Enqueue(message);
         }
 
         public Task SendToFactorioAdminChannel(string data)
