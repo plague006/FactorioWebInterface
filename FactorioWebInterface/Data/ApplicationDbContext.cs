@@ -16,6 +16,8 @@ namespace FactorioWebInterface.Data
         }
 
         public DbSet<DiscordServers> DiscordServers { get; set; }
+        public DbSet<Regular> Regulars { get; set; }
+        public DbSet<Donator> Donators { get; set; }
 
         /// <summary>
         /// This just changes the default names for the tables, becasue I didn't like all the tables
