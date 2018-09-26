@@ -7,8 +7,7 @@ namespace FactorioWebInterface.Utils
     public class SingleConsumerQueue<T>
     {
         private Queue<T> queue = new Queue<T>();
-
-        private event Action ItemAdded;
+        private volatile TaskCompletionSource<T> taskCompletionSource;
 
         private readonly Func<T, Task> consumer;
 
@@ -20,8 +19,14 @@ namespace FactorioWebInterface.Utils
             {
                 while (true)
                 {
-                    var item = await DequeueAsync();
-                    await consumer(item);
+                    try
+                    {
+                        var item = await DequeueAsync();
+                        await consumer(item);
+                    }
+                    catch
+                    {
+                    }
                 }
             });
         }
@@ -30,8 +35,16 @@ namespace FactorioWebInterface.Utils
         {
             lock (queue)
             {
-                queue.Enqueue(item);
-                ItemAdded?.Invoke();
+                if (taskCompletionSource != null)
+                {
+                    var tcs = taskCompletionSource;
+                    taskCompletionSource = null;
+                    tcs.SetResult(item);
+                }
+                else
+                {
+                    queue.Enqueue(item);
+                }
             }
         }
 
@@ -54,23 +67,10 @@ namespace FactorioWebInterface.Utils
                 {
                     return Task.FromResult(item);
                 }
+
+                taskCompletionSource = new TaskCompletionSource<T>();
+                return taskCompletionSource.Task;
             }
-
-            var tcs = new TaskCompletionSource<T>();
-
-            void handler()
-            {
-                ItemAdded -= handler;
-                var item = queue.Dequeue();
-                tcs.SetResult(item);
-            }
-
-            lock (queue)
-            {
-                ItemAdded += handler;
-            }
-
-            return tcs.Task;
         }
     }
 }
