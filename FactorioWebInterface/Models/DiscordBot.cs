@@ -4,6 +4,7 @@ using DSharpPlus.Entities;
 using FactorioWebInterface.Data;
 using FactorioWebInterface.Utils;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -27,6 +28,9 @@ namespace FactorioWebInterface.Models
 
         private readonly IConfiguration _configuration;
         private readonly DbContextFactory _dbContextFactory;
+        private readonly ILogger<DiscordBot> _logger;
+
+
         private readonly ulong guildId;
         private readonly ulong adminRoleId;
 
@@ -40,10 +44,12 @@ namespace FactorioWebInterface.Models
 
         public event EventHandler<IDiscordBot, ServerMessageEventArgs> FactorioDiscordDataReceived;
 
-        public DiscordBot(IConfiguration configuration, DbContextFactory dbContextFactory)
+        public DiscordBot(IConfiguration configuration, DbContextFactory dbContextFactory, ILogger<DiscordBot> logger)
         {
             _configuration = configuration;
             _dbContextFactory = dbContextFactory;
+            _logger = logger;
+
             guildId = ulong.Parse(_configuration[Constants.GuildIDKey]);
             adminRoleId = ulong.Parse(_configuration[Constants.AdminRoleIDKey]);
 
@@ -84,7 +90,14 @@ namespace FactorioWebInterface.Models
 
             messageQueue = new SingleConsumerQueue<DiscordMessage>(async m =>
             {
-                await DiscordClient.SendMessageAsync(m.Channel, m.Content, false, m.Embed);
+                try
+                {
+                    await DiscordClient.SendMessageAsync(m.Channel, m.Content, false, m.Embed);
+                }
+                catch (Exception e)
+                {
+                    _logger.LogError("messageQueue consumer", e);
+                }
             });
 
             await discordTask;
