@@ -10,5 +10,7 @@
         public const string GuildIDKey = "GuildID";
         public const string AdminRoleIDKey = "AdminRoleID";
         public const string AdminChannelID = "ADMIN";
+        public const string SecurityKey = "SecurityKey";
+        public const string FactorioWrapperClaim = "FactorioWrapper";
     }
 }

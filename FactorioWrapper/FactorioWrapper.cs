@@ -28,6 +28,7 @@ namespace FactorioWrapper
         private static string factorioArguments;
         private static string serverId;
         private static volatile FactorioServerStatus status;
+        private static string token;
 
         public static void Main(string[] args)
         {
@@ -35,19 +36,22 @@ namespace FactorioWrapper
                 ? "logs/log.txt"
                 : $"logs/{args[0]}/log.txt";
 
-            string path = AppDomain.CurrentDomain.BaseDirectory;
-            path = Path.Combine(path, logPath);
+            string basePath = AppDomain.CurrentDomain.BaseDirectory;
+            string fullLogPath = Path.Combine(basePath, logPath);
+            string fullTokenPath = Path.Combine(basePath, "token.txt");
 
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Information()
-                .WriteTo.Async(a => a.File(path, rollingInterval: RollingInterval.Day))
+                .WriteTo.Async(a => a.File(fullLogPath, rollingInterval: RollingInterval.Day))
                 .CreateLogger();
 
             try
             {
+                token = File.ReadAllText(fullTokenPath);
+                Log.Information("token read: {token}", token);
                 MainAsync(args).GetAwaiter().GetResult();
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 Log.Error(e, "Wrapper Exception");
             }
@@ -56,7 +60,7 @@ namespace FactorioWrapper
                 if (connection != null)
                 {
                     connection.StopAsync().GetAwaiter().GetResult();
-                    connection.DisposeAsync().GetAwaiter().GetResult();                    
+                    connection.DisposeAsync().GetAwaiter().GetResult();
                 }
                 Log.CloseAndFlush();
             }
@@ -116,6 +120,8 @@ namespace FactorioWrapper
                 BuildConenction();
             }
 
+            Log.Information("Starting connection");
+
             await Reconnect();
 
             if (factorioProcess == null)
@@ -137,8 +143,13 @@ namespace FactorioWrapper
 
         private static void BuildConenction()
         {
+            Log.Information("Building connection");
+
             connection = new HubConnectionBuilder()
-                .WithUrl(url)
+                .WithUrl(url, options =>
+                {                    
+                    options.AccessTokenProvider = () => Task.FromResult(token);
+                })
                 .Build();
 
             connection.Closed += async (error) =>
@@ -282,6 +293,12 @@ namespace FactorioWrapper
         private static void FactorioProcess_OutputDataReceived(object sender, DataReceivedEventArgs e)
         {
             var data = e.Data;
+
+            if (data == null)
+            {
+                return;
+            }
+
             SendFactorioOutputData(data);
 
             if (status != FactorioServerStatus.Starting)

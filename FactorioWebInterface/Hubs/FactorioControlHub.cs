@@ -1,11 +1,13 @@
 ﻿using FactorioWebInterface.Models;
 using FactorioWrapperInterface;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using System;
 using System.Threading.Tasks;
 
 namespace FactorioWebInterface.Hubs
 {
+    [Authorize]
     public class FactorioControlHub : Hub<IFactorioControlClientMethods>, IFactorioControlServerMethods
     {
         private IFactorioServerManager _factorioServerManager;

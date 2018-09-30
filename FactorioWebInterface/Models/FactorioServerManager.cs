@@ -151,6 +151,11 @@ namespace FactorioWebInterface.Models
 
         public void FactorioDataReceived(string serverId, string data)
         {
+            if (data == null)
+            {
+                return;
+            }
+
             SendToFactorioControl(serverId, data);
 
             var match = tag_regex.Match(data);

@@ -1,5 +1,6 @@
 ﻿using FactorioWebInterface.Models;
 using FactorioWrapperInterface;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using System;
@@ -8,7 +9,7 @@ using FactorioServerStatus = FactorioWrapperInterface.FactorioServerStatus;
 
 namespace FactorioWebInterface.Hubs
 {
-    [AllowAnonymous]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class FactorioProcessHub : Hub<IFactorioProcessClientMethods>, IFactorioProcessServerMethods
     {
         private readonly IFactorioServerManager _factorioServerManger;
