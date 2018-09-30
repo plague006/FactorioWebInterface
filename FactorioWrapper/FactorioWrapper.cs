@@ -147,7 +147,7 @@ namespace FactorioWrapper
 
             connection = new HubConnectionBuilder()
                 .WithUrl(url, options =>
-                {                    
+                {
                     options.AccessTokenProvider = () => Task.FromResult(token);
                 })
                 .Build();
@@ -219,32 +219,10 @@ namespace FactorioWrapper
                 }
             });
 
+            // This is so the Server Control can get the status if a connection was lost.
             connection.On(nameof(IFactorioProcessClientMethods.GetStatus), () =>
             {
-                try
-                {
-                    var p = factorioProcess;
-                    if (p == null)
-                    {
-                        connection.SendAsync(nameof(IFactorioProcessServerMethods.StatusChanged), FactorioServerStatus.Unknown, FactorioServerStatus.Unknown);
-                        return;
-                    }
-                    if (p.HasExited)
-                    {
-                        connection.SendAsync(nameof(IFactorioProcessServerMethods.StatusChanged), FactorioServerStatus.Stopped, FactorioServerStatus.Unknown);
-                        return;
-                    }
-                    else
-                    {
-                        connection.SendAsync(nameof(IFactorioProcessServerMethods.StatusChanged), FactorioServerStatus.Running, FactorioServerStatus.Unknown);
-                        return;
-                    }
-
-                }
-                catch (Exception e)
-                {
-                    Log.Error(e, "Error getting factorio process status");
-                }
+                ChangeStatus(status);
             });
         }
 
@@ -266,7 +244,10 @@ namespace FactorioWrapper
 
             factorioProcess.ErrorDataReceived += (s, e) =>
             {
-                SendFactorioOutputData("Error " + e.Data);
+                if (e.Data != null)
+                {
+                    SendFactorioOutputData("[Error] " + e.Data);
+                }
             };
 
             try
