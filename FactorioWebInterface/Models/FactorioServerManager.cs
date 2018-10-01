@@ -309,8 +309,89 @@ namespace FactorioWebInterface.Models
                         _discordBot.SendEmbedToFactorioAdminChannel(embed);
                         break;
                     }
+                case "[REGULAR-PROMOTE]":
+                    _ = PromoteRegular(content);
+                    break;
+                case "[REGULAR-DEOMOTE]":
+                    _ = DemoteRegular(content);
+                    break;
                 default:
                     break;
+            }
+        }
+
+        private async Task PromoteRegular(string content)
+        {
+            if (string.IsNullOrWhiteSpace(content))
+                return;
+
+            var parms = content.Split(' ');
+            string target = parms[0];
+            string promoter = parms.Length > 1 ? parms[1] : "<server>";
+
+            var db = _dbContextFactory.Create();
+
+            var regular = new Regular() { Name = content, Date = DateTimeOffset.Now, PromotedBy = promoter };
+
+            db.Add(regular);
+            await db.SaveChangesAsync();
+
+            var command = FactorioCommandBuilder
+                .ServerCommand("regular_promote")
+                .AddQuotedString(target)
+                .Build();
+
+            foreach (var server in servers.Values)
+            {
+                var serverLock = server.ServerLock;
+
+                try
+                {
+                    await serverLock.WaitAsync();
+
+                    if (server.Status == FactorioServerStatus.Running)
+                    {
+                        _ = SendToFactorioProcess(server.ServerId, command);
+                    }
+                }
+                finally
+                {
+                    serverLock.Release();
+                }
+            }
+        }
+
+        private async Task DemoteRegular(string content)
+        {
+            var db = _dbContextFactory.Create();
+
+            var regular = new Regular() { Name = content };
+
+            db.Remove(regular);
+            await db.SaveChangesAsync();
+
+            var command = FactorioCommandBuilder
+                .ServerCommand("regular_demote")
+                .AddQuotedString(content)
+                .Build();
+
+            foreach (var server in servers.Values)
+            {
+                var serverLock = server.ServerLock;
+
+                try
+                {
+                    await serverLock.WaitAsync();
+
+                    if (server.Status == FactorioServerStatus.Running)
+                    {
+                        _ = SendToFactorioProcess(server.ServerId, command);
+                    }
+                }
+                finally
+                {
+                    serverLock.Release();
+                }
             }
         }
 
@@ -334,25 +415,19 @@ namespace FactorioWebInterface.Models
             };
             var t1 = _discordBot.SendEmbedToFactorioChannel(serverId, embed);
 
-            List<Regular> regulars;
-            using (var db = _dbContextFactory.Create())
-            {
-                regulars = await db.Regulars.ToListAsync();
-            }
+            var regulars = await _dbContextFactory.Create().Regulars.Select(r => r.Name).ToArrayAsync();
 
-            var sb = new StringBuilder("/silent-command local r = global.regulars local t = {");
-            foreach (var regualr in regulars)
+            var cb = FactorioCommandBuilder.ServerCommand("regular_sync");
+            cb.Add("{");
+            foreach (var r in regulars)
             {
-                sb.Append('\'');
-                sb.Append(regualr.Name);
-                sb.Append('\'');
-                sb.Append(',');
+                cb.AddQuotedString(r);
+                cb.Add(",");
             }
-            sb.Remove(sb.Length - 1, 1);
-            sb.Append("} for k,v in ipairs(t) do r[v] = true end");
+            cb.RemoveLast(1);
+            cb.Add("}");
 
-            string command = sb.ToString();
-            await SendToFactorioProcess(serverId, command);
+            await SendToFactorioProcess(serverId, cb.Build());
             await t1;
         }
 
