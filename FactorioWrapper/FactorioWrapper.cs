@@ -187,7 +187,7 @@ namespace FactorioWrapper
                 }
             });
 
-            connection.On(nameof(IFactorioProcessClientMethods.Stop), async () =>
+            connection.On(nameof(IFactorioProcessClientMethods.Stop), () =>
             {
                 ChangeStatus(FactorioServerStatus.Stopping);
 
