@@ -16,7 +16,7 @@ namespace FactorioWebInterface.Models
         public string BaseDirectoryPath { get; set; }
         public string Port { get; set; }
         public SemaphoreSlim ServerLock { get; set; }
-        public RingBuffer<string> ControlMessageBuffer { get; set; }
+        public RingBuffer<MessageData> ControlMessageBuffer { get; set; }
 
         public static Dictionary<string, FactorioServerData> Servers { get; }
 
@@ -35,8 +35,10 @@ namespace FactorioWebInterface.Models
                     BaseDirectoryPath = $"{baseDirectoryPath}{serverId}/",
                     Port = port,
                     ServerLock = new SemaphoreSlim(1, 1),
-                    ControlMessageBuffer = new RingBuffer<string>(bufferSize)
+                    ControlMessageBuffer = new RingBuffer<MessageData>(bufferSize)
                 };
+
+                Servers[serverId].ControlMessageBuffer.Add(new MessageData() { MessageType = MessageType.Status, Message = "test" });
             }
         }
     }

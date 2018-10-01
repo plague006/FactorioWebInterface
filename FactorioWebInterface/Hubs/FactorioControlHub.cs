@@ -25,10 +25,10 @@ namespace FactorioWebInterface.Hubs
             await Groups.RemoveFromGroupAsync(connectionId, serverId);
             await Groups.AddToGroupAsync(connectionId, serverId);
 
-            var status = await _factorioServerManager.GetStatus(serverId);
             return new FactorioContorlClientData()
             {
-                Status = status.ToString()
+                Status = (await _factorioServerManager.GetStatus(serverId)).ToString(),
+                Messages = await _factorioServerManager.GetFactorioControlMessagesAsync(serverId)
             };
         }
 
@@ -110,6 +110,18 @@ namespace FactorioWebInterface.Hubs
             }
 
             return Task.FromResult(0);
+        }
+
+        public Task<MessageData[]> GetMesssages()
+        {
+            string connectionId = Context.ConnectionId;
+            if (Context.Items.TryGetValue(connectionId, out object serverId))
+            {
+                string id = (string)serverId;
+                return _factorioServerManager.GetFactorioControlMessagesAsync(id);
+            }
+
+            return Task.FromResult(new MessageData[0]);
         }
     }
 }

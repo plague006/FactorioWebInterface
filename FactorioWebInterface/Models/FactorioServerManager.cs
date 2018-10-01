@@ -12,7 +12,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace FactorioWebInterface.Models
@@ -28,7 +27,7 @@ namespace FactorioWebInterface.Models
         private readonly DbContextFactory _dbContextFactory;
         private readonly ILogger<FactorioServerManager> _logger;
 
-        private SemaphoreSlim serverLock = new SemaphoreSlim(1, 1);
+        //private SemaphoreSlim serverLock = new SemaphoreSlim(1, 1);
         private Dictionary<string, FactorioServerData> servers = FactorioServerData.Servers;
 
         public FactorioServerManager
@@ -66,7 +65,14 @@ namespace FactorioWebInterface.Models
 
             string data = $"/silent-command game.print('[Discord] {name}: {message}')";
             SendToFactorioProcess(eventArgs.ServerId, data);
-            SendToFactorioControl(eventArgs.ServerId, $"[Discord] {eventArgs.User.Username}: {eventArgs.Message}");
+
+            var messageData = new MessageData()
+            {
+                MessageType = MessageType.Discord,
+                Message = $"[Discord] {eventArgs.User.Username}: {eventArgs.Message}"
+            };
+
+            _ = SendToFactorioControl(eventArgs.ServerId, messageData);
         }
 
         public bool Start(string serverId)
@@ -121,22 +127,21 @@ namespace FactorioWebInterface.Models
 
         public async Task<FactorioServerStatus> GetStatus(string serverId)
         {
+            if (!servers.TryGetValue(serverId, out var serverData))
+            {
+                _logger.LogError("Unknow serverId: {serverId}", serverId);
+                return FactorioServerStatus.Unknown;
+            }
+
             try
             {
-                await serverLock.WaitAsync();
-
-                if (!servers.TryGetValue(serverId, out var serverData))
-                {
-                    _logger.LogError("Unknow serverId: {serverId}", serverId);
-                    //todo throw error?
-                    return FactorioServerStatus.Unknown;
-                }
+                await serverData.ServerLock.WaitAsync();
 
                 return serverData.Status;
             }
             finally
             {
-                serverLock.Release();
+                serverData.ServerLock.Release();
             }
         }
 
@@ -145,9 +150,46 @@ namespace FactorioWebInterface.Models
             return _factorioProcessHub.Clients.Group(serverId).SendToFactorio(data);
         }
 
-        public void SendToFactorioControl(string serverId, string data)
+        public async Task SendToFactorioControl(string serverId, MessageData data)
         {
-            _factorioControlHub.Clients.Group(serverId).FactorioOutputData(data);
+            if (!servers.TryGetValue(serverId, out var serverData))
+            {
+                _logger.LogError("Unknow serverId: {serverId}", serverId);
+                return;
+            }
+
+            try
+            {
+                await serverData.ServerLock.WaitAsync();
+                serverData.ControlMessageBuffer.Add(data);
+            }
+            finally
+            {
+                serverData.ServerLock.Release();
+            }
+
+            await _factorioControlHub.Clients.Group(serverId).SendMessage(data);
+        }
+
+        public async Task<MessageData[]> GetFactorioControlMessagesAsync(string serverId)
+        {
+            if (!servers.TryGetValue(serverId, out var serverData))
+            {
+                _logger.LogError("Unknow serverId: {serverId}", serverId);
+                return new MessageData[0];
+            }
+
+            try
+            {
+                await serverData.ServerLock.WaitAsync();
+
+                var buffer = serverData.ControlMessageBuffer.TakeWhile(x => x != null).ToArray();
+                return buffer;
+            }
+            finally
+            {
+                serverData.ServerLock.Release();
+            }
         }
 
         public void FactorioDataReceived(string serverId, string data)
@@ -157,7 +199,13 @@ namespace FactorioWebInterface.Models
                 return;
             }
 
-            SendToFactorioControl(serverId, data);
+            var messageData = new MessageData()
+            {
+                MessageType = MessageType.Output,
+                Message = data
+            };
+
+            _ = SendToFactorioControl(serverId, messageData);
 
             var match = tag_regex.Match(data);
             if (!match.Success || match.Index > 20)
@@ -263,7 +311,13 @@ namespace FactorioWebInterface.Models
 
         public void FactorioWrapperDataReceived(string serverId, string data)
         {
-            SendToFactorioControl(serverId, data);
+            var messageData = new MessageData()
+            {
+                MessageType = MessageType.Wrapper,
+                Message = data
+            };
+
+            _ = SendToFactorioControl(serverId, messageData);
         }
 
         private async Task ServerStarted(string serverId)
@@ -299,27 +353,35 @@ namespace FactorioWebInterface.Models
 
         public async Task StatusChanged(string serverId, FactorioServerStatus newStatus, FactorioServerStatus oldStatus)
         {
+            if (!servers.TryGetValue(serverId, out var serverData))
+            {
+                _logger.LogError("Unknow serverId: {serverId}", serverId);
+                return;
+            }
+
             try
             {
-                await serverLock.WaitAsync();
-
-                if (!servers.TryGetValue(serverId, out var serverData))
-                {
-                    _logger.LogError("Unknow serverId: {serverId}", serverId);
-                }
-
+                await serverData.ServerLock.WaitAsync();
                 serverData.Status = newStatus;
-
             }
             finally
             {
-                serverLock.Release();
+                serverData.ServerLock.Release();
             }
 
-            Task t1 = null;
+            if (newStatus == oldStatus)
+            {
+                return;
+            }
+
+            Task discordTask = null;
+            if (oldStatus == FactorioServerStatus.Unknown)
+            {
+                // Do nothing.
+            }
             if (oldStatus == FactorioServerStatus.Starting && newStatus == FactorioServerStatus.Running)
             {
-                t1 = ServerStarted(serverId);
+                discordTask = ServerStarted(serverId);
             }
             else if (oldStatus == FactorioServerStatus.Stopping && newStatus == FactorioServerStatus.Stopped
                 || oldStatus == FactorioServerStatus.Killing && newStatus == FactorioServerStatus.Killed)
@@ -329,7 +391,7 @@ namespace FactorioWebInterface.Models
                     Description = "Server has stopped",
                     Color = DiscordBot.infoColor
                 };
-                t1 = _discordBot.SendEmbedToFactorioChannel(serverId, embed);
+                discordTask = _discordBot.SendEmbedToFactorioChannel(serverId, embed);
             }
             else if (newStatus == FactorioServerStatus.Crashed)
             {
@@ -338,15 +400,25 @@ namespace FactorioWebInterface.Models
                     Description = "Server has crashed",
                     Color = DiscordBot.failureColor
                 };
-                t1 = _discordBot.SendEmbedToFactorioChannel(serverId, embed);
+                discordTask = _discordBot.SendEmbedToFactorioChannel(serverId, embed);
             }
 
-            var t2 = _factorioControlHub.Clients.Group(serverId).FactorioStatusChanged(newStatus.ToString(), oldStatus.ToString());
-            if (t1 != null)
+            var contorlTask1 = _factorioControlHub.Clients.Group(serverId).FactorioStatusChanged(newStatus.ToString(), oldStatus.ToString());
+
+            var messageData = new MessageData()
             {
-                await t1;
+                MessageType = MessageType.Status,
+                Message = $"[STATUS]: Changed from {oldStatus} to {newStatus}"
+            };
+
+            var controlTask2 = SendToFactorioControl(serverId, messageData);
+
+            if (discordTask != null)
+            {
+                await discordTask;
             }
-            await t2;
+            await contorlTask1;
+            await controlTask2;
         }
 
         public async Task<List<Regular>> GetRegularsAsync()
