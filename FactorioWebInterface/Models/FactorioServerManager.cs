@@ -19,6 +19,7 @@ namespace FactorioWebInterface.Models
 {
     public class FactorioServerManager : IFactorioServerManager
     {
+        // Match on first [*] and capture everything after.
         private static readonly Regex tag_regex = new Regex(@"(\[[^\[\]]+\])\s*((?:.|\s)*)\s*", RegexOptions.Compiled);
 
         private readonly IDiscordBot _discordBot;
