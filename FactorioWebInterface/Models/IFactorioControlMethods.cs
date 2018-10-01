@@ -30,7 +30,7 @@ namespace FactorioWebInterface.Models
         Task Load(string saveFilePath);
         Task Stop();
         Task ForceStop();
-        Task<string> GetStatus();
+        Task GetStatus();
         Task<MessageData[]> GetMesssages();
         Task SendToFactorio(string data);
     }

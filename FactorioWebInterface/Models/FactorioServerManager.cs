@@ -79,7 +79,7 @@ namespace FactorioWebInterface.Models
         {
             if (!servers.TryGetValue(serverId, out var serverData))
             {
-                _logger.LogError("Unknow serverId: {serverId}", serverId);
+                _logger.LogError("Unknown serverId: {serverId}", serverId);
                 return false;
             }
 
@@ -129,7 +129,7 @@ namespace FactorioWebInterface.Models
         {
             if (!servers.TryGetValue(serverId, out var serverData))
             {
-                _logger.LogError("Unknow serverId: {serverId}", serverId);
+                _logger.LogError("Unknown serverId: {serverId}", serverId);
                 return FactorioServerStatus.Unknown;
             }
 
@@ -143,6 +143,11 @@ namespace FactorioWebInterface.Models
             {
                 serverData.ServerLock.Release();
             }
+        }
+
+        public Task RequestStatus(string serverId)
+        {
+            return _factorioProcessHub.Clients.Group(serverId).GetStatus();
         }
 
         public Task SendToFactorioProcess(string serverId, string data)
@@ -355,31 +360,16 @@ namespace FactorioWebInterface.Models
         {
             if (!servers.TryGetValue(serverId, out var serverData))
             {
-                _logger.LogError("Unknow serverId: {serverId}", serverId);
-                return;
-            }
-
-            try
-            {
-                await serverData.ServerLock.WaitAsync();
-                serverData.Status = newStatus;
-            }
-            finally
-            {
-                serverData.ServerLock.Release();
-            }
-
-            if (newStatus == oldStatus)
-            {
+                _logger.LogError("Unknown serverId: {serverId}", serverId);
                 return;
             }
 
             Task discordTask = null;
-            if (oldStatus == FactorioServerStatus.Unknown)
+            if (newStatus == oldStatus || oldStatus == FactorioServerStatus.Unknown)
             {
                 // Do nothing.
             }
-            if (oldStatus == FactorioServerStatus.Starting && newStatus == FactorioServerStatus.Running)
+            else if (oldStatus == FactorioServerStatus.Starting && newStatus == FactorioServerStatus.Running)
             {
                 discordTask = ServerStarted(serverId);
             }
@@ -403,22 +393,45 @@ namespace FactorioWebInterface.Models
                 discordTask = _discordBot.SendEmbedToFactorioChannel(serverId, embed);
             }
 
-            var contorlTask1 = _factorioControlHub.Clients.Group(serverId).FactorioStatusChanged(newStatus.ToString(), oldStatus.ToString());
+            var groups = _factorioControlHub.Clients.Group(serverId);
+            Task contorlTask1 = groups.FactorioStatusChanged(newStatus.ToString(), oldStatus.ToString());
 
-            var messageData = new MessageData()
+            Task controlTask2 = null;
+            if (newStatus != oldStatus)
             {
-                MessageType = MessageType.Status,
-                Message = $"[STATUS]: Changed from {oldStatus} to {newStatus}"
-            };
+                var messageData = new MessageData()
+                {
+                    MessageType = MessageType.Status,
+                    Message = $"[STATUS]: Changed from {oldStatus} to {newStatus}"
+                };
 
-            var controlTask2 = SendToFactorioControl(serverId, messageData);
+                serverData.ControlMessageBuffer.Add(messageData);
+                controlTask2 = groups.SendMessage(messageData);
+            }
+
+            try
+            {
+                await serverData.ServerLock.WaitAsync();
+
+                var recordedOldStatus = serverData.Status;
+
+                if (recordedOldStatus != newStatus)
+                {
+                    serverData.Status = newStatus;
+                }
+
+            }
+            finally
+            {
+                serverData.ServerLock.Release();
+            }
 
             if (discordTask != null)
-            {
                 await discordTask;
-            }
-            await contorlTask1;
-            await controlTask2;
+            if (contorlTask1 != null)
+                await contorlTask1;
+            if (controlTask2 != null)
+                await controlTask2;
         }
 
         public async Task<List<Regular>> GetRegularsAsync()
@@ -445,6 +458,11 @@ namespace FactorioWebInterface.Models
             }
 
             await db.SaveChangesAsync();
+        }
+
+        public Task OnProcessRegistered(string serverId)
+        {
+            return _factorioProcessHub.Clients.Group(serverId).GetStatus();
         }
     }
 }

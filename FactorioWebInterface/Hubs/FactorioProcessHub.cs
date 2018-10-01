@@ -30,12 +30,14 @@ namespace FactorioWebInterface.Hubs
             return base.OnDisconnectedAsync(exception);
         }
 
-        public Task RegisterServerId(string serverId)
+        public async Task RegisterServerId(string serverId)
         {
             string connectionId = Context.ConnectionId;
             Context.Items[connectionId] = serverId;
 
-            return Groups.AddToGroupAsync(connectionId, serverId.ToString());
+            await Groups.AddToGroupAsync(connectionId, serverId.ToString());
+
+            await _factorioServerManger.OnProcessRegistered(serverId);
         }
 
         public Task SendFactorioOutputData(string data)

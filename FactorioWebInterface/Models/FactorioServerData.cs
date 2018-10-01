@@ -37,8 +37,6 @@ namespace FactorioWebInterface.Models
                     ServerLock = new SemaphoreSlim(1, 1),
                     ControlMessageBuffer = new RingBuffer<MessageData>(bufferSize)
                 };
-
-                Servers[serverId].ControlMessageBuffer.Add(new MessageData() { MessageType = MessageType.Status, Message = "test" });
             }
         }
     }

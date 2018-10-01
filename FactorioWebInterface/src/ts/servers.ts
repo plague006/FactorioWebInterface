@@ -89,10 +89,7 @@ forceStopButton.onclick = () => {
 }
 
 getStatusButton.onclick = () => {
-    connection.invoke("GetStatus").then((data) => {
-        console.log(`status: ${data}`);
-        statusText.value = data;
-    });
+    connection.invoke("GetStatus");
 }
 
 function writeMessage(message: MessageData): void {
@@ -110,11 +107,11 @@ function writeMessage(message: MessageData): void {
             data = `[Control] ${message.message}`;
             break;
         case MessageType.Discord:
-            data = `[Discord] ${message.message}`;
+            data = message.message;
             break;
         case MessageType.Status:
             div.classList.add('bg-info', 'text-white');
-            data = `[Status] ${message.message}`;
+            data = message.message;
             break;
         default:
             data = "";

@@ -1,5 +1,4 @@
 ﻿using FactorioWebInterface.Models;
-using FactorioWrapperInterface;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using System;
@@ -55,19 +54,18 @@ namespace FactorioWebInterface.Hubs
             return Task.FromResult(0);
         }
 
-        public async Task<string> GetStatus()
+        public Task GetStatus()
         {
             string connectionId = Context.ConnectionId;
             if (Context.Items.TryGetValue(connectionId, out object serverId))
             {
                 string id = (string)serverId;
-                var status = await _factorioServerManager.GetStatus(id);
-                return status.ToString();
+                return _factorioServerManager.RequestStatus(id);
             }
             else
             {
-                // todo throw error?
-                return FactorioServerStatus.Unknown.ToString();
+                // todo log error.
+                return Task.FromResult(0);
             }
         }
 

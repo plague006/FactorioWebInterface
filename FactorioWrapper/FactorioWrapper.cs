@@ -27,7 +27,7 @@ namespace FactorioWrapper
         private static string factorioFileName;
         private static string factorioArguments;
         private static string serverId;
-        private static volatile FactorioServerStatus status;
+        private static volatile FactorioServerStatus status = FactorioServerStatus.Unknown;
         private static string token;
 
         public static void Main(string[] args)
@@ -222,6 +222,7 @@ namespace FactorioWrapper
             // This is so the Server Control can get the status if a connection was lost.
             connection.On(nameof(IFactorioProcessClientMethods.GetStatus), () =>
             {
+                Log.Information("Status requested");
                 ChangeStatus(status);
             });
         }
@@ -341,9 +342,12 @@ namespace FactorioWrapper
         private static void ChangeStatus(FactorioServerStatus newStatus)
         {
             var oldStatus = status;
-            status = newStatus;
-
-            Log.Information("Factorio status changed from {oldStatus} to {newStatus}", oldStatus, newStatus);
+            if (newStatus != status)
+            {
+                status = newStatus;
+                Log.Information("Factorio status changed from {oldStatus} to {newStatus}", oldStatus, newStatus);
+            }
+            // Even if the status hasn't changed, still send it to the Server as this method is used to poll the status for reconnected processes.
 
             if (!connected)
             {
@@ -352,6 +356,7 @@ namespace FactorioWrapper
 
             try
             {
+                Log.Information("Sending Factorio status changed from {oldStatus} to {newStatus}", oldStatus, newStatus);
                 connection.SendAsync(nameof(IFactorioProcessServerMethods.StatusChanged), newStatus, oldStatus);
             }
             catch (Exception e)
@@ -365,7 +370,6 @@ namespace FactorioWrapper
             try
             {
                 await hubConnection.StartAsync();
-                await hubConnection.InvokeAsync(nameof(IFactorioProcessServerMethods.RegisterServerId), serverId);
                 return true;
             }
             catch (Exception)
@@ -381,6 +385,9 @@ namespace FactorioWrapper
                 await Task.Delay(1000);
             }
             connected = true;
+
+            await connection.InvokeAsync(nameof(IFactorioProcessServerMethods.RegisterServerId), serverId);
+
             Log.Information("Connected");
         }
     }
