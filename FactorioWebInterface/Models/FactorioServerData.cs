@@ -1,23 +1,43 @@
-﻿using FactorioWrapperInterface;
+﻿using DSharpPlus;
+using FactorioWrapperInterface;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace FactorioWebInterface.Models
 {
     public class FactorioServerData
     {
+        public static readonly int serverCount = 6;
+        public static readonly int bufferSize = 100;
+        private static string baseDirectoryPath = "/factorio/";
+
         public string ServerId { get; set; }
         public FactorioServerStatus Status { get; set; }
         public string BaseDirectoryPath { get; set; }
         public string Port { get; set; }
+        public SemaphoreSlim ServerLock { get; set; }
+        public RingBuffer<string> ControlMessageBuffer { get; set; }
 
-        public static Dictionary<string, FactorioServerData> Servers = new Dictionary<string, FactorioServerData>()
+        public static Dictionary<string, FactorioServerData> Servers { get; }
+
+        static FactorioServerData()
         {
-            ["1"] = new FactorioServerData() { ServerId = "1", Status = FactorioServerStatus.Stopped, BaseDirectoryPath = "/factorio/1/", Port = "34201" },
-            ["2"] = new FactorioServerData() { ServerId = "2", Status = FactorioServerStatus.Stopped, BaseDirectoryPath = "/factorio/2/", Port = "34202" },
-            ["3"] = new FactorioServerData() { ServerId = "3", Status = FactorioServerStatus.Stopped, BaseDirectoryPath = "/factorio/3/", Port = "34203" },
-            ["4"] = new FactorioServerData() { ServerId = "4", Status = FactorioServerStatus.Stopped, BaseDirectoryPath = "/factorio/4/", Port = "34204" },
-            ["5"] = new FactorioServerData() { ServerId = "5", Status = FactorioServerStatus.Stopped, BaseDirectoryPath = "/factorio/5/", Port = "34205" },
-            ["6"] = new FactorioServerData() { ServerId = "6", Status = FactorioServerStatus.Stopped, BaseDirectoryPath = "/factorio/6/", Port = "34206" },
-        };
+            Servers = new Dictionary<string, FactorioServerData>();
+
+            for (int i = 1; i <= serverCount; i++)
+            {
+                string port = (34200 + i).ToString();
+                string serverId = i.ToString();
+                Servers[serverId] = new FactorioServerData()
+                {
+                    ServerId = serverId,
+                    Status = FactorioServerStatus.Unknown,
+                    BaseDirectoryPath = $"{baseDirectoryPath}{serverId}/",
+                    Port = port,
+                    ServerLock = new SemaphoreSlim(1, 1),
+                    ControlMessageBuffer = new RingBuffer<string>(bufferSize)
+                };
+            }
+        }
     }
 }
