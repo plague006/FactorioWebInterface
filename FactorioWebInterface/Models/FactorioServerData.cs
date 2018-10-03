@@ -9,7 +9,8 @@ namespace FactorioWebInterface.Models
     {
         public static readonly int serverCount = 6;
         public static readonly int bufferSize = 100;
-        private static string baseDirectoryPath = "/factorio/";
+        //private static string baseDirectoryPath = "/factorio/";
+        private static string baseDirectoryPath = "C:/factorio/";
 
         public string ServerId { get; set; }
         public FactorioServerStatus Status { get; set; }

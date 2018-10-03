@@ -21,5 +21,6 @@ namespace FactorioWebInterface.Models
         Task StatusChanged(string serverId, FactorioServerStatus newStatus, FactorioServerStatus oldStatus);
         Task<List<Regular>> GetRegularsAsync();
         Task AddRegularsFromStringAsync(string data);
+        FileData[] GetLocalSaveFiles(string serverId);
     }
 }

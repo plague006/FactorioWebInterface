@@ -2730,6 +2730,7 @@ const stopButton = document.getElementById('stopButton');
 const forceStopButton = document.getElementById('forceStopButton');
 const getStatusButton = document.getElementById('getStatusButton');
 const statusText = document.getElementById('statusText');
+const localSaveFilesTable = document.getElementById('localSaveFilesTable');
 let messageCount = 0;
 const connection = new _aspnet_signalr__WEBPACK_IMPORTED_MODULE_0__["HubConnectionBuilder"]()
     .withUrl("/FactorioControlHub")
@@ -2738,8 +2739,10 @@ function init() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             yield connection.start();
-            let data = yield connection.invoke("SetServerId", serverIdInput.value);
+            let data = yield connection.invoke('SetServerId', serverIdInput.value);
             statusText.value = data.status;
+            let files = yield connection.invoke('GetLocalSaveFiles');
+            buildFileTable(localSaveFilesTable, files);
             for (let message of data.messages) {
                 writeMessage(message);
             }
@@ -2814,6 +2817,30 @@ function writeMessage(message) {
     }
     divMessages.appendChild(div);
     divMessages.scrollTop = divMessages.scrollHeight;
+}
+function buildFileTable(table, files) {
+    let body = table.tBodies[0];
+    for (let child of body.children) {
+        child.remove();
+    }
+    for (let file of files) {
+        let row = document.createElement('tr');
+        let cell = document.createElement('td');
+        let checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        cell.appendChild(checkbox);
+        row.appendChild(cell);
+        createCell(row, file.name);
+        createCell(row, file.createdTime);
+        createCell(row, file.lastModifiedTime);
+        createCell(row, file.size.toString());
+        body.appendChild(row);
+    }
+}
+function createCell(parent, content) {
+    let cell = document.createElement('td');
+    cell.innerText = content;
+    parent.appendChild(cell);
 }
 
 

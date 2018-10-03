@@ -24,23 +24,26 @@
             <div class="input-zone">
                 <input id="serverIdInput" class="input-zone-input" type="text" value=@Model.Id readonly hidden />
 
-                <div class="dropdown">
-                    <button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown">Server @Model.Id <span class="caret"></span></button>
-                    <ul class="dropdown-menu">
-                        @{
-                            for (int i = 1; i <= 6; i++)
-                            {
-                                <li><a href="/Admin/Servers/@i">@i</a></li>
+                <div class="btn-group">
+                    <div class="dropdown">
+                        <button class="btn btn-primary dropdown-toggle " type="button" data-toggle="dropdown">Server @Model.Id <span class="caret"></span></button>
+                        <ul class="dropdown-menu">
+                            @{
+                                for (int i = 1; i <= 6; i++)
+                                {
+                                    <li><a href="/Admin/Servers/@i">@i</a></li>
+                                }
                             }
-                        }
-                    </ul>
+                        </ul>
+                    </div>
+
+                    <button id="startButton" class="btn btn-success"><span class="glyphicon glyphicon-play"></span> Start</button>
+                    <button id="stopButton" class="btn btn-danger"><span class="glyphicon glyphicon-stop"></span> Stop</button>
+                    <button id="forceStopButton" class="btn btn-danger"><span class="glyphicon glyphicon-alert"></span> Force Stop</button>
+                    <button id="getStatusButton" class="btn btn-info"><span class="glyphicon glyphicon-info-sign"></span> Get Status</button>
+                    <input id="statusText" type="text" readonly />
                 </div>
 
-                <button id="startButton" class="btn btn-success"><span class="glyphicon glyphicon-play"></span> Start</button>
-                <button id="stopButton" class="btn btn-danger"><span class="glyphicon glyphicon-stop"></span> Stop</button>
-                <button id="forceStopButton" class="btn btn-danger"><span class="glyphicon glyphicon-alert"></span> Force Stop</button>
-                <button id="getStatusButton" class="btn btn-info"><span class="glyphicon glyphicon-info-sign"></span> Get Status</button>
-                <input id="statusText" type="text" readonly />
             </div>
 
             <div id="divMessages" class="messages">
@@ -54,6 +57,25 @@
         </div>
 
         <div class="col-lg-6">
+
+            <h2>Files</h2>
+
+            <div class="table-responsive">
+                <table id="localSaveFilesTable" class="table table-bordered table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Select</th>
+                            <th>Name</th>
+                            <th>Created Time</th>
+                            <th>Modified Time</th>
+                            <th>Size</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+
         </div>
 
     </div>

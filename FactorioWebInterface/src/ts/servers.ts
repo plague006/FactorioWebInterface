@@ -13,10 +13,19 @@ interface MessageData {
     message: string;
 }
 
+interface FileData {
+    name: string;
+    createdTime: string;
+    lastModifiedTime: string;
+    size: number;
+}
+
 interface FactorioContorlClientData {
     status: string;
     messages: MessageData[];
 }
+
+
 
 const maxMessageCount = 100;
 
@@ -30,6 +39,8 @@ const forceStopButton: HTMLButtonElement = document.getElementById('forceStopBut
 const getStatusButton: HTMLButtonElement = document.getElementById('getStatusButton') as HTMLButtonElement;
 const statusText: HTMLInputElement = document.getElementById('statusText') as HTMLInputElement;
 
+const localSaveFilesTable: HTMLTableElement = document.getElementById('localSaveFilesTable') as HTMLTableElement;
+
 let messageCount = 0
 
 const connection = new signalR.HubConnectionBuilder()
@@ -39,8 +50,11 @@ const connection = new signalR.HubConnectionBuilder()
 async function init() {
     try {
         await connection.start();
-        let data = await connection.invoke("SetServerId", serverIdInput.value) as FactorioContorlClientData;
+        let data = await connection.invoke('SetServerId', serverIdInput.value) as FactorioContorlClientData;
         statusText.value = data.status;
+
+        let files = await connection.invoke('GetLocalSaveFiles') as FileData[];
+        buildFileTable(localSaveFilesTable, files);
 
         for (let message of data.messages) {
             writeMessage(message);
@@ -129,4 +143,35 @@ function writeMessage(message: MessageData): void {
 
     divMessages.appendChild(div);
     divMessages.scrollTop = divMessages.scrollHeight;
+}
+
+function buildFileTable(table: HTMLTableElement, files: FileData[]) {
+    let body = table.tBodies[0];
+
+    for (let child of body.children) {
+        child.remove();
+    }
+
+    for (let file of files) {
+        let row = document.createElement('tr');
+
+        let cell = document.createElement('td');
+        let checkbox = document.createElement('input') as HTMLInputElement;
+        checkbox.type = 'checkbox';
+        cell.appendChild(checkbox);
+        row.appendChild(cell);
+
+        createCell(row, file.name);
+        createCell(row, file.createdTime);
+        createCell(row, file.lastModifiedTime);
+        createCell(row, file.size.toString());
+
+        body.appendChild(row);
+    }
+}
+
+function createCell(parent: HTMLElement, content: string) {
+    let cell = document.createElement('td');
+    cell.innerText = content;
+    parent.appendChild(cell);
 }

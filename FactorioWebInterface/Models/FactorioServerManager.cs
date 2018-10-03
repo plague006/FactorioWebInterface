@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -558,6 +559,43 @@ namespace FactorioWebInterface.Models
         public Task OnProcessRegistered(string serverId)
         {
             return _factorioProcessHub.Clients.Group(serverId).GetStatus();
+        }
+
+        public FileData[] GetLocalSaveFiles(string serverId)
+        {
+            if (!servers.TryGetValue(serverId, out var serverData))
+            {
+                _logger.LogError("Unknown serverId: {serverId}", serverId);
+                return new FileData[0];
+            }
+
+            var path = Path.Combine(serverData.BaseDirectoryPath, "saves", "local");
+
+            try
+            {
+                var di = new DirectoryInfo(path);
+                if (!di.Exists)
+                {
+                    di.Create();
+                }
+
+                var files = di.EnumerateFiles("*.zip")
+                    .Select(f => new FileData()
+                    {
+                        Name = f.Name,
+                        CreatedTime = f.CreationTimeUtc,
+                        LastModifiedTime = f.LastWriteTimeUtc,
+                        Size = f.Length
+                    })
+                    .ToArray();
+
+                return files;
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e.ToString());
+                return new FileData[0];
+            }
         }
     }
 }

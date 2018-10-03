@@ -121,5 +121,18 @@ namespace FactorioWebInterface.Hubs
 
             return Task.FromResult(new MessageData[0]);
         }
+
+        public Task<FileData[]> GetLocalSaveFiles()
+        {
+            string connectionId = Context.ConnectionId;
+            if (Context.Items.TryGetValue(connectionId, out object serverId))
+            {
+                string id = (string)serverId;
+                var files = _factorioServerManager.GetLocalSaveFiles(id);
+                return Task.FromResult(files);
+            }
+
+            return Task.FromResult(new FileData[0]);
+        }
     }
 }
