@@ -12,5 +12,23 @@
         public const string AdminChannelID = "ADMIN";
         public const string SecurityKey = "SecurityKey";
         public const string FactorioWrapperClaim = "FactorioWrapper";
+
+        public const string ChatTag = "[CHAT]";
+        public const string DiscordTag = "[DISCORD]";
+        public const string DiscordRawTag = "[DISCORD-RAW]";
+
+        // Sanitize string then make bold.
+        public const string DiscordBold = "[DISCORD-BOLD]";
+        public const string DiscrodAdminTag = "[DISCORD-ADMIN]";
+        public const string DiscordAdminRawTag = "[DISCORD-ADMIN-RAW]";
+        public const string JoinTag = "[JOIN]";
+        public const string LeaveTag = "[LEAVE]";
+        public const string DiscordEmbedTag = "[DISCORD-EMBED]";
+        public const string DiscordEmbedRawTag = "[DISCORD-EMBED-RAW]";
+        public const string DiscordAdminEmbedTag = "[DISCORD-ADMIN-EMBED]";
+        public const string DiscordAdminEmbedRawTag = "[DISCORD-ADMIN-EMBED-RAW]";
+        public const string RegularPromoteTag = "[REGULAR-PROMOTE]";
+        public const string RegularDemoteTag = "[REGULAR-DEOMOTE]";
+        public const string DonatorSetTag = "[DONATOR-SET]";
     }
 }

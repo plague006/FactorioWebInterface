@@ -224,37 +224,43 @@ namespace FactorioWebInterface.Models
 
             switch (tag)
             {
-                case "[CHAT]":
+                case Constants.ChatTag:
                     content = Formatter.Sanitize(content);
                     _discordBot.SendToFactorioChannel(serverId, content);
                     break;
-                case "[DISCORD]":
+                case Constants.DiscordTag:
                     content = content.Replace("\\n", "\n");
                     content = Formatter.Sanitize(content);
                     _discordBot.SendToFactorioChannel(serverId, content);
                     break;
-                case "[DISCORD-RAW]":
+                case Constants.DiscordRawTag:
                     content = content.Replace("\\n", "\n");
                     _discordBot.SendToFactorioChannel(serverId, content);
                     break;
-                case "[DISCORD-ADMIN]":
+                case Constants.DiscordBold:
+                    content = content.Replace("\\n", "\n");
+                    content = Formatter.Sanitize(content);
+                    content = Formatter.Bold(content);
+                    _discordBot.SendToFactorioChannel(serverId, content);
+                    break;
+                case Constants.DiscrodAdminTag:
                     content = content.Replace("\\n", "\n");
                     content = Formatter.Sanitize(content);
                     _discordBot.SendToFactorioAdminChannel(content);
                     break;
-                case "[DISCORD-ADMIN-RAW]":
+                case Constants.DiscordAdminRawTag:
                     content = content.Replace("\\n", "\n");
                     _discordBot.SendToFactorioAdminChannel(content);
                     break;
-                case "[JOIN]":
+                case Constants.JoinTag:
                     content = Formatter.Sanitize(content);
                     _discordBot.SendToFactorioChannel(serverId, "**" + content + "**");
                     break;
-                case "[LEAVE]":
+                case Constants.LeaveTag:
                     content = Formatter.Sanitize(content);
                     _discordBot.SendToFactorioChannel(serverId, "**" + content + "**");
                     break;
-                case "[DISCORD-EMBED]":
+                case Constants.DiscordEmbedTag:
                     {
                         content = content.Replace("\\n", "\n");
                         content = Formatter.Sanitize(content);
@@ -268,7 +274,7 @@ namespace FactorioWebInterface.Models
                         _discordBot.SendEmbedToFactorioChannel(serverId, embed);
                         break;
                     }
-                case "[DISCORD-EMBED-RAW]":
+                case Constants.DiscordEmbedRawTag:
                     {
                         content = content.Replace("\\n", "\n");
 
@@ -282,7 +288,7 @@ namespace FactorioWebInterface.Models
                         break;
                     }
 
-                case "[DISCORD-ADMIN-EMBED]":
+                case Constants.DiscordAdminEmbedTag:
                     {
                         content = content.Replace("\\n", "\n");
                         content = Formatter.Sanitize(content);
@@ -296,7 +302,7 @@ namespace FactorioWebInterface.Models
                         _discordBot.SendEmbedToFactorioAdminChannel(embed);
                         break;
                     }
-                case "[DISCORD-ADMIN-EMBED-RAW]":
+                case Constants.DiscordAdminEmbedRawTag:
                     {
                         content = content.Replace("\\n", "\n");
 
@@ -309,29 +315,29 @@ namespace FactorioWebInterface.Models
                         _discordBot.SendEmbedToFactorioAdminChannel(embed);
                         break;
                     }
-                case "[REGULAR-PROMOTE]":
-                    _ = PromoteRegular(content);
+                case Constants.RegularPromoteTag:
+                    _ = PromoteRegular(serverId, content);
                     break;
-                case "[REGULAR-DEOMOTE]":
-                    _ = DemoteRegular(content);
+                case Constants.RegularDemoteTag:
+                    _ = DemoteRegular(serverId, content);
                     break;
                 default:
                     break;
             }
         }
 
-        private async Task PromoteRegular(string content)
+        private async Task PromoteRegular(string serverId, string content)
         {
             if (string.IsNullOrWhiteSpace(content))
                 return;
 
-            var parms = content.Split(' ');
+            var parms = content.Trim().Split(' ');
             string target = parms[0];
             string promoter = parms.Length > 1 ? parms[1] : "<server>";
 
             var db = _dbContextFactory.Create();
 
-            var regular = new Regular() { Name = content, Date = DateTimeOffset.Now, PromotedBy = promoter };
+            var regular = new Regular() { Name = target, Date = DateTimeOffset.Now, PromotedBy = promoter };
 
             db.Add(regular);
             await db.SaveChangesAsync();
@@ -349,6 +355,12 @@ namespace FactorioWebInterface.Models
                 {
                     await serverLock.WaitAsync();
 
+                    if (server.ServerId == serverId)
+                    {
+                        continue;
+                    }
+
+                    // todo what do if server is in starting status?
                     if (server.Status == FactorioServerStatus.Running)
                     {
                         _ = SendToFactorioProcess(server.ServerId, command);
@@ -361,8 +373,10 @@ namespace FactorioWebInterface.Models
             }
         }
 
-        private async Task DemoteRegular(string content)
+        private async Task DemoteRegular(string serverId, string content)
         {
+            content = content.Trim();
+
             var db = _dbContextFactory.Create();
 
             var regular = new Regular() { Name = content };
@@ -383,6 +397,12 @@ namespace FactorioWebInterface.Models
                 {
                     await serverLock.WaitAsync();
 
+                    if (server.ServerId == serverId)
+                    {
+                        continue;
+                    }
+
+                    // todo what do if server is in starting status?
                     if (server.Status == FactorioServerStatus.Running)
                     {
                         _ = SendToFactorioProcess(server.ServerId, command);
