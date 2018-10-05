@@ -25,7 +25,9 @@ const stopButton = document.getElementById('stopButton');
 const forceStopButton = document.getElementById('forceStopButton');
 const getStatusButton = document.getElementById('getStatusButton');
 const statusText = document.getElementById('statusText');
+const tempSaveFilesTable = document.getElementById('tempSaveFilesTable');
 const localSaveFilesTable = document.getElementById('localSaveFilesTable');
+const globalSaveFilesTable = document.getElementById('globalSaveFilesTable');
 let messageCount = 0;
 const connection = new signalR.HubConnectionBuilder()
     .withUrl("/FactorioControlHub")
@@ -36,8 +38,12 @@ function init() {
             yield connection.start();
             let data = yield connection.invoke('SetServerId', serverIdInput.value);
             statusText.value = data.status;
-            let files = yield connection.invoke('GetLocalSaveFiles');
-            buildFileTable(localSaveFilesTable, files);
+            let tempFiles = yield connection.invoke('GetTempSaveFiles');
+            buildFileTable(tempSaveFilesTable, tempFiles);
+            let localFiles = yield connection.invoke('GetLocalSaveFiles');
+            buildFileTable(localSaveFilesTable, localFiles);
+            let globalFiles = yield connection.invoke('GetGlobalSaveFiles');
+            buildFileTable(globalSaveFilesTable, globalFiles);
             for (let message of data.messages) {
                 writeMessage(message);
             }
@@ -125,12 +131,22 @@ function buildFileTable(table, files) {
         checkbox.type = 'checkbox';
         cell.appendChild(checkbox);
         row.appendChild(cell);
-        createCell(row, file.name);
-        createCell(row, file.createdTime);
-        createCell(row, file.lastModifiedTime);
+        let cell2 = document.createElement('td');
+        let link = document.createElement('a');
+        link.innerText = file.name;
+        link.href = `/admin/servers?handler=file&directory=${file.directory}&name=${file.name}`;
+        cell2.appendChild(link);
+        row.appendChild(cell2);
+        //createCell(row, file.name);
+        createCell(row, formatDate(file.createdTime));
+        createCell(row, formatDate(file.lastModifiedTime));
         createCell(row, file.size.toString());
         body.appendChild(row);
     }
+}
+function formatDate(dateString) {
+    let date = new Date(dateString);
+    return date.toUTCString();
 }
 function createCell(parent, content) {
     let cell = document.createElement('td');

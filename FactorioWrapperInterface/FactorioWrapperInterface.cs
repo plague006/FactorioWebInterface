@@ -5,15 +5,17 @@ namespace FactorioWrapperInterface
     public enum FactorioServerStatus
     {
         Unknown,
-        Stopped,
-        Crashed,
-        Stopping,
+        WrapperStarting,
+        WrapperStarted,
         Starting,
+        Running,
+        Stopping,
+        Stopped,
         Killing,
         Killed,
+        Crashed,
         Updating,
         Updated,
-        Running,
     }
 
     public interface IFactorioProcessClientMethods

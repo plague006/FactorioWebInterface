@@ -33,7 +33,9 @@ namespace FactorioWebInterface.Models
         Task GetStatus();
         Task<MessageData[]> GetMesssages();
         Task SendToFactorio(string data);
-        Task<FileData[]> GetLocalSaveFiles();
+        Task<FileMetaData[]> GetTempSaveFiles();
+        Task<FileMetaData[]> GetLocalSaveFiles();
+        Task<FileMetaData[]> GetGlobalSaveFiles();
     }
 
     public interface IFactorioControlClientMethods

@@ -13,8 +13,9 @@ interface MessageData {
     message: string;
 }
 
-interface FileData {
+interface FileMetaData {
     name: string;
+    directory: string,
     createdTime: string;
     lastModifiedTime: string;
     size: number;
@@ -24,8 +25,6 @@ interface FactorioContorlClientData {
     status: string;
     messages: MessageData[];
 }
-
-
 
 const maxMessageCount = 100;
 
@@ -39,7 +38,9 @@ const forceStopButton: HTMLButtonElement = document.getElementById('forceStopBut
 const getStatusButton: HTMLButtonElement = document.getElementById('getStatusButton') as HTMLButtonElement;
 const statusText: HTMLInputElement = document.getElementById('statusText') as HTMLInputElement;
 
+const tempSaveFilesTable: HTMLTableElement = document.getElementById('tempSaveFilesTable') as HTMLTableElement;
 const localSaveFilesTable: HTMLTableElement = document.getElementById('localSaveFilesTable') as HTMLTableElement;
+const globalSaveFilesTable: HTMLTableElement = document.getElementById('globalSaveFilesTable') as HTMLTableElement;
 
 let messageCount = 0
 
@@ -53,8 +54,14 @@ async function init() {
         let data = await connection.invoke('SetServerId', serverIdInput.value) as FactorioContorlClientData;
         statusText.value = data.status;
 
-        let files = await connection.invoke('GetLocalSaveFiles') as FileData[];
-        buildFileTable(localSaveFilesTable, files);
+        let tempFiles = await connection.invoke('GetTempSaveFiles') as FileMetaData[];
+        buildFileTable(tempSaveFilesTable, tempFiles);
+
+        let localFiles = await connection.invoke('GetLocalSaveFiles') as FileMetaData[];
+        buildFileTable(localSaveFilesTable, localFiles);
+
+        let globalFiles = await connection.invoke('GetGlobalSaveFiles') as FileMetaData[];
+        buildFileTable(globalSaveFilesTable, globalFiles);
 
         for (let message of data.messages) {
             writeMessage(message);
@@ -145,7 +152,7 @@ function writeMessage(message: MessageData): void {
     divMessages.scrollTop = divMessages.scrollHeight;
 }
 
-function buildFileTable(table: HTMLTableElement, files: FileData[]) {
+function buildFileTable(table: HTMLTableElement, files: FileMetaData[]) {
     let body = table.tBodies[0];
 
     for (let child of body.children) {
@@ -161,13 +168,25 @@ function buildFileTable(table: HTMLTableElement, files: FileData[]) {
         cell.appendChild(checkbox);
         row.appendChild(cell);
 
-        createCell(row, file.name);
-        createCell(row, file.createdTime);
-        createCell(row, file.lastModifiedTime);
+        let cell2 = document.createElement('td');
+        let link = document.createElement('a') as HTMLAnchorElement;
+        link.innerText = file.name;
+        link.href = `/admin/servers?handler=file&directory=${file.directory}&name=${file.name}`;
+        cell2.appendChild(link);
+        row.appendChild(cell2);
+
+        //createCell(row, file.name);
+        createCell(row, formatDate(file.createdTime));
+        createCell(row, formatDate(file.lastModifiedTime));
         createCell(row, file.size.toString());
 
         body.appendChild(row);
     }
+}
+
+function formatDate(dateString: string): string {
+    let date = new Date(dateString);
+    return date.toUTCString();
 }
 
 function createCell(parent: HTMLElement, content: string) {

@@ -76,7 +76,7 @@ namespace FactorioWebInterface.Models
             _ = SendToFactorioControl(eventArgs.ServerId, messageData);
         }
 
-        public bool Start(string serverId)
+        public async Task<bool> Start(string serverId)
         {
             if (!servers.TryGetValue(serverId, out var serverData))
             {
@@ -84,36 +84,123 @@ namespace FactorioWebInterface.Models
                 return false;
             }
 
-            string basePath = serverData.BaseDirectoryPath;
-
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = "/usr/bin/dotnet",
-                Arguments = $"/factorio/factorioWrapper/FactorioWrapper.dll {serverId} {basePath}bin/x64/factorio --start-server-load-latest --server-settings {basePath}server-settings.json --port {serverData.Port}",
-                //FileName = "C:/Program Files/dotnet/dotnet.exe",
-                //Arguments = $"C:/Projects/FactorioWebInterface/FactorioWrapper/bin/Release/netcoreapp2.1/publish/FactorioWrapper.dll {serverId} C:/factorio/Factorio1/bin/x64/factorio.exe --start-server C:/factorio/Factorio1/bin/x64/test.zip --server-settings C:/factorio/Factorio1/bin/x64/server-settings.json",
-
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-
             try
             {
-                Process.Start(startInfo);
+                await serverData.ServerLock.WaitAsync();
+
+                switch (serverData.Status)
+                {
+                    case FactorioServerStatus.Unknown:
+                    case FactorioServerStatus.Stopped:
+                    case FactorioServerStatus.Killed:
+                    case FactorioServerStatus.Crashed:
+                    case FactorioServerStatus.Updated:
+
+                        string basePath = serverData.BaseDirectoryPath;
+
+                        var startInfo = new ProcessStartInfo
+                        {
+                            FileName = "/usr/bin/dotnet",
+                            Arguments = $"/factorio/factorioWrapper/FactorioWrapper.dll {serverId} {basePath}bin/x64/factorio --start-server-load-latest --server-settings {basePath}server-settings.json --port {serverData.Port}",
+                            //FileName = "C:/Program Files/dotnet/dotnet.exe",
+                            //Arguments = $"C:/Projects/FactorioWebInterface/FactorioWrapper/bin/Release/netcoreapp2.1/publish/FactorioWrapper.dll {serverId} C:/factorio/Factorio1/bin/x64/factorio.exe --start-server C:/factorio/Factorio1/bin/x64/test.zip --server-settings C:/factorio/Factorio1/bin/x64/server-settings.json",
+
+                            UseShellExecute = false,
+                            CreateNoWindow = true
+                        };
+
+                        try
+                        {
+                            Process.Start(startInfo);
+                        }
+                        catch (Exception)
+                        {
+                            _logger.LogError("Error starting serverId: {serverId}", serverId);
+                            return false;
+                        }
+
+                        _logger.LogInformation("Server started serverId: {serverId}", serverId);
+
+                        var group = _factorioControlHub.Clients.Group(serverId);
+                        await group.FactorioStatusChanged(FactorioServerStatus.WrapperStarting.ToString(), serverData.Status.ToString());
+                        serverData.Status = FactorioServerStatus.WrapperStarting;
+
+                        return true;
+                    default:
+                        return false;
+                }
             }
-            catch (Exception)
+            finally
             {
-                _logger.LogError("Error starting serverId: {serverId}", serverId);
+                serverData.ServerLock.Release();
+            }
+        }
+
+        public async Task<bool> Load(string serverId, string saveFilePath)
+        {
+            if (!servers.TryGetValue(serverId, out var serverData))
+            {
+                _logger.LogError("Unknown serverId: {serverId}", serverId);
                 return false;
             }
 
-            _logger.LogInformation("Server started serverId: {serverId}", serverId);
-            return true;
-        }
+            try
+            {
+                await serverData.ServerLock.WaitAsync();
 
-        public bool Load(string serverId, string saveFilePath)
-        {
-            throw new System.NotImplementedException();
+                switch (serverData.Status)
+                {
+                    case FactorioServerStatus.Unknown:
+                    case FactorioServerStatus.Stopped:
+                    case FactorioServerStatus.Killed:
+                    case FactorioServerStatus.Crashed:
+                    case FactorioServerStatus.Updated:
+
+                        string basePath = serverData.BaseDirectoryPath;
+
+                        string filePath = Path.Combine(basePath, saveFilePath);
+
+                        var fi = new FileInfo(filePath);
+                        if (!fi.Exists)
+                        {
+                            return false;
+                        }
+
+                        var startInfo = new ProcessStartInfo
+                        {
+                            FileName = "/usr/bin/dotnet",
+                            Arguments = $"/factorio/factorioWrapper/FactorioWrapper.dll {serverId} {basePath}bin/x64/factorio --start-server {fi.FullName} --server-settings {basePath}server-settings.json --port {serverData.Port}",
+
+                            UseShellExecute = false,
+                            CreateNoWindow = true
+                        };
+
+                        try
+                        {
+                            Process.Start(startInfo);
+                        }
+                        catch (Exception)
+                        {
+                            _logger.LogError("Error starting serverId: {serverId} from file: {file}", serverId, filePath);
+                            return false;
+                        }
+
+                        _logger.LogInformation("Server started serverId: {serverId} from file: {file}", serverId, filePath);
+
+                        var group = _factorioControlHub.Clients.Group(serverId);
+                        await group.FactorioStatusChanged(FactorioServerStatus.WrapperStarting.ToString(), serverData.Status.ToString());
+                        serverData.Status = FactorioServerStatus.WrapperStarting;
+
+                        return true;
+
+                    default:
+                        return false;
+                }
+            }
+            finally
+            {
+                serverData.ServerLock.Release();
+            }
         }
 
         public void Stop(string serverId)
@@ -561,16 +648,8 @@ namespace FactorioWebInterface.Models
             return _factorioProcessHub.Clients.Group(serverId).GetStatus();
         }
 
-        public FileData[] GetLocalSaveFiles(string serverId)
+        private FileMetaData[] GetFilesMetaData(string path, string directory)
         {
-            if (!servers.TryGetValue(serverId, out var serverData))
-            {
-                _logger.LogError("Unknown serverId: {serverId}", serverId);
-                return new FileData[0];
-            }
-
-            var path = Path.Combine(serverData.BaseDirectoryPath, "saves", "local");
-
             try
             {
                 var di = new DirectoryInfo(path);
@@ -580,9 +659,10 @@ namespace FactorioWebInterface.Models
                 }
 
                 var files = di.EnumerateFiles("*.zip")
-                    .Select(f => new FileData()
+                    .Select(f => new FileMetaData()
                     {
                         Name = f.Name,
+                        Directory = directory,
                         CreatedTime = f.CreationTimeUtc,
                         LastModifiedTime = f.LastWriteTimeUtc,
                         Size = f.Length
@@ -594,7 +674,65 @@ namespace FactorioWebInterface.Models
             catch (Exception e)
             {
                 _logger.LogError(e.ToString());
-                return new FileData[0];
+                return new FileMetaData[0];
+            }
+        }
+
+        public FileMetaData[] GetTempSaveFiles(string serverId)
+        {
+            if (!servers.TryGetValue(serverId, out var serverData))
+            {
+                _logger.LogError("Unknown serverId: {serverId}", serverId);
+                return new FileMetaData[0];
+            }
+
+            var path = serverData.TempSavesDirectoryPath;
+            var dir = Path.Combine(serverId, Constants.TempSavesDirectoryName);
+
+            return GetFilesMetaData(path, dir);
+        }
+
+        public FileMetaData[] GetLocalSaveFiles(string serverId)
+        {
+            if (!servers.TryGetValue(serverId, out var serverData))
+            {
+                _logger.LogError("Unknown serverId: {serverId}", serverId);
+                return new FileMetaData[0];
+            }
+
+            var path = serverData.LocalSavesDirectoroyPath;
+            var dir = Path.Combine(serverId, Constants.LocalSavesDirectoryName);
+
+            return GetFilesMetaData(path, dir);
+        }
+
+        public FileMetaData[] GetGlobalSaveFiles()
+        {
+            var path = FactorioServerData.GlobalSavesDirectoryPath;
+
+            return GetFilesMetaData(path, Constants.GlobalSavesDirectoryName);
+        }
+
+        public FileInfo GetFile(string directory, string fileName)
+        {
+            string path = Path.Combine(FactorioServerData.baseDirectoryPath, directory, fileName);
+
+            try
+            {
+                FileInfo fi = new FileInfo(path);
+                if (fi.Exists)
+                {
+                    return fi;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e.ToString());
+                return null;
             }
         }
     }

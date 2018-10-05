@@ -13,6 +13,10 @@
         public const string SecurityKey = "SecurityKey";
         public const string FactorioWrapperClaim = "FactorioWrapper";
 
+        public const string TempSavesDirectoryName = "saves";
+        public const string LocalSavesDirectoryName = "local_saves";
+        public const string GlobalSavesDirectoryName = "global_saves";
+
         public const string ChatTag = "[CHAT]";
         public const string DiscordTag = "[DISCORD]";
         public const string DiscordRawTag = "[DISCORD-RAW]";

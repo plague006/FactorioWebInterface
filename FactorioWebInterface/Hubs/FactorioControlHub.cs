@@ -122,7 +122,20 @@ namespace FactorioWebInterface.Hubs
             return Task.FromResult(new MessageData[0]);
         }
 
-        public Task<FileData[]> GetLocalSaveFiles()
+        public Task<FileMetaData[]> GetTempSaveFiles()
+        {
+            string connectionId = Context.ConnectionId;
+            if (Context.Items.TryGetValue(connectionId, out object serverId))
+            {
+                string id = (string)serverId;
+                var files = _factorioServerManager.GetTempSaveFiles(id);
+                return Task.FromResult(files);
+            }
+
+            return Task.FromResult(new FileMetaData[0]);
+        }
+
+        public Task<FileMetaData[]> GetLocalSaveFiles()
         {
             string connectionId = Context.ConnectionId;
             if (Context.Items.TryGetValue(connectionId, out object serverId))
@@ -132,7 +145,12 @@ namespace FactorioWebInterface.Hubs
                 return Task.FromResult(files);
             }
 
-            return Task.FromResult(new FileData[0]);
+            return Task.FromResult(new FileMetaData[0]);
+        }
+
+        public Task<FileMetaData[]> GetGlobalSaveFiles()
+        {
+            return Task.FromResult(_factorioServerManager.GetGlobalSaveFiles());
         }
     }
 }

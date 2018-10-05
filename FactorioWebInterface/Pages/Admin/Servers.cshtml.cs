@@ -4,8 +4,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
-using System.Linq;
 
 namespace FactorioWebInterface.Pages.Admin
 {
@@ -13,11 +13,13 @@ namespace FactorioWebInterface.Pages.Admin
     {
         private readonly UserManager<ApplicationUser> _userManger;
         private readonly IFactorioServerManager _factorioServerManager;
+        private readonly ILogger<ServersModel> _logger;
 
-        public ServersModel(UserManager<ApplicationUser> userManger, IFactorioServerManager factorioServerManager)
+        public ServersModel(UserManager<ApplicationUser> userManger, IFactorioServerManager factorioServerManager, ILogger<ServersModel> logger)
         {
             _userManger = userManger;
             _factorioServerManager = factorioServerManager;
+            _logger = logger;
         }
 
         public class InputModel
@@ -45,22 +47,23 @@ namespace FactorioWebInterface.Pages.Admin
             return Page();
         }
 
-        //public async Task<IActionResult> OnPostStartAsync()
-        //{
-        //    var user = await _userManger.GetUserAsync(User);
+        public async Task<IActionResult> OnGetFile(string directory, string name)
+        {
+            var user = await _userManger.GetUserAsync(User);
 
-        //    if (user == null || user.Suspended)
-        //    {
-        //        HttpContext.Session.SetString("returnUrl", "Servers/" + 1);
-        //        return RedirectToPage("SignIn");
-        //    }
-            
-        //    if (!string.IsNullOrEmpty(Input.Id))
-        //    {
-        //        _factorioServerManager.Start(Input.Id);
-        //    }
+            if (user == null || user.Suspended)
+            {
+                HttpContext.Session.SetString("returnUrl", "Servers/" + Id);
+                return RedirectToPage("SignIn");
+            }
 
-        //    return Page();
-        //}
+            var file = _factorioServerManager.GetFile(directory, name);
+            if (file == null)
+            {
+                return BadRequest();
+            }
+
+            return File(file.OpenRead(), "application/zip", file.Name);
+        }
     }
 }

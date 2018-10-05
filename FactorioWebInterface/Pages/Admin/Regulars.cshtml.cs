@@ -31,7 +31,7 @@ namespace FactorioWebInterface.Pages.Admin
         public InputModel Input { get; set; }
 
         public async Task<IActionResult> OnGetAsync()
-        {
+        {            
             var user = await _userManger.GetUserAsync(User);
 
             if (user == null || user.Suspended)

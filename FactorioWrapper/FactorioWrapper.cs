@@ -27,7 +27,7 @@ namespace FactorioWrapper
         private static string factorioFileName;
         private static string factorioArguments;
         private static string serverId;
-        private static volatile FactorioServerStatus status = FactorioServerStatus.Unknown;
+        private static volatile FactorioServerStatus status = FactorioServerStatus.WrapperStarting;
         private static string token;
 
         public static void Main(string[] args)
@@ -95,14 +95,16 @@ namespace FactorioWrapper
             switch (status)
             {
                 case FactorioServerStatus.Stopping:
-                    ChangeStatus(FactorioServerStatus.Stopped);
+                    await ChangeStatus(FactorioServerStatus.Stopped);
                     break;
                 case FactorioServerStatus.Killing:
-                    ChangeStatus(FactorioServerStatus.Killed);
+                    await ChangeStatus(FactorioServerStatus.Killed);
                     break;
+                case FactorioServerStatus.WrapperStarting:
+                case FactorioServerStatus.WrapperStarted:
                 case FactorioServerStatus.Starting:
                 case FactorioServerStatus.Running:
-                    ChangeStatus(FactorioServerStatus.Crashed);
+                    await ChangeStatus(FactorioServerStatus.Crashed);
                     break;
                 default:
                     Log.Error("Previous status {status} was unexpected when exiting wrapper.", status);
@@ -126,7 +128,7 @@ namespace FactorioWrapper
 
             if (factorioProcess == null)
             {
-                StartFactorioProcess();
+                await StartFactorioProcess();
             }
 
             while (!exit)
@@ -187,9 +189,9 @@ namespace FactorioWrapper
                 }
             });
 
-            connection.On(nameof(IFactorioProcessClientMethods.Stop), () =>
+            connection.On(nameof(IFactorioProcessClientMethods.Stop), async () =>
             {
-                ChangeStatus(FactorioServerStatus.Stopping);
+                await ChangeStatus(FactorioServerStatus.Stopping);
 
                 try
                 {
@@ -201,9 +203,9 @@ namespace FactorioWrapper
                 }
             });
 
-            connection.On(nameof(IFactorioProcessClientMethods.ForceStop), () =>
+            connection.On(nameof(IFactorioProcessClientMethods.ForceStop), async () =>
             {
-                ChangeStatus(FactorioServerStatus.Killing);
+                await ChangeStatus(FactorioServerStatus.Killing);
 
                 try
                 {
@@ -220,14 +222,14 @@ namespace FactorioWrapper
             });
 
             // This is so the Server Control can get the status if a connection was lost.
-            connection.On(nameof(IFactorioProcessClientMethods.GetStatus), () =>
-            {
-                Log.Information("Status requested");
-                ChangeStatus(status);
-            });
+            connection.On(nameof(IFactorioProcessClientMethods.GetStatus), async () =>
+             {
+                 Log.Information("Status requested");
+                 await ChangeStatus(status);
+             });
         }
 
-        private static void StartFactorioProcess()
+        private static async Task StartFactorioProcess()
         {
             Log.Information("Starting factorio process factorioFileName: {factorioFileName} factorioArguments: {factorioArguments}", factorioFileName, factorioArguments);
 
@@ -245,7 +247,7 @@ namespace FactorioWrapper
 
             factorioProcess.ErrorDataReceived += (s, e) =>
             {
-                if (e.Data != null)
+                if (!string.IsNullOrWhiteSpace(e.Data))
                 {
                     SendFactorioOutputData("[Error] " + e.Data);
                 }
@@ -267,12 +269,12 @@ namespace FactorioWrapper
 
             factorioProcess.StandardInput.AutoFlush = true;
 
-            ChangeStatus(FactorioServerStatus.Starting);
+            await ChangeStatus(FactorioServerStatus.Starting);
 
             Log.Information("Started factorio process");
         }
 
-        private static void FactorioProcess_OutputDataReceived(object sender, DataReceivedEventArgs e)
+        private static async void FactorioProcess_OutputDataReceived(object sender, DataReceivedEventArgs e)
         {
             var data = e.Data;
 
@@ -298,7 +300,7 @@ namespace FactorioWrapper
 
             if (line.StartsWith("Factorio initialised"))
             {
-                ChangeStatus(FactorioServerStatus.Running);
+                await ChangeStatus(FactorioServerStatus.Running);
             }
         }
 
@@ -339,7 +341,7 @@ namespace FactorioWrapper
             return Task.FromResult(0);
         }
 
-        private static void ChangeStatus(FactorioServerStatus newStatus)
+        private static async Task ChangeStatus(FactorioServerStatus newStatus)
         {
             var oldStatus = status;
             if (newStatus != status)
@@ -357,7 +359,7 @@ namespace FactorioWrapper
             try
             {
                 Log.Information("Sending Factorio status changed from {oldStatus} to {newStatus}", oldStatus, newStatus);
-                connection.SendAsync(nameof(IFactorioProcessServerMethods.StatusChanged), newStatus, oldStatus);
+                await connection.SendAsync(nameof(IFactorioProcessServerMethods.StatusChanged), newStatus, oldStatus);
             }
             catch (Exception e)
             {
@@ -387,6 +389,11 @@ namespace FactorioWrapper
             connected = true;
 
             await connection.InvokeAsync(nameof(IFactorioProcessServerMethods.RegisterServerId), serverId);
+
+            if (status == FactorioServerStatus.WrapperStarting)
+            {
+                await ChangeStatus(FactorioServerStatus.WrapperStarted);
+            }
 
             Log.Information("Connected");
         }
