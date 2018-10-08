@@ -85,6 +85,7 @@ namespace FactorioWebInterface
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1).AddRazorPagesOptions(options =>
             {
                 options.Conventions.AddPageRoute("/Admin/Servers", "/Admin");
+                services.AddAntiforgery(o => o.HeaderName = "XSRF-TOKEN");
             });
 
             services.AddSignalR();

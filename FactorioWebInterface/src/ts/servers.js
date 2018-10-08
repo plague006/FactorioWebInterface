@@ -173,4 +173,72 @@ function createCell(parent, content) {
     cell.innerText = content;
     parent.appendChild(cell);
 }
+let tokenInput = document.querySelector('input[name="__RequestVerificationToken"][type="hidden"]');
+let token = tokenInput.value;
+console.log(token);
+let fileUploadInput = document.getElementById('fileUploadInput');
+let fileUplaodButton = document.getElementById('fileUploadButton');
+fileUplaodButton.onclick = () => {
+    let formData = new FormData();
+    let files = fileUploadInput.files;
+    for (let i = 0; i < files.length; i++) {
+        formData.append('files', files[i]);
+    }
+    //formData.append('files', fileUploadInput.files[0]);
+    fetch('/admin/servers?handler=file', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            RequestVerificationToken: token
+        },
+    })
+        .then(response => response.json())
+        .then(response => console.log('Success:', JSON.stringify(response)))
+        .catch(error => console.error('Error:', error));
+};
+//    $.ajax({
+//        type: "POST",
+//        url: "/admin/servers?handler=file",
+//        beforeSend: function (xhr) {
+//            xhr.setRequestHeader("XSRF-TOKEN",
+//                $('input:hidden[name="__RequestVerificationToken"]').val());
+//        },
+//        data: formData,
+//        contentType: false,
+//        processData: false,
+//        success: function (response) {
+//            alert('File Uploaded Successfully.')
+//        }
+//    });
+//}
+//$(document).ready(function () {
+//    let token = $('input:hidden[name="__RequestVerificationToken"]').val();
+//    console.log(token);
+//    $('#btnUpload').on('click', function (event) {
+//        //event.preventDefault();
+//        var files = $('#fUpload').prop("files");
+//        var fdata = new FormData();
+//        for (var i = 0; i < files.length; i++) {
+//            fdata.append("files", files[i]);
+//        }
+//        if (files.length > 0) {
+//            $.ajax({
+//                type: "POST",
+//                url: "/admin/servers?handler=File",
+//                headers: {
+//                    RequestVerificationToken: token
+//                },
+//                data: fdata,
+//                contentType: false,
+//                processData: false,
+//                success: function (response) {
+//                    alert('File Uploaded Successfully.')
+//                }
+//            });
+//        }
+//        else {
+//            alert('Please select a file.')
+//        }
+//    })
+//});
 //# sourceMappingURL=servers.js.map

@@ -1,4 +1,5 @@
 ﻿import * as signalR from "@aspnet/signalr";
+import * as $ from "jquery";
 
 enum MessageType {
     Output,
@@ -218,4 +219,32 @@ function createCell(parent: HTMLElement, content: string) {
     let cell = document.createElement('td');
     cell.innerText = content;
     parent.appendChild(cell);
+}
+
+let tokenInput = document.querySelector('input[name="__RequestVerificationToken"][type="hidden"]') as HTMLInputElement
+let token = tokenInput.value;
+console.log(token);
+
+let fileUploadInput = document.getElementById('fileUploadInput') as HTMLInputElement;
+let fileUplaodButton = document.getElementById('fileUploadButton') as HTMLButtonElement;
+
+fileUplaodButton.onclick = () => {
+    let formData = new FormData();
+    let files = fileUploadInput.files
+    for (let i = 0; i < files.length; i++) {
+        formData.append('files', files[i]);
+    }
+
+    //formData.append('files', fileUploadInput.files[0]);
+
+    fetch('/admin/servers?handler=file', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            RequestVerificationToken: token
+        },
+    })
+        .then(response => response.json())
+        .then(response => console.log('Success:', JSON.stringify(response)))
+        .catch(error => console.error('Error:', error));
 }

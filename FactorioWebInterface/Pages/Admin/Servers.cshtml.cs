@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace FactorioWebInterface.Pages.Admin
@@ -65,5 +66,12 @@ namespace FactorioWebInterface.Pages.Admin
 
             return File(file.OpenRead(), "application/zip", file.Name);
         }
+
+        public async Task<IActionResult> OnPostFileAsync(List<IFormFile> files)
+        {
+            
+            return new JsonResult(Result.OK);
+            //return Content("Upload successful");
+        }       
     }
 }

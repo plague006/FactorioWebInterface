@@ -4,6 +4,7 @@
     ViewData["Title"] = "Servers";
 }
 
+@Html.AntiForgeryToken();
 @section css{
     <environment include="Development">
         <link href="/css/servers.css" rel="stylesheet">
@@ -113,6 +114,41 @@
         </div>
 
     </div>
+
+    <div class="row">
+        <input id="fileUploadInput" type="file" multiple />
+        <button id="fileUploadButton">Upload</button>
+
+
+        @*<form method="post" enctype="multipart/form-data" asp-page-handler="File">
+                <div class="form-group">
+                    <div class="col-md-10">
+                        <p>Upload one or more files using this form:</p>
+                        <input type="file" name="files" multiple />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="col-md-10">
+                        <input type="submit" value="Upload" />
+                    </div>
+                </div>
+            </form>*@
+
+        @*<form method="post" enctype="multipart/form-data">
+                <div class="row">
+                    <div class="col-md-12">
+                        <input type="file" id="fUpload" name="files" multiple class="form-control" />
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12" style="padding-top:10px;">
+                        <input type="button" id="btnUpload" value="Upload" />
+                    </div>
+                </div>
+            </form>*@
+    </div>
+
+
 
     @section Scripts{
         <script type="text/javascript" src="~/js/servers.js"></script>
