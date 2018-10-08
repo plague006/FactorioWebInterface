@@ -16,6 +16,7 @@
         public const string TempSavesDirectoryName = "saves";
         public const string LocalSavesDirectoryName = "local_saves";
         public const string GlobalSavesDirectoryName = "global_saves";
+        //public const string DefaultFileName = "current_map.zip";
 
         public const string ChatTag = "[CHAT]";
         public const string DiscordTag = "[DISCORD]";
@@ -34,5 +35,12 @@
         public const string RegularPromoteTag = "[REGULAR-PROMOTE]";
         public const string RegularDemoteTag = "[REGULAR-DEOMOTE]";
         public const string DonatorSetTag = "[DONATOR-SET]";
+
+        public const string UnexpctedErrorKey = "unexpectedError";
+        public const string ServerIdErrorKey = "serverId";
+        public const string WrapperProcessErrorKey = "wrapperProcess";
+        public const string InvalidServerStateErrorKey = "invalidState";
+        public const string MissingFileErrorKey = "missingFile";
+        public const string InvalidFileTypeErrorKey = "invalidFileType";
     }
 }

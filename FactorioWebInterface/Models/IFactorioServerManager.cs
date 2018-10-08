@@ -8,10 +8,10 @@ namespace FactorioWebInterface.Models
 {
     public interface IFactorioServerManager
     {
-        Task<bool> Start(string serverId);
-        Task<bool> Load(string serverId, string saveFilePath);
-        void Stop(string serverId);
-        void ForceStop(string serverId);
+        Task<Result> Resume(string serverId, string userName);
+        Task<Result> Load(string serverId, string saveFilePath, string userName);
+        Task<Result> Stop(string serverId, string userName);
+        Task<Result> ForceStop(string serverId, string userName);
         Task<FactorioServerStatus> GetStatus(string serverId);
         Task RequestStatus(string serverId);
         Task<MessageData[]> GetFactorioControlMessagesAsync(string serverId);

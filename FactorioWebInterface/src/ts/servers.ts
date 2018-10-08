@@ -32,7 +32,8 @@ const divMessages: HTMLDivElement = document.querySelector("#divMessages");
 const tbMessage: HTMLInputElement = document.querySelector("#tbMessage");
 const btnSend: HTMLButtonElement = document.querySelector("#btnSend");
 const serverIdInput: HTMLInputElement = document.getElementById('serverIdInput') as HTMLInputElement;
-const startButton: HTMLButtonElement = document.getElementById('startButton') as HTMLButtonElement;
+const resumeButton: HTMLButtonElement = document.getElementById('resumeButton') as HTMLButtonElement;
+const LoadButton: HTMLButtonElement = document.getElementById('loadButton') as HTMLButtonElement;
 const stopButton: HTMLButtonElement = document.getElementById('stopButton') as HTMLButtonElement;
 const forceStopButton: HTMLButtonElement = document.getElementById('forceStopButton') as HTMLButtonElement;
 const getStatusButton: HTMLButtonElement = document.getElementById('getStatusButton') as HTMLButtonElement;
@@ -94,9 +95,30 @@ function send() {
         .then(() => tbMessage.value = "");
 }
 
-startButton.onclick = () => {
-    connection.invoke("Start")
-        .then(() => console.log("started"));
+resumeButton.onclick = () => {
+    connection.invoke("Resume")
+        .then((result) => console.log("resumed:" + result));
+}
+
+LoadButton.onclick = () => {
+    let checkboxes = document.querySelectorAll('input[name="fileCheckbox"]:checked');
+
+    if (checkboxes.length != 1) {
+        alert('Select one file to load.');
+        return;
+    }
+
+    let checkbox = checkboxes[0];
+    let dir = checkbox.getAttribute('data-directory');
+    let name = checkbox.getAttribute('data-name');
+
+    let filePath = `${dir}/${name}`;
+
+    connection.invoke("Load", filePath)
+        .then((result) => {
+            console.log("loaded:");
+            console.log(result);
+        });
 }
 
 stopButton.onclick = () => {
@@ -125,6 +147,7 @@ function writeMessage(message: MessageData): void {
             data = `[Wrapper] ${message.message}`;
             break;
         case MessageType.Control:
+            div.classList.add('bg-warning');
             data = `[Control] ${message.message}`;
             break;
         case MessageType.Discord:
@@ -165,6 +188,9 @@ function buildFileTable(table: HTMLTableElement, files: FileMetaData[]) {
         let cell = document.createElement('td');
         let checkbox = document.createElement('input') as HTMLInputElement;
         checkbox.type = 'checkbox';
+        checkbox.name = 'fileCheckbox';
+        checkbox.setAttribute('data-directory', file.directory);
+        checkbox.setAttribute('data-name', file.name);
         cell.appendChild(checkbox);
         row.appendChild(cell);
 
@@ -175,7 +201,6 @@ function buildFileTable(table: HTMLTableElement, files: FileMetaData[]) {
         cell2.appendChild(link);
         row.appendChild(cell2);
 
-        //createCell(row, file.name);
         createCell(row, formatDate(file.createdTime));
         createCell(row, formatDate(file.lastModifiedTime));
         createCell(row, file.size.toString());

@@ -12,8 +12,8 @@ namespace FactorioWrapper
 {
     class FactorioWrapper
     {
-        //private static readonly string url = "https://localhost:44303/ServerHub";
-        private static readonly string url = "http://88.99.214.198/ServerHub";
+        //private static readonly string url = "https://localhost:44303/FactorioProcessHub";
+        private static readonly string url = "http://88.99.214.198/FactorioProcessHub";
 
         // This is to stop multiple threads writing to the factorio process concurrently.
         private static SemaphoreSlim factorioProcessLock = new SemaphoreSlim(1, 1);
@@ -126,7 +126,7 @@ namespace FactorioWrapper
 
             await Reconnect();
 
-            if (factorioProcess == null)
+            if (factorioProcess == null && !exit)
             {
                 await StartFactorioProcess();
             }
@@ -191,33 +191,55 @@ namespace FactorioWrapper
 
             connection.On(nameof(IFactorioProcessClientMethods.Stop), async () =>
             {
-                await ChangeStatus(FactorioServerStatus.Stopping);
-
                 try
                 {
-                    Process.Start("kill", $"-2 {factorioProcess.Id}");
+                    await factorioProcessLock.WaitAsync();
+
+                    var p = factorioProcess;
+                    if (p != null && !p.HasExited)
+                    {
+                        Process.Start("kill", $"-2 {factorioProcess.Id}");
+                    }
+
+                    await ChangeStatus(FactorioServerStatus.Stopping);
                 }
                 catch (Exception e)
                 {
                     Log.Error(e, "Error stopping factorio process");
                 }
+                finally
+                {
+                    // If an error is throw above the status wont be changed.
+                    // This changes the status in case the factorio process hasn't started yet, to make sure it doesn't start.
+                    status = FactorioServerStatus.Stopping;
+                    factorioProcessLock.Release();
+                }
             });
 
             connection.On(nameof(IFactorioProcessClientMethods.ForceStop), async () =>
             {
-                await ChangeStatus(FactorioServerStatus.Killing);
-
                 try
                 {
+                    await factorioProcessLock.WaitAsync();
+
                     var p = factorioProcess;
                     if (p != null && !p.HasExited)
                     {
                         p.Kill();
                     }
+
+                    await ChangeStatus(FactorioServerStatus.Killing);
                 }
                 catch (Exception e)
                 {
                     Log.Error(e, "Error force stopping factorio process");
+                }
+                finally
+                {
+                    // If an error is throw above the status wont be changed.
+                    // This changes the status in case the factorio process hasn't started yet, to make sure it doesn't start.
+                    status = FactorioServerStatus.Killing;
+                    factorioProcessLock.Release();
                 }
             });
 
@@ -231,47 +253,63 @@ namespace FactorioWrapper
 
         private static async Task StartFactorioProcess()
         {
-            Log.Information("Starting factorio process factorioFileName: {factorioFileName} factorioArguments: {factorioArguments}", factorioFileName, factorioArguments);
-
-            factorioProcess = new Process();
-            var startInfo = factorioProcess.StartInfo;
-            startInfo.FileName = factorioFileName;
-            startInfo.Arguments = factorioArguments;
-            startInfo.UseShellExecute = false;
-            startInfo.CreateNoWindow = true;
-            startInfo.RedirectStandardInput = true;
-            startInfo.RedirectStandardOutput = true;
-            startInfo.RedirectStandardError = true;
-
-            factorioProcess.OutputDataReceived += FactorioProcess_OutputDataReceived;
-
-            factorioProcess.ErrorDataReceived += (s, e) =>
-            {
-                if (!string.IsNullOrWhiteSpace(e.Data))
-                {
-                    SendFactorioOutputData("[Error] " + e.Data);
-                }
-            };
-
             try
             {
-                factorioProcess.Start();
+                await factorioProcessLock.WaitAsync();
+
+                // Check to see if the server has been requested to stop.
+                if (status != FactorioServerStatus.WrapperStarted)
+                {
+                    exit = true;
+                    return;
+                }
+
+                Log.Information("Starting factorio process factorioFileName: {factorioFileName} factorioArguments: {factorioArguments}", factorioFileName, factorioArguments);
+
+                factorioProcess = new Process();
+                var startInfo = factorioProcess.StartInfo;
+                startInfo.FileName = factorioFileName;
+                startInfo.Arguments = factorioArguments;
+                startInfo.UseShellExecute = false;
+                startInfo.CreateNoWindow = true;
+                startInfo.RedirectStandardInput = true;
+                startInfo.RedirectStandardOutput = true;
+                startInfo.RedirectStandardError = true;
+
+                factorioProcess.OutputDataReceived += FactorioProcess_OutputDataReceived;
+
+                factorioProcess.ErrorDataReceived += (s, e) =>
+                {
+                    if (!string.IsNullOrWhiteSpace(e.Data))
+                    {
+                        SendFactorioOutputData("[Error] " + e.Data);
+                    }
+                };
+
+                try
+                {
+                    factorioProcess.Start();
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e, "Error starting factorio process");
+                    exit = true;
+                    return;
+                }
+
+                factorioProcess.BeginOutputReadLine();
+                factorioProcess.BeginErrorReadLine();
+
+                factorioProcess.StandardInput.AutoFlush = true;
+
+                await ChangeStatus(FactorioServerStatus.Starting);
+
+                Log.Information("Started factorio process");
             }
-            catch (Exception e)
+            finally
             {
-                Log.Error(e, "Error starting factorio process");
-                exit = true;
-                return;
+                factorioProcessLock.Release();
             }
-
-            factorioProcess.BeginOutputReadLine();
-            factorioProcess.BeginErrorReadLine();
-
-            factorioProcess.StandardInput.AutoFlush = true;
-
-            await ChangeStatus(FactorioServerStatus.Starting);
-
-            Log.Information("Started factorio process");
         }
 
         private static async void FactorioProcess_OutputDataReceived(object sender, DataReceivedEventArgs e)
@@ -371,8 +409,11 @@ namespace FactorioWrapper
         {
             try
             {
-                await hubConnection.StartAsync();
-                return true;
+                var cancelToken = new CancellationTokenSource(5000).Token;
+                var connectionTask = hubConnection.StartAsync(cancelToken);
+                await connectionTask;
+
+                return connectionTask.IsCompletedSuccessfully;
             }
             catch (Exception)
             {
@@ -384,6 +425,11 @@ namespace FactorioWrapper
         {
             while (!await TryConnectAsync(connection))
             {
+                if (factorioProcess == null)
+                {
+                    exit = true;
+                    return;
+                }
                 await Task.Delay(1000);
             }
             connected = true;

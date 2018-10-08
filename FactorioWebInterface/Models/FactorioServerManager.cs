@@ -2,6 +2,7 @@
 using DSharpPlus.Entities;
 using FactorioWebInterface.Data;
 using FactorioWebInterface.Hubs;
+using FactorioWebInterface.Utils;
 using FactorioWrapperInterface;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -76,12 +77,12 @@ namespace FactorioWebInterface.Models
             _ = SendToFactorioControl(eventArgs.ServerId, messageData);
         }
 
-        public async Task<bool> Start(string serverId)
+        public async Task<Result> Resume(string serverId, string userName)
         {
             if (!servers.TryGetValue(serverId, out var serverData))
             {
                 _logger.LogError("Unknown serverId: {serverId}", serverId);
-                return false;
+                return Result.Failure(Constants.ServerIdErrorKey, $"serverId {serverId} not found.");
             }
 
             try
@@ -95,6 +96,12 @@ namespace FactorioWebInterface.Models
                     case FactorioServerStatus.Killed:
                     case FactorioServerStatus.Crashed:
                     case FactorioServerStatus.Updated:
+
+                        var tempSaves = new DirectoryInfo(serverData.TempSavesDirectoryPath);
+                        if (!tempSaves.EnumerateFiles("*.zip").Any())
+                        {
+                            return Result.Failure(Constants.MissingFileErrorKey, "No file to resume server from.");
+                        }
 
                         string basePath = serverData.BaseDirectoryPath;
 
@@ -115,20 +122,34 @@ namespace FactorioWebInterface.Models
                         }
                         catch (Exception)
                         {
-                            _logger.LogError("Error starting serverId: {serverId}", serverId);
-                            return false;
+                            _logger.LogError("Error resumeing serverId: {serverId}", serverId);
+                            return Result.Failure(Constants.WrapperProcessErrorKey, "Wrapper process failed to start.");
                         }
 
-                        _logger.LogInformation("Server started serverId: {serverId}", serverId);
+                        _logger.LogInformation("Server resumed serverId: {serverId} user: {userName}", serverId, userName);
 
                         var group = _factorioControlHub.Clients.Group(serverId);
                         await group.FactorioStatusChanged(FactorioServerStatus.WrapperStarting.ToString(), serverData.Status.ToString());
                         serverData.Status = FactorioServerStatus.WrapperStarting;
 
-                        return true;
+                        var message = new MessageData()
+                        {
+                            MessageType = MessageType.Control,
+                            Message = $"Server resumed by user: {userName}"
+                        };
+
+                        serverData.ControlMessageBuffer.Add(message);
+                        await group.SendMessage(message);
+
+                        return Result.OK;
                     default:
-                        return false;
+                        return Result.Failure(Constants.InvalidServerStateErrorKey, $"Cannot resume server when in state {serverData.Status}");
                 }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError("Error loading", e);
+                return Result.Failure(Constants.UnexpctedErrorKey);
             }
             finally
             {
@@ -136,12 +157,12 @@ namespace FactorioWebInterface.Models
             }
         }
 
-        public async Task<bool> Load(string serverId, string saveFilePath)
+        public async Task<Result> Load(string serverId, string saveFilePath, string userName)
         {
             if (!servers.TryGetValue(serverId, out var serverData))
             {
                 _logger.LogError("Unknown serverId: {serverId}", serverId);
-                return false;
+                return Result.Failure(Constants.ServerIdErrorKey, $"serverId {serverId} not found.");
             }
 
             try
@@ -163,7 +184,29 @@ namespace FactorioWebInterface.Models
                         var fi = new FileInfo(filePath);
                         if (!fi.Exists)
                         {
-                            return false;
+                            return Result.Failure(Constants.MissingFileErrorKey, $"File {saveFilePath} not found.");
+                        }
+
+                        if (fi.Extension != ".zip")
+                        {
+                            return Result.Failure(Constants.InvalidFileTypeErrorKey, $"File {saveFilePath} is not valid save file type.");
+                        }
+
+                        switch (fi.Directory.Name)
+                        {
+                            case Constants.GlobalSavesDirectoryName:
+                            case Constants.LocalSavesDirectoryName:
+                                string copyToPath = Path.Combine(serverData.TempSavesDirectoryPath, fi.Name);
+
+                                var target = new FileInfo(copyToPath);
+                                await fi.CopyToAsync(target);
+
+                                fi = target;
+                                break;
+                            case Constants.TempSavesDirectoryName:
+                                break;
+                            default:
+                                return Result.Failure(Constants.MissingFileErrorKey, $"File {saveFilePath} not found.");
                         }
 
                         var startInfo = new ProcessStartInfo
@@ -181,21 +224,36 @@ namespace FactorioWebInterface.Models
                         }
                         catch (Exception)
                         {
-                            _logger.LogError("Error starting serverId: {serverId} from file: {file}", serverId, filePath);
-                            return false;
+                            _logger.LogError("Error loading serverId: {serverId} file: {file}", serverId, filePath);
+                            return Result.Failure(Constants.WrapperProcessErrorKey, "Wrapper process failed to start.");
                         }
 
-                        _logger.LogInformation("Server started serverId: {serverId} from file: {file}", serverId, filePath);
+                        _logger.LogInformation("Server load serverId: {serverId} file: {file} user: {userName}", serverId, filePath, userName);
+
+                        serverData.Status = FactorioServerStatus.WrapperStarting;
 
                         var group = _factorioControlHub.Clients.Group(serverId);
                         await group.FactorioStatusChanged(FactorioServerStatus.WrapperStarting.ToString(), serverData.Status.ToString());
-                        serverData.Status = FactorioServerStatus.WrapperStarting;
 
-                        return true;
+                        var message = new MessageData()
+                        {
+                            MessageType = MessageType.Control,
+                            Message = $"Server load file: {fi.Name} by user: {userName}"
+                        };
+
+                        serverData.ControlMessageBuffer.Add(message);
+                        await group.SendMessage(message);
+
+                        return Result.OK;
 
                     default:
-                        return false;
+                        return Result.Failure(Constants.InvalidServerStateErrorKey, $"Cannot load server when in state {serverData.Status}");
                 }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError("Error loading", e);
+                return Result.Failure(Constants.UnexpctedErrorKey);
             }
             finally
             {
@@ -203,14 +261,74 @@ namespace FactorioWebInterface.Models
             }
         }
 
-        public void Stop(string serverId)
+        public async Task<Result> Stop(string serverId, string userName)
         {
-            _factorioProcessHub.Clients.Groups(serverId).Stop();
+            if (!servers.TryGetValue(serverId, out var serverData))
+            {
+                _logger.LogError("Unknown serverId: {serverId}", serverId);
+                return Result.Failure(Constants.ServerIdErrorKey, $"serverId {serverId} not found.");
+            }
+
+            switch (serverData.Status)
+            {
+                case FactorioServerStatus.Unknown:
+                case FactorioServerStatus.WrapperStarted:
+                case FactorioServerStatus.Starting:
+                case FactorioServerStatus.Running:
+                case FactorioServerStatus.Updated:
+                    break;
+                default:
+                    return Result.Failure(Constants.InvalidServerStateErrorKey, $"Cannot stop server when in state {serverData.Status}");
+            }
+
+            var message = new MessageData()
+            {
+                MessageType = MessageType.Control,
+                Message = $"Server stopped by user {userName}"
+            };
+
+            _ = SendToFactorioControl(serverId, message);
+            await _factorioProcessHub.Clients.Groups(serverId).Stop();
+
+            _logger.LogInformation("server stopped :serverId {serverId} user: {userName}", serverId, userName);
+
+            return Result.OK;
         }
 
-        public void ForceStop(string serverId)
+        public async Task<Result> ForceStop(string serverId, string userName)
         {
-            _factorioProcessHub.Clients.Groups(serverId).ForceStop();
+            if (!servers.TryGetValue(serverId, out var serverData))
+            {
+                _logger.LogError("Unknown serverId: {serverId}", serverId);
+                return Result.Failure(Constants.ServerIdErrorKey, $"serverId {serverId} not found.");
+            }
+
+            switch (serverData.Status)
+            {
+                case FactorioServerStatus.Unknown:
+                case FactorioServerStatus.WrapperStarted:
+                case FactorioServerStatus.Starting:
+                case FactorioServerStatus.Running:
+                case FactorioServerStatus.Stopping:
+                case FactorioServerStatus.Killing:
+                case FactorioServerStatus.Updated:
+                    break;
+                default:
+                    return Result.Failure(Constants.InvalidServerStateErrorKey, $"Cannot force stop server when in state {serverData.Status}");
+            }
+
+            var message = new MessageData()
+            {
+                MessageType = MessageType.Control,
+                Message = $"Server killed by user {userName}"
+            };
+
+            _ = SendToFactorioControl(serverId, message);
+            await _factorioProcessHub.Clients.Groups(serverId).ForceStop();
+
+            _logger.LogInformation("server killed :serverId {serverId} user: {userName}", serverId, userName);
+
+            return Result.OK;
         }
 
         public async Task<FactorioServerStatus> GetStatus(string serverId)

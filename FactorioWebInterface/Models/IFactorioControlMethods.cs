@@ -26,10 +26,10 @@ namespace FactorioWebInterface.Models
     public interface IFactorioControlServerMethods
     {
         Task<FactorioContorlClientData> SetServerId(string serverId);
-        Task Start();
-        Task Load(string saveFilePath);
-        Task Stop();
-        Task ForceStop();
+        Task<Result> Resume();
+        Task<Result> Load(string saveFilePath);
+        Task<Result> Stop();
+        Task<Result> ForceStop();
         Task GetStatus();
         Task<MessageData[]> GetMesssages();
         Task SendToFactorio(string data);

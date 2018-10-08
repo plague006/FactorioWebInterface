@@ -2725,7 +2725,8 @@ const divMessages = document.querySelector("#divMessages");
 const tbMessage = document.querySelector("#tbMessage");
 const btnSend = document.querySelector("#btnSend");
 const serverIdInput = document.getElementById('serverIdInput');
-const startButton = document.getElementById('startButton');
+const resumeButton = document.getElementById('resumeButton');
+const LoadButton = document.getElementById('loadButton');
 const stopButton = document.getElementById('stopButton');
 const forceStopButton = document.getElementById('forceStopButton');
 const getStatusButton = document.getElementById('getStatusButton');
@@ -2774,9 +2775,25 @@ function send() {
     connection.send("SendToFactorio", tbMessage.value)
         .then(() => tbMessage.value = "");
 }
-startButton.onclick = () => {
-    connection.invoke("Start")
-        .then(() => console.log("started"));
+resumeButton.onclick = () => {
+    connection.invoke("Resume")
+        .then((result) => console.log("resumed:" + result));
+};
+LoadButton.onclick = () => {
+    let checkboxes = document.querySelectorAll('input[name="fileCheckbox"]:checked');
+    if (checkboxes.length != 1) {
+        alert('Select one file to load.');
+        return;
+    }
+    let checkbox = checkboxes[0];
+    let dir = checkbox.getAttribute('data-directory');
+    let name = checkbox.getAttribute('data-name');
+    let filePath = `${dir}/${name}`;
+    connection.invoke("Load", filePath)
+        .then((result) => {
+        console.log("loaded:");
+        console.log(result);
+    });
 };
 stopButton.onclick = () => {
     connection.invoke("Stop")
@@ -2800,6 +2817,7 @@ function writeMessage(message) {
             data = `[Wrapper] ${message.message}`;
             break;
         case MessageType.Control:
+            div.classList.add('bg-warning');
             data = `[Control] ${message.message}`;
             break;
         case MessageType.Discord:
@@ -2834,6 +2852,9 @@ function buildFileTable(table, files) {
         let cell = document.createElement('td');
         let checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
+        checkbox.name = 'fileCheckbox';
+        checkbox.setAttribute('data-directory', file.directory);
+        checkbox.setAttribute('data-name', file.name);
         cell.appendChild(checkbox);
         row.appendChild(cell);
         let cell2 = document.createElement('td');
@@ -2842,7 +2863,6 @@ function buildFileTable(table, files) {
         link.href = `/admin/servers?handler=file&directory=${file.directory}&name=${file.name}`;
         cell2.appendChild(link);
         row.appendChild(cell2);
-        //createCell(row, file.name);
         createCell(row, formatDate(file.createdTime));
         createCell(row, formatDate(file.lastModifiedTime));
         createCell(row, file.size.toString());

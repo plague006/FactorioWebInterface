@@ -154,9 +154,8 @@ namespace FactorioWebInterface
 
             app.UseSignalR(routes =>
             {
-                routes.MapHub<ChatHub>("/hub");
                 routes.MapHub<FactorioControlHub>("/FactorioControlHub");
-                routes.MapHub<FactorioProcessHub>("/ServerHub");
+                routes.MapHub<FactorioProcessHub>("/FactorioProcessHub");
             });
 
             app.UseMvc();
