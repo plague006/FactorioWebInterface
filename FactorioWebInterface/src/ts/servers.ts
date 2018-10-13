@@ -16,10 +16,15 @@ interface MessageData {
 
 interface FileMetaData {
     name: string;
-    directory: string,
+    directory: string;
     createdTime: string;
     lastModifiedTime: string;
     size: number;
+}
+
+interface FileDeleteRequest {
+    directory: string;
+    name: string;
 }
 
 interface FactorioContorlClientData {
@@ -43,6 +48,13 @@ const statusText: HTMLInputElement = document.getElementById('statusText') as HT
 const tempSaveFilesTable: HTMLTableElement = document.getElementById('tempSaveFilesTable') as HTMLTableElement;
 const localSaveFilesTable: HTMLTableElement = document.getElementById('localSaveFilesTable') as HTMLTableElement;
 const globalSaveFilesTable: HTMLTableElement = document.getElementById('globalSaveFilesTable') as HTMLTableElement;
+
+// XSRF/CSRF token, see https://docs.microsoft.com/en-us/aspnet/core/security/anti-request-forgery?view=aspnetcore-2.1
+let requestVerificationToken = (document.querySelector('input[name="__RequestVerificationToken"][type="hidden"]') as HTMLInputElement).value
+
+let fileUploadInput = document.getElementById('fileUploadInput') as HTMLInputElement;
+let fileUplaodButton = document.getElementById('fileUploadButton') as HTMLButtonElement;
+let fileDeleteButton = document.getElementById('fileDeleteButton') as HTMLButtonElement;
 
 let messageCount = 0
 
@@ -221,30 +233,59 @@ function createCell(parent: HTMLElement, content: string) {
     parent.appendChild(cell);
 }
 
-let tokenInput = document.querySelector('input[name="__RequestVerificationToken"][type="hidden"]') as HTMLInputElement
-let token = tokenInput.value;
-console.log(token);
 
-let fileUploadInput = document.getElementById('fileUploadInput') as HTMLInputElement;
-let fileUplaodButton = document.getElementById('fileUploadButton') as HTMLButtonElement;
 
 fileUplaodButton.onclick = () => {
+    fileUploadInput.click();
+}
+
+fileUploadInput.onchange = function (this: HTMLInputElement, ev: Event) {
+    if (this.files.length == 0) {
+        return;
+    }
+
     let formData = new FormData();
+    formData.set('directory', `${serverIdInput.value}/local_saves`);
+
     let files = fileUploadInput.files
     for (let i = 0; i < files.length; i++) {
         formData.append('files', files[i]);
     }
 
-    //formData.append('files', fileUploadInput.files[0]);
-
-    fetch('/admin/servers?handler=file', {
+    fetch('/admin/servers?handler=fileUpload', {
         method: 'POST',
         body: formData,
         headers: {
-            RequestVerificationToken: token
+            RequestVerificationToken: requestVerificationToken
         },
     })
         .then(response => response.json())
-        .then(response => console.log('Success:', JSON.stringify(response)))
+        .then(response => console.log('Result:', JSON.stringify(response)))
         .catch(error => console.error('Error:', error));
+};
+
+fileDeleteButton.onclick = () => {
+    let files = [];
+
+    let checkboxes = document.querySelectorAll('input[name="fileCheckbox"]:checked');
+
+    for (let checkbox of checkboxes) {
+        let dir = checkbox.getAttribute('data-directory');
+        let name = checkbox.getAttribute('data-name');
+
+        let filePath = `${dir}/${name}`;
+
+        files.push(filePath);
+    }
+
+    let data = { files: files };
+
+    fetch('/admin/servers?handler=fileDelete', {
+        method: 'POST',
+        body: JSON.stringify(data),
+        headers: {
+            RequestVerificationToken: requestVerificationToken,
+            'Content-Type': 'application/json'
+        },
+    })
 }

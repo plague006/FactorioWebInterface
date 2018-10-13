@@ -4,6 +4,7 @@ using FactorioWebInterface.Data;
 using FactorioWebInterface.Hubs;
 using FactorioWebInterface.Utils;
 using FactorioWrapperInterface;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -851,6 +852,47 @@ namespace FactorioWebInterface.Models
             {
                 _logger.LogError(e.ToString());
                 return null;
+            }
+        }
+
+        public async Task<Result> UploadFile(string directory, IList<IFormFile> files)
+        {
+            var errors = new List<Error>();
+
+            foreach (var file in files)
+            {
+                // todo validate directory.
+                string path = Path.Combine(FactorioServerData.baseDirectoryPath, directory, file.FileName);
+
+                var fi = new FileInfo(path);
+                if (fi.Exists)
+                {
+                    errors.Add(new Error(Constants.FileAlreadyExistsErrorKey, $"{file.FileName} already exists."));
+                    continue;
+                }
+
+                try
+                {
+                    using (var writeStream = fi.OpenWrite())
+                    using (var readStream = file.OpenReadStream())
+                    {
+                        await readStream.CopyToAsync(writeStream);
+                    }
+                }
+                catch (Exception e)
+                {
+                    _logger.LogError("Error Uploading file.", e);
+                    errors.Add(new Error(Constants.FileUploadErrorKey, $"Error uploading {file.FileName}."));
+                }
+            }
+
+            if (errors.Count != 0)
+            {
+                return Result.Failure(errors);
+            }
+            else
+            {
+                return Result.OK;
             }
         }
     }

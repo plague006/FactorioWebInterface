@@ -67,11 +67,30 @@ namespace FactorioWebInterface.Pages.Admin
             return File(file.OpenRead(), "application/zip", file.Name);
         }
 
-        public async Task<IActionResult> OnPostFileAsync(List<IFormFile> files)
+        public async Task<IActionResult> OnPostFileUploadAsync(string directory, List<IFormFile> files)
         {
-            
-            return new JsonResult(Result.OK);
-            //return Content("Upload successful");
-        }       
+            if (string.IsNullOrWhiteSpace(directory))
+            {
+                return BadRequest();
+            }
+            if (files == null || files.Count == 0)
+            {
+                return BadRequest();
+            }
+
+            var result = await _factorioServerManager.UploadFile(directory, files);
+
+            return new JsonResult(result);
+        }
+
+        public class FileDeleteModel
+        {
+            public List<string> Files { get; set; }
+        }
+
+        public async Task<IActionResult> OnPostFileDeleteAsync([FromBody] FileDeleteModel files)
+        {
+            return new OkResult();
+        }
     }
 }

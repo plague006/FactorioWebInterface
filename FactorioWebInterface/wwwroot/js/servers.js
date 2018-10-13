@@ -2734,6 +2734,11 @@ const statusText = document.getElementById('statusText');
 const tempSaveFilesTable = document.getElementById('tempSaveFilesTable');
 const localSaveFilesTable = document.getElementById('localSaveFilesTable');
 const globalSaveFilesTable = document.getElementById('globalSaveFilesTable');
+// XSRF/CSRF token, see https://docs.microsoft.com/en-us/aspnet/core/security/anti-request-forgery?view=aspnetcore-2.1
+let requestVerificationToken = document.querySelector('input[name="__RequestVerificationToken"][type="hidden"]').value;
+let fileUploadInput = document.getElementById('fileUploadInput');
+let fileUplaodButton = document.getElementById('fileUploadButton');
+let fileDeleteButton = document.getElementById('fileDeleteButton');
 let messageCount = 0;
 const connection = new _aspnet_signalr__WEBPACK_IMPORTED_MODULE_0__["HubConnectionBuilder"]()
     .withUrl("/FactorioControlHub")
@@ -2878,74 +2883,65 @@ function createCell(parent, content) {
     cell.innerText = content;
     parent.appendChild(cell);
 }
-let tokenInput = document.querySelector('input[name="__RequestVerificationToken"][type="hidden"]');
-let token = tokenInput.value;
-console.log(token);
-let fileUploadInput = document.getElementById('fileUploadInput');
-let fileUplaodButton = document.getElementById('fileUploadButton');
 fileUplaodButton.onclick = () => {
+    fileUploadInput.click();
+};
+fileUploadInput.onchange = function (ev) {
+    if (this.files.length == 0) {
+        return;
+    }
     let formData = new FormData();
+    formData.set('directory', `${serverIdInput.value}/local_saves`);
     let files = fileUploadInput.files;
     for (let i = 0; i < files.length; i++) {
         formData.append('files', files[i]);
     }
-    //formData.append('files', fileUploadInput.files[0]);
-    fetch('/admin/servers?handler=file', {
+    fetch('/admin/servers?handler=fileUpload', {
         method: 'POST',
         body: formData,
         headers: {
-            RequestVerificationToken: token
+            RequestVerificationToken: requestVerificationToken
         },
     })
         .then(response => response.json())
-        .then(response => console.log('Success:', JSON.stringify(response)))
+        .then(response => console.log('Result:', JSON.stringify(response)))
         .catch(error => console.error('Error:', error));
 };
-//    $.ajax({
-//        type: "POST",
-//        url: "/admin/servers?handler=file",
-//        beforeSend: function (xhr) {
-//            xhr.setRequestHeader("XSRF-TOKEN",
-//                $('input:hidden[name="__RequestVerificationToken"]').val());
-//        },
-//        data: formData,
-//        contentType: false,
-//        processData: false,
-//        success: function (response) {
-//            alert('File Uploaded Successfully.')
-//        }
-//    });
-//}
-//$(document).ready(function () {
-//    let token = $('input:hidden[name="__RequestVerificationToken"]').val();
-//    console.log(token);
-//    $('#btnUpload').on('click', function (event) {
-//        //event.preventDefault();
-//        var files = $('#fUpload').prop("files");
-//        var fdata = new FormData();
-//        for (var i = 0; i < files.length; i++) {
-//            fdata.append("files", files[i]);
-//        }
-//        if (files.length > 0) {
-//            $.ajax({
-//                type: "POST",
-//                url: "/admin/servers?handler=File",
-//                headers: {
-//                    RequestVerificationToken: token
-//                },
-//                data: fdata,
-//                contentType: false,
-//                processData: false,
-//                success: function (response) {
-//                    alert('File Uploaded Successfully.')
-//                }
-//            });
-//        }
-//        else {
-//            alert('Please select a file.')
-//        }
-//    })
-//});
+fileDeleteButton.onclick = () => {
+    let files = [];
+    let checkboxes = document.querySelectorAll('input[name="fileCheckbox"]:checked');
+    for (let checkbox of checkboxes) {
+        let dir = checkbox.getAttribute('data-directory');
+        let name = checkbox.getAttribute('data-name');
+        let filePath = `${dir}/${name}`;
+        files.push(filePath);
+    }
+    let data = { files: files };
+    fetch('/admin/servers?handler=fileDelete', {
+        method: 'POST',
+        body: JSON.stringify(data),
+        headers: {
+            RequestVerificationToken: requestVerificationToken,
+            'Content-Type': 'application/json'
+        },
+    });
+    //$.ajax({
+    //    url: '/admin/servers?handler=test',
+    //    type: 'POST',
+    //    data: JSON.stringify({ data: 'some data' }),
+    //    //dataType: 'json',
+    //    contentType: 'application/json; charset=utf-8',
+    //    headers: { RequestVerificationToken: requestVerificationToken}
+    //});
+    //fetch('/admin/servers?handler=test', {
+    //    method: 'POST',
+    //    body: JSON.stringify({ data: 'some data' }),
+    //    headers: {
+    //        RequestVerificationToken: requestVerificationToken,
+    //        'Content-Type': 'application/json'
+    //    },
+    //})
+};
 
 
 /***/ })

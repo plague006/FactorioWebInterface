@@ -42,5 +42,7 @@
         public const string InvalidServerStateErrorKey = "invalidState";
         public const string MissingFileErrorKey = "missingFile";
         public const string InvalidFileTypeErrorKey = "invalidFileType";
+        public const string FileAlreadyExistsErrorKey = "FileAlreadyExists";
+        public const string FileUploadErrorKey = "fileUpload";
     }
 }
