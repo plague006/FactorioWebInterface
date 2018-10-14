@@ -68,18 +68,28 @@
                 <input id="fileUploadInput" type="file" multiple style="display:none" />
                 <button id="fileUploadButton" class="btn btn-primary">Upload Files</button>
                 <button id="fileDeleteButton" class="btn btn-danger">Delete Files</button>
+            </div>
+
+            <div class="row">
                 <button id="fileMoveButton" class="btn btn-primary">Move Files</button>
+                <button id="fileCopyButton" class="btn btn-primary">Copy Files</button>
                 <label> Destination</label>
                 <select id="destinationSelect">
                     <option value="@Constants.GlobalSavesDirectoryName">Global</option>
                     @{
                         for (int i = 1; i <= FactorioServerData.serverCount; i++)
                         {
-                            var path = System.IO.Path.Combine(i.ToString(), Constants.LocalSavesDirectoryName);                            
+                            var path = System.IO.Path.Combine(i.ToString(), Constants.LocalSavesDirectoryName);
                             <option value="@path">Local @i</option>
                         }
                     }
                 </select>
+            </div>
+
+            <div class="row">
+                <button id="fileRenameButton" class="btn btn-primary">Rename File</button>
+                <label>New Name:</label>
+                <input id="fileRenameInput" type="text" class="input-zone-input" />
             </div>
 
             @await Html.PartialAsync("_FileTablePartial", ServersModel.tempSaves)

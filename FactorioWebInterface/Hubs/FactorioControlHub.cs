@@ -193,5 +193,32 @@ namespace FactorioWebInterface.Hubs
 
             return Task.FromResult(_factorioServerManager.MoveFiles(destination, filePaths));
         }
+
+        public Task<Result> CopyFiles(string destination, List<string> filePaths)
+        {
+            if (destination == null)
+            {
+                return Task.FromResult(Result.Failure(Constants.FileErrorKey, "Invalid destination."));
+            }
+
+            if (filePaths == null)
+            {
+                return Task.FromResult(Result.Failure(Constants.MissingFileErrorKey, "No file."));
+            }
+
+            return _factorioServerManager.CopyFiles(destination, filePaths);
+        }
+
+        public Task<Result> RenameFile(string directoryPath, string fileName, string newFileName)
+        {
+            if (directoryPath == null || fileName == null || newFileName == null)
+            {
+                return Task.FromResult(Result.Failure(Constants.FileErrorKey, "Invalid file."));
+            }
+
+            return Task.FromResult(_factorioServerManager.RenameFile(directoryPath, fileName, newFileName));
+        }
+
+        
     }
 }

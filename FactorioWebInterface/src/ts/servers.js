@@ -35,7 +35,10 @@ const fileUploadInput = document.getElementById('fileUploadInput');
 const fileUplaodButton = document.getElementById('fileUploadButton');
 const fileDeleteButton = document.getElementById('fileDeleteButton');
 const fileMoveButton = document.getElementById('fileMoveButton');
+const fileCopyButton = document.getElementById('fileCopyButton');
 const destinationSelect = document.getElementById('destinationSelect');
+const fileRenameButton = document.getElementById('fileRenameButton');
+const fileRenameInput = document.getElementById('fileRenameInput');
 let messageCount = 0;
 const connection = new signalR.HubConnectionBuilder()
     .withUrl("/FactorioControlHub")
@@ -152,9 +155,6 @@ function writeMessage(message) {
 function buildFileTable(table, files) {
     let body = table.tBodies[0];
     body.innerHTML = "";
-    //for (let child of body.children) {
-    //    child.remove();
-    //}
     for (let file of files) {
         let row = document.createElement('tr');
         let cell = document.createElement('td');
@@ -235,7 +235,7 @@ fileDeleteButton.onclick = () => __awaiter(this, void 0, void 0, function* () {
 fileMoveButton.onclick = () => __awaiter(this, void 0, void 0, function* () {
     let checkboxes = document.querySelectorAll('input[name="fileCheckbox"]:checked');
     if (checkboxes.length == 0) {
-        alert('Please select saves to delete.');
+        alert('Please select saves to move.');
         return;
     }
     let files = [];
@@ -247,6 +247,46 @@ fileMoveButton.onclick = () => __awaiter(this, void 0, void 0, function* () {
     }
     let destination = destinationSelect.options[destinationSelect.selectedIndex].value;
     let result = yield connection.invoke('MoveFiles', destination, files);
+    if (!result.success) {
+        alert(JSON.stringify(result.errors));
+    }
+    getFiles();
+});
+fileCopyButton.onclick = () => __awaiter(this, void 0, void 0, function* () {
+    let checkboxes = document.querySelectorAll('input[name="fileCheckbox"]:checked');
+    if (checkboxes.length == 0) {
+        alert('Please select saves to copy.');
+        return;
+    }
+    let files = [];
+    for (let checkbox of checkboxes) {
+        let dir = checkbox.getAttribute('data-directory');
+        let name = checkbox.getAttribute('data-name');
+        let filePath = `${dir}/${name}`;
+        files.push(filePath);
+    }
+    let destination = destinationSelect.options[destinationSelect.selectedIndex].value;
+    let result = yield connection.invoke('CopyFiles', destination, files);
+    if (!result.success) {
+        alert(JSON.stringify(result.errors));
+    }
+    getFiles();
+});
+fileRenameButton.onclick = () => __awaiter(this, void 0, void 0, function* () {
+    let checkboxes = document.querySelectorAll('input[name="fileCheckbox"]:checked');
+    if (checkboxes.length != 1) {
+        alert('Please select one file to rename.');
+        return;
+    }
+    let newName = fileRenameInput.value;
+    if (newName === "") {
+        alert('New name cannot be empty');
+        return;
+    }
+    let checkbox = checkboxes[0];
+    let dir = checkbox.getAttribute('data-directory');
+    let name = checkbox.getAttribute('data-name');
+    let result = yield connection.invoke('RenameFile', dir, name, newName);
     if (!result.success) {
         alert(JSON.stringify(result.errors));
     }

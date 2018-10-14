@@ -1034,5 +1034,131 @@ namespace FactorioWebInterface.Models
                 return Result.OK;
             }
         }
+
+        public async Task<Result> CopyFiles(string destination, List<string> filePaths)
+        {
+            string dirPath = Path.Combine(FactorioServerData.baseDirectoryPath, destination);
+
+            try
+            {
+                var di = new DirectoryInfo(dirPath);
+
+                string dirName = di.Name;
+
+                if (!IsSaveDirectory(dirName))
+                {
+                    return Result.Failure(Constants.FileErrorKey, $"Error copying files");
+                }
+
+                if (!di.Exists)
+                {
+                    di.Create();
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError("Error copying file.", e);
+                return Result.Failure(Constants.FileErrorKey, $"Error copying files");
+            }
+
+            var errors = new List<Error>();
+
+            foreach (var filePath in filePaths)
+            {
+                string path = Path.Combine(FactorioServerData.baseDirectoryPath, filePath);
+
+                try
+                {
+                    var fi = new FileInfo(path);
+
+                    if (!fi.Exists)
+                    {
+                        errors.Add(new Error(Constants.MissingFileErrorKey, $"{filePath} doesn't exists."));
+                        continue;
+                    }
+
+                    if (!IsSaveDirectory(fi.Directory.Name))
+                    {
+                        errors.Add(new Error(Constants.FileErrorKey, $"Error copying {filePath}."));
+                        continue;
+                    }
+
+                    string destinationFilePath = Path.Combine(dirPath, fi.Name);
+
+                    var destinationFileInfo = new FileInfo(destinationFilePath);
+
+                    if (destinationFileInfo.Exists)
+                    {
+                        errors.Add(new Error(Constants.FileAlreadyExistsErrorKey, $"{filePath} already exists."));
+                        continue;
+                    }
+
+                    await fi.CopyToAsync(destinationFileInfo);                    
+                }
+                catch (Exception e)
+                {
+                    _logger.LogError("Error moveing file.", e);
+                    errors.Add(new Error(Constants.FileErrorKey, $"Error moveing {filePath}."));
+                }
+            }
+
+            if (errors.Count != 0)
+            {
+                return Result.Failure(errors);
+            }
+            else
+            {
+                return Result.OK;
+            }
+        }
+
+        public Result RenameFile(string directoryPath, string fileName, string newFileName)
+        {
+            string dirPath = Path.Combine(FactorioServerData.baseDirectoryPath, directoryPath);
+
+            try
+            {
+                var di = new DirectoryInfo(dirPath);
+
+                string dirName = di.Name;
+
+                if (!IsSaveDirectory(dirName))
+                {
+                    return Result.Failure(Constants.FileErrorKey, $"Error renaming files");
+                }
+
+                string filePath = Path.Combine(dirPath, fileName);
+                var fi = new FileInfo(filePath);
+
+                if (!fi.Exists)
+                {
+                    return Result.Failure(Constants.MissingFileErrorKey, $"File {fileName} doesn't exist.");
+                }
+
+                string newFilePath = Path.Combine(dirPath, newFileName);
+                var newFileInfo = new FileInfo(newFilePath);
+
+                if (newFileInfo.Exists)
+                {
+                    return Result.Failure(Constants.FileAlreadyExistsErrorKey, $"File {fileName} already exists.");
+                }
+
+                if (newFileInfo.Extension != ".zip")
+                {
+                    newFilePath += ".zip";
+                }
+
+                fi.MoveTo(newFilePath);
+
+                return Result.OK;
+            }
+            catch (Exception e)
+            {
+                _logger.LogError("Error renaming file.", e);
+                return Result.Failure(Constants.FileErrorKey, $"Error renaming files");
+            }
+        }
+
+       
     }
 }

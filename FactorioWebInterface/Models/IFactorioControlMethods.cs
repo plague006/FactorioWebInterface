@@ -39,6 +39,8 @@ namespace FactorioWebInterface.Models
         Task<FileMetaData[]> GetGlobalSaveFiles();
         Task<Result> DeleteFiles(List<string> files);
         Task<Result> MoveFiles(string destination, List<string> filePaths);
+        Task<Result> CopyFiles(string destination, List<string> filePaths);
+        Task<Result> RenameFile(string directoryPath, string fileName, string newFileName);
     }
 
     public interface IFactorioControlClientMethods

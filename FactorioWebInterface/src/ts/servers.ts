@@ -66,7 +66,10 @@ const fileUploadInput = document.getElementById('fileUploadInput') as HTMLInputE
 const fileUplaodButton = document.getElementById('fileUploadButton') as HTMLButtonElement;
 const fileDeleteButton = document.getElementById('fileDeleteButton') as HTMLButtonElement;
 const fileMoveButton = document.getElementById('fileMoveButton') as HTMLButtonElement;
+const fileCopyButton = document.getElementById('fileCopyButton') as HTMLButtonElement;
 const destinationSelect = document.getElementById('destinationSelect') as HTMLSelectElement;
+const fileRenameButton = document.getElementById('fileRenameButton') as HTMLButtonElement;
+const fileRenameInput = document.getElementById('fileRenameInput') as HTMLInputElement;
 
 let messageCount = 0
 
@@ -209,10 +212,6 @@ function buildFileTable(table: HTMLTableElement, files: FileMetaData[]) {
 
     body.innerHTML = "";
 
-    //for (let child of body.children) {
-    //    child.remove();
-    //}
-
     for (let file of files) {
         let row = document.createElement('tr');
 
@@ -317,7 +316,7 @@ fileMoveButton.onclick = async () => {
     let checkboxes = document.querySelectorAll('input[name="fileCheckbox"]:checked');
 
     if (checkboxes.length == 0) {
-        alert('Please select saves to delete.');
+        alert('Please select saves to move.');
         return;
     }
 
@@ -335,6 +334,63 @@ fileMoveButton.onclick = async () => {
     let destination = destinationSelect.options[destinationSelect.selectedIndex].value;
 
     let result: Result = await connection.invoke('MoveFiles', destination, files);
+
+    if (!result.success) {
+        alert(JSON.stringify(result.errors));
+    }
+
+    getFiles();
+}
+
+fileCopyButton.onclick = async () => {
+    let checkboxes = document.querySelectorAll('input[name="fileCheckbox"]:checked');
+
+    if (checkboxes.length == 0) {
+        alert('Please select saves to copy.');
+        return;
+    }
+
+    let files = [];
+
+    for (let checkbox of checkboxes) {
+        let dir = checkbox.getAttribute('data-directory');
+        let name = checkbox.getAttribute('data-name');
+
+        let filePath = `${dir}/${name}`;
+
+        files.push(filePath);
+    }
+
+    let destination = destinationSelect.options[destinationSelect.selectedIndex].value;
+
+    let result: Result = await connection.invoke('CopyFiles', destination, files);
+
+    if (!result.success) {
+        alert(JSON.stringify(result.errors));
+    }
+
+    getFiles();
+}
+
+fileRenameButton.onclick = async () => {
+    let checkboxes = document.querySelectorAll('input[name="fileCheckbox"]:checked');
+
+    if (checkboxes.length != 1) {
+        alert('Please select one file to rename.');
+        return;
+    }
+
+    let newName = fileRenameInput.value;
+    if (newName === "") {
+        alert('New name cannot be empty');
+        return;
+    }
+
+    let checkbox = checkboxes[0];
+    let dir = checkbox.getAttribute('data-directory');
+    let name = checkbox.getAttribute('data-name');
+
+    let result: Result = await connection.invoke('RenameFile', dir, name, newName);
 
     if (!result.success) {
         alert(JSON.stringify(result.errors));
