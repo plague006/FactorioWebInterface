@@ -78,19 +78,9 @@ namespace FactorioWebInterface.Pages.Admin
                 return BadRequest();
             }
 
-            var result = await _factorioServerManager.UploadFile(directory, files);
+            var result = await _factorioServerManager.UploadFiles(directory, files);
 
             return new JsonResult(result);
-        }
-
-        public class FileDeleteModel
-        {
-            public List<string> Files { get; set; }
-        }
-
-        public async Task<IActionResult> OnPostFileDeleteAsync([FromBody] FileDeleteModel files)
-        {
-            return new OkResult();
         }
     }
 }

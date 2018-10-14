@@ -2907,41 +2907,32 @@ fileUploadInput.onchange = function (ev) {
         .then(response => console.log('Result:', JSON.stringify(response)))
         .catch(error => console.error('Error:', error));
 };
-fileDeleteButton.onclick = () => {
+fileDeleteButton.onclick = () => __awaiter(undefined, void 0, void 0, function* () {
     let files = [];
     let checkboxes = document.querySelectorAll('input[name="fileCheckbox"]:checked');
+    if (checkboxes.length == 0) {
+        alert('Please select saves to delete.');
+        return;
+    }
     for (let checkbox of checkboxes) {
         let dir = checkbox.getAttribute('data-directory');
         let name = checkbox.getAttribute('data-name');
         let filePath = `${dir}/${name}`;
         files.push(filePath);
     }
-    let data = { files: files };
-    fetch('/admin/servers?handler=fileDelete', {
-        method: 'POST',
-        body: JSON.stringify(data),
-        headers: {
-            RequestVerificationToken: requestVerificationToken,
-            'Content-Type': 'application/json'
-        },
-    });
-    //$.ajax({
-    //    url: '/admin/servers?handler=test',
-    //    type: 'POST',
-    //    data: JSON.stringify({ data: 'some data' }),
-    //    //dataType: 'json',
-    //    contentType: 'application/json; charset=utf-8',
-    //    headers: { RequestVerificationToken: requestVerificationToken}
-    //});
-    //fetch('/admin/servers?handler=test', {
+    let result = yield connection.invoke('DeleteFiles', files);
+    if (!result.success) {
+        alert(result.errors);
+    }
+    //fetch('/admin/servers?handler=fileDelete', {
     //    method: 'POST',
-    //    body: JSON.stringify({ data: 'some data' }),
+    //    body: JSON.stringify(files),
     //    headers: {
     //        RequestVerificationToken: requestVerificationToken,
     //        'Content-Type': 'application/json'
     //    },
     //})
-};
+});
 
 
 /***/ })

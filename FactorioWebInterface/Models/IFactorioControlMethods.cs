@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace FactorioWebInterface.Models
 {
@@ -36,6 +37,7 @@ namespace FactorioWebInterface.Models
         Task<FileMetaData[]> GetTempSaveFiles();
         Task<FileMetaData[]> GetLocalSaveFiles();
         Task<FileMetaData[]> GetGlobalSaveFiles();
+        Task<Result> DeleteFiles(List<string> files);
     }
 
     public interface IFactorioControlClientMethods

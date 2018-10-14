@@ -32,6 +32,16 @@ interface FactorioContorlClientData {
     messages: MessageData[];
 }
 
+interface Error {
+    key: string;
+    description: string;
+}
+
+interface Result {
+    success: boolean;
+    errors: Error[];
+}
+
 const maxMessageCount = 100;
 
 const divMessages: HTMLDivElement = document.querySelector("#divMessages");
@@ -264,10 +274,15 @@ fileUploadInput.onchange = function (this: HTMLInputElement, ev: Event) {
         .catch(error => console.error('Error:', error));
 };
 
-fileDeleteButton.onclick = () => {
+fileDeleteButton.onclick = async () => {
     let files = [];
 
     let checkboxes = document.querySelectorAll('input[name="fileCheckbox"]:checked');
+
+    if (checkboxes.length == 0) {
+        alert('Please select saves to delete.');
+        return;
+    }
 
     for (let checkbox of checkboxes) {
         let dir = checkbox.getAttribute('data-directory');
@@ -278,14 +293,18 @@ fileDeleteButton.onclick = () => {
         files.push(filePath);
     }
 
-    let data = { files: files };
+    let result: Result = await connection.invoke('DeleteFiles', files);
 
-    fetch('/admin/servers?handler=fileDelete', {
-        method: 'POST',
-        body: JSON.stringify(data),
-        headers: {
-            RequestVerificationToken: requestVerificationToken,
-            'Content-Type': 'application/json'
-        },
-    })
+    if (!result.success) {
+        alert(result.errors);
+    }
+
+    //fetch('/admin/servers?handler=fileDelete', {
+    //    method: 'POST',
+    //    body: JSON.stringify(files),
+    //    headers: {
+    //        RequestVerificationToken: requestVerificationToken,
+    //        'Content-Type': 'application/json'
+    //    },
+    //})
 }

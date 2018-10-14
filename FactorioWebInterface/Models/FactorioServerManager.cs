@@ -855,24 +855,43 @@ namespace FactorioWebInterface.Models
             }
         }
 
-        public async Task<Result> UploadFile(string directory, IList<IFormFile> files)
+        private bool IsSaveDirectory(string dirName)
+        {
+            switch (dirName)
+            {
+                case Constants.GlobalSavesDirectoryName:
+                case Constants.LocalSavesDirectoryName:
+                case Constants.TempSavesDirectoryName:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        public async Task<Result> UploadFiles(string directory, IList<IFormFile> files)
         {
             var errors = new List<Error>();
 
             foreach (var file in files)
             {
-                // todo validate directory.
                 string path = Path.Combine(FactorioServerData.baseDirectoryPath, directory, file.FileName);
-
-                var fi = new FileInfo(path);
-                if (fi.Exists)
-                {
-                    errors.Add(new Error(Constants.FileAlreadyExistsErrorKey, $"{file.FileName} already exists."));
-                    continue;
-                }
 
                 try
                 {
+                    var fi = new FileInfo(path);
+                    if (!IsSaveDirectory(fi.Directory.Name))
+                    {
+                        errors.Add(new Error(Constants.FileUploadErrorKey, $"{file.FileName}"));
+                        continue;
+                    }
+
+                    if (fi.Exists)
+                    {
+                        errors.Add(new Error(Constants.FileAlreadyExistsErrorKey, $"{file.FileName} already exists."));
+                        continue;
+                    }
+
+
                     using (var writeStream = fi.OpenWrite())
                     using (var readStream = file.OpenReadStream())
                     {
@@ -883,6 +902,49 @@ namespace FactorioWebInterface.Models
                 {
                     _logger.LogError("Error Uploading file.", e);
                     errors.Add(new Error(Constants.FileUploadErrorKey, $"Error uploading {file.FileName}."));
+                }
+            }
+
+            if (errors.Count != 0)
+            {
+                return Result.Failure(errors);
+            }
+            else
+            {
+                return Result.OK;
+            }
+        }
+
+        public Result DeleteFiles(List<string> filePaths)
+        {
+            var errors = new List<Error>();
+
+            foreach (string filePath in filePaths)
+            {
+                string path = Path.Combine(FactorioServerData.baseDirectoryPath, filePath);
+
+                try
+                {
+                    var fi = new FileInfo(path);
+
+                    if (!fi.Exists)
+                    {
+                        errors.Add(new Error(Constants.MissingFileErrorKey, $"{filePath} doesn't exists."));
+                        continue;
+                    }
+
+                    if (!IsSaveDirectory(fi.Directory.Name))
+                    {
+                        errors.Add(new Error(Constants.FileUploadErrorKey, $"Error uploading {filePath}."));
+                        continue;
+                    }
+
+                    fi.Delete();
+                }
+                catch (Exception e)
+                {
+                    _logger.LogError("Error Deleting file.", e);
+                    errors.Add(new Error(Constants.FileUploadErrorKey, $"Error Deleting {filePath}."));
                 }
             }
 

@@ -16,9 +16,7 @@ namespace FactorioWebInterface.Models
 
     public class Result
     {
-        private static readonly Result success = new Result(true, new Error[0]);
-
-        public static Result OK => success;
+        public static Result OK { get; } = new Result(true, new Error[0]);
 
         public static Result Failure(Error error) => new Result(false, new Error[] { error });
         public static Result Failure(IReadOnlyList<Error> errors) => new Result(false, errors);

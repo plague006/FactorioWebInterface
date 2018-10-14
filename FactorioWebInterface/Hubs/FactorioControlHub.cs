@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace FactorioWebInterface.Hubs
@@ -166,6 +167,11 @@ namespace FactorioWebInterface.Hubs
         public Task<FileMetaData[]> GetGlobalSaveFiles()
         {
             return Task.FromResult(_factorioServerManager.GetGlobalSaveFiles());
+        }
+
+        public Task<Result> DeleteFiles(List<string> files)
+        {
+            return Task.FromResult(_factorioServerManager.DeleteFiles(files));
         }
     }
 }
