@@ -39,6 +39,7 @@ const fileCopyButton = document.getElementById('fileCopyButton');
 const destinationSelect = document.getElementById('destinationSelect');
 const fileRenameButton = document.getElementById('fileRenameButton');
 const fileRenameInput = document.getElementById('fileRenameInput');
+const fileProgress = document.getElementById('fileProgress');
 let messageCount = 0;
 const connection = new signalR.HubConnectionBuilder()
     .withUrl("/FactorioControlHub")
@@ -199,19 +200,23 @@ fileUploadInput.onchange = function (ev) {
     for (let i = 0; i < files.length; i++) {
         formData.append('files', files[i]);
     }
-    fetch('/admin/servers?handler=fileUpload', {
-        method: 'POST',
-        body: formData,
-        headers: {
-            RequestVerificationToken: requestVerificationToken
-        },
-    })
-        .then(response => response.json())
-        .then(response => {
-        console.log('Result:', JSON.stringify(response));
+    let xhr = new XMLHttpRequest();
+    xhr.open('POST', '/admin/servers?handler=fileUpload', true);
+    xhr.setRequestHeader('RequestVerificationToken', requestVerificationToken);
+    xhr.upload.addEventListener('loadstart', function (event) {
+        fileProgress.hidden = false;
+        fileProgress.value = 0;
+        fileProgress.max = 100;
+    }, false);
+    xhr.upload.addEventListener("progress", function (event) {
+        fileProgress.value = event.loaded;
+        fileProgress.max = event.total;
+    }, false);
+    xhr.onloadend = function (event) {
+        fileProgress.hidden = true;
         getFiles();
-    })
-        .catch(error => console.error('Error:', error));
+    };
+    xhr.send(formData);
 };
 fileDeleteButton.onclick = () => __awaiter(this, void 0, void 0, function* () {
     let checkboxes = document.querySelectorAll('input[name="fileCheckbox"]:checked');

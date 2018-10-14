@@ -22,11 +22,6 @@ interface FileMetaData {
     size: number;
 }
 
-interface FileDeleteRequest {
-    directory: string;
-    name: string;
-}
-
 interface FactorioContorlClientData {
     status: string;
     messages: MessageData[];
@@ -70,6 +65,7 @@ const fileCopyButton = document.getElementById('fileCopyButton') as HTMLButtonEl
 const destinationSelect = document.getElementById('destinationSelect') as HTMLSelectElement;
 const fileRenameButton = document.getElementById('fileRenameButton') as HTMLButtonElement;
 const fileRenameInput = document.getElementById('fileRenameInput') as HTMLInputElement;
+const fileProgress = document.getElementById('fileProgress') as HTMLProgressElement;
 
 let messageCount = 0
 
@@ -269,19 +265,27 @@ fileUploadInput.onchange = function (this: HTMLInputElement, ev: Event) {
         formData.append('files', files[i]);
     }
 
-    fetch('/admin/servers?handler=fileUpload', {
-        method: 'POST',
-        body: formData,
-        headers: {
-            RequestVerificationToken: requestVerificationToken
-        },
-    })
-        .then(response => response.json())
-        .then(response => {
-            console.log('Result:', JSON.stringify(response));
-            getFiles();
-        })
-        .catch(error => console.error('Error:', error));
+    let xhr = new XMLHttpRequest();
+    xhr.open('POST', '/admin/servers?handler=fileUpload', true);
+    xhr.setRequestHeader('RequestVerificationToken', requestVerificationToken);
+
+    xhr.upload.addEventListener('loadstart', function (event) {
+        fileProgress.hidden = false;
+        fileProgress.value = 0;
+        fileProgress.max = 100;
+    }, false);
+
+    xhr.upload.addEventListener("progress", function (event) {
+        fileProgress.value = event.loaded;
+        fileProgress.max = event.total;
+    }, false);
+
+    xhr.onloadend = function (event) {
+        fileProgress.hidden = true;
+        getFiles();
+    }
+
+    xhr.send(formData);
 };
 
 fileDeleteButton.onclick = async () => {

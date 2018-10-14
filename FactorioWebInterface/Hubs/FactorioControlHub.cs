@@ -1,5 +1,6 @@
 ﻿using FactorioWebInterface.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
 using System;
 using System.Collections.Generic;
@@ -217,8 +218,6 @@ namespace FactorioWebInterface.Hubs
             }
 
             return Task.FromResult(_factorioServerManager.RenameFile(directoryPath, fileName, newFileName));
-        }
-
-        
+        }        
     }
 }

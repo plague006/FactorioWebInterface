@@ -50,6 +50,7 @@ namespace FactorioWebInterface
         public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
             WebHost.CreateDefaultBuilder(args)
                 .UseStartup<Startup>()
+                .UseKestrel(o => o.Limits.MaxRequestBodySize = 209715200) // 200MB.
                 .UseSerilog();
 
         private static void SeedData(IWebHost host)

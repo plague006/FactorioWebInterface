@@ -109,7 +109,7 @@ namespace FactorioWebInterface.Models
                         var startInfo = new ProcessStartInfo
                         {
                             FileName = "/usr/bin/dotnet",
-                            Arguments = $"/factorio/factorioWrapper/FactorioWrapper.dll {serverId} {basePath}bin/x64/factorio --start-server-load-latest --server-settings {basePath}server-settings.json --port {serverData.Port}",
+                            Arguments = $"/factorio/factorioWrapper/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-latest --server-settings {basePath}/server-settings.json --port {serverData.Port}",
                             //FileName = "C:/Program Files/dotnet/dotnet.exe",
                             //Arguments = $"C:/Projects/FactorioWebInterface/FactorioWrapper/bin/Release/netcoreapp2.1/publish/FactorioWrapper.dll {serverId} C:/factorio/Factorio1/bin/x64/factorio.exe --start-server C:/factorio/Factorio1/bin/x64/test.zip --server-settings C:/factorio/Factorio1/bin/x64/server-settings.json",
 
@@ -176,11 +176,9 @@ namespace FactorioWebInterface.Models
                     case FactorioServerStatus.Stopped:
                     case FactorioServerStatus.Killed:
                     case FactorioServerStatus.Crashed:
-                    case FactorioServerStatus.Updated:
+                    case FactorioServerStatus.Updated:                        
 
-                        string basePath = serverData.BaseDirectoryPath;
-
-                        string filePath = Path.Combine(basePath, saveFilePath);
+                        string filePath = Path.Combine(FactorioServerData.baseDirectoryPath, saveFilePath);
 
                         var fi = new FileInfo(filePath);
                         if (!fi.Exists)
@@ -210,10 +208,12 @@ namespace FactorioWebInterface.Models
                                 return Result.Failure(Constants.MissingFileErrorKey, $"File {saveFilePath} not found.");
                         }
 
+                        string basePath = serverData.BaseDirectoryPath;
+
                         var startInfo = new ProcessStartInfo
                         {
                             FileName = "/usr/bin/dotnet",
-                            Arguments = $"/factorio/factorioWrapper/FactorioWrapper.dll {serverId} {basePath}bin/x64/factorio --start-server {fi.FullName} --server-settings {basePath}server-settings.json --port {serverData.Port}",
+                            Arguments = $"/factorio/factorioWrapper/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server {fi.FullName} --server-settings {basePath}/server-settings.json --port {serverData.Port}",
 
                             UseShellExecute = false,
                             CreateNoWindow = true

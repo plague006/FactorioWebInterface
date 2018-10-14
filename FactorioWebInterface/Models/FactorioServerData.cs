@@ -8,8 +8,8 @@ namespace FactorioWebInterface.Models
 {
     public class FactorioServerData
     {
-        //private static string baseDirectoryPath = "/factorio/";
-        public static string baseDirectoryPath = "C:/factorio/";
+        public static readonly string baseDirectoryPath = "/factorio/";
+        //public static readonly string baseDirectoryPath = "C:/factorio/";
 
         public static readonly int serverCount = 6;
         public static readonly int bufferSize = 100;
@@ -41,7 +41,7 @@ namespace FactorioWebInterface.Models
                 {
                     ServerId = serverId,
                     Status = FactorioServerStatus.Unknown,
-                    BaseDirectoryPath = baseDirectoryPath,
+                    BaseDirectoryPath = Path.Combine(baseDirectoryPath, serverId),
                     TempSavesDirectoryPath = Path.Combine(basePath, Constants.TempSavesDirectoryName),
                     LocalSavesDirectoroyPath = Path.Combine(basePath, Constants.LocalSavesDirectoryName),
                     Port = port,
