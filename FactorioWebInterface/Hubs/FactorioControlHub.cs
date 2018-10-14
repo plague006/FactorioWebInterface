@@ -171,6 +171,11 @@ namespace FactorioWebInterface.Hubs
 
         public Task<Result> DeleteFiles(List<string> files)
         {
+            if (files == null)
+            {
+                return Task.FromResult(Result.Failure(Constants.MissingFileErrorKey, "No file."));
+            }
+
             return Task.FromResult(_factorioServerManager.DeleteFiles(files));
         }
     }
