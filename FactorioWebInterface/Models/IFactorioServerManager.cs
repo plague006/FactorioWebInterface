@@ -29,5 +29,6 @@ namespace FactorioWebInterface.Models
         FileInfo GetFile(string directory, string fileName);
         Task<Result> UploadFiles(string directory, IList<IFormFile> files);
         Result DeleteFiles(List<string> filePaths);
+        Result MoveFiles(string destination, List<string> filePaths);
     }
 }

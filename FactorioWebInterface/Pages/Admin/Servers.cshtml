@@ -1,10 +1,13 @@
 ﻿@page "{id:int?}"
 @model FactorioWebInterface.Pages.Admin.ServersModel
+
+@using FactorioWebInterface.Models
+
 @{
     ViewData["Title"] = "Servers";
 }
 
-@Html.AntiForgeryToken();
+@Html.AntiForgeryToken()
 @section css{
     <environment include="Development">
         <link href="/css/servers.css" rel="stylesheet">
@@ -61,67 +64,32 @@
 
         <div class="col-lg-6">
 
-            <h2>Temp Saves</h2>
-
-            <div class="table-responsive">
-                <table id="tempSaveFilesTable" class="table table-bordered table-striped table-hover">
-                    <thead>
-                        <tr>
-                            <th>Select</th>
-                            <th>Name</th>
-                            <th>Created Time</th>
-                            <th>Modified Time</th>
-                            <th>Size</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
+            <div class="row">
+                <input id="fileUploadInput" type="file" multiple style="display:none" />
+                <button id="fileUploadButton" class="btn btn-primary">Upload Files</button>
+                <button id="fileDeleteButton" class="btn btn-danger">Delete Files</button>
+                <button id="fileMoveButton" class="btn btn-primary">Move Files</button>
+                <label> Destination</label>
+                <select id="destinationSelect">
+                    <option value="@Constants.GlobalSavesDirectoryName">Global</option>
+                    @{
+                        for (int i = 1; i <= FactorioServerData.serverCount; i++)
+                        {
+                            var path = System.IO.Path.Combine(i.ToString(), Constants.LocalSavesDirectoryName);                            
+                            <option value="@path">Local @i</option>
+                        }
+                    }
+                </select>
             </div>
 
-            <h2>Local Saves</h2>
+            @await Html.PartialAsync("_FileTablePartial", ServersModel.tempSaves)
+            @await Html.PartialAsync("_FileTablePartial", ServersModel.localSaves)
+            @await Html.PartialAsync("_FileTablePartial", ServersModel.globalSaves)
 
-            <div class="table-responsive">
-                <table id="localSaveFilesTable" class="table table-bordered table-striped table-hover">
-                    <thead>
-                        <tr>
-                            <th>Select</th>
-                            <th>Name</th>
-                            <th>Created Time</th>
-                            <th>Modified Time</th>
-                            <th>Size</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-
-            <h2>Global Saves</h2>
-
-            <div class="table-responsive">
-                <table id="globalSaveFilesTable" class="table table-bordered table-striped table-hover">
-                    <thead>
-                        <tr>
-                            <th>Select</th>
-                            <th>Name</th>
-                            <th>Created Time</th>
-                            <th>Modified Time</th>
-                            <th>Size</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
         </div>
 
+        @section Scripts{
+            <script type="text/javascript" src="~/js/servers.js"></script>
+        }
     </div>
-
-    <div class="row">
-        <input id="fileUploadInput" type="file" multiple style="display:none" />
-        <button id="fileUploadButton" class="btn btn-primary">Upload Files</button>
-        <button id="fileDeleteButton" class="btn btn-danger">Delete Files</button>
-    </div>
-
-    @section Scripts{
-        <script type="text/javascript" src="~/js/servers.js"></script>
-    }
 </div>

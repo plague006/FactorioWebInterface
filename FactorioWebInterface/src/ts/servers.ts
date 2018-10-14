@@ -62,9 +62,11 @@ const globalSaveFilesTable: HTMLTableElement = document.getElementById('globalSa
 // XSRF/CSRF token, see https://docs.microsoft.com/en-us/aspnet/core/security/anti-request-forgery?view=aspnetcore-2.1
 let requestVerificationToken = (document.querySelector('input[name="__RequestVerificationToken"][type="hidden"]') as HTMLInputElement).value
 
-let fileUploadInput = document.getElementById('fileUploadInput') as HTMLInputElement;
-let fileUplaodButton = document.getElementById('fileUploadButton') as HTMLButtonElement;
-let fileDeleteButton = document.getElementById('fileDeleteButton') as HTMLButtonElement;
+const fileUploadInput = document.getElementById('fileUploadInput') as HTMLInputElement;
+const fileUplaodButton = document.getElementById('fileUploadButton') as HTMLButtonElement;
+const fileDeleteButton = document.getElementById('fileDeleteButton') as HTMLButtonElement;
+const fileMoveButton = document.getElementById('fileMoveButton') as HTMLButtonElement;
+const destinationSelect = document.getElementById('destinationSelect') as HTMLSelectElement;
 
 let messageCount = 0
 
@@ -72,20 +74,24 @@ const connection = new signalR.HubConnectionBuilder()
     .withUrl("/FactorioControlHub")
     .build();
 
+async function getFiles() {
+    let tempFiles = await connection.invoke('GetTempSaveFiles') as FileMetaData[];
+    buildFileTable(tempSaveFilesTable, tempFiles);
+
+    let localFiles = await connection.invoke('GetLocalSaveFiles') as FileMetaData[];
+    buildFileTable(localSaveFilesTable, localFiles);
+
+    let globalFiles = await connection.invoke('GetGlobalSaveFiles') as FileMetaData[];
+    buildFileTable(globalSaveFilesTable, globalFiles);
+}
+
 async function init() {
     try {
         await connection.start();
         let data = await connection.invoke('SetServerId', serverIdInput.value) as FactorioContorlClientData;
         statusText.value = data.status;
 
-        let tempFiles = await connection.invoke('GetTempSaveFiles') as FileMetaData[];
-        buildFileTable(tempSaveFilesTable, tempFiles);
-
-        let localFiles = await connection.invoke('GetLocalSaveFiles') as FileMetaData[];
-        buildFileTable(localSaveFilesTable, localFiles);
-
-        let globalFiles = await connection.invoke('GetGlobalSaveFiles') as FileMetaData[];
-        buildFileTable(globalSaveFilesTable, globalFiles);
+        await getFiles();
 
         for (let message of data.messages) {
             writeMessage(message);
@@ -201,9 +207,11 @@ function writeMessage(message: MessageData): void {
 function buildFileTable(table: HTMLTableElement, files: FileMetaData[]) {
     let body = table.tBodies[0];
 
-    for (let child of body.children) {
-        child.remove();
-    }
+    body.innerHTML = "";
+
+    //for (let child of body.children) {
+    //    child.remove();
+    //}
 
     for (let file of files) {
         let row = document.createElement('tr');
@@ -270,19 +278,22 @@ fileUploadInput.onchange = function (this: HTMLInputElement, ev: Event) {
         },
     })
         .then(response => response.json())
-        .then(response => console.log('Result:', JSON.stringify(response)))
+        .then(response => {
+            console.log('Result:', JSON.stringify(response));
+            getFiles();
+        })
         .catch(error => console.error('Error:', error));
 };
 
 fileDeleteButton.onclick = async () => {
-    let files = [];
-
     let checkboxes = document.querySelectorAll('input[name="fileCheckbox"]:checked');
 
     if (checkboxes.length == 0) {
         alert('Please select saves to delete.');
         return;
     }
+
+    let files = [];
 
     for (let checkbox of checkboxes) {
         let dir = checkbox.getAttribute('data-directory');
@@ -296,15 +307,38 @@ fileDeleteButton.onclick = async () => {
     let result: Result = await connection.invoke('DeleteFiles', files);
 
     if (!result.success) {
-        alert(result.errors);
+        alert(JSON.stringify(result.errors));
     }
 
-    //fetch('/admin/servers?handler=fileDelete', {
-    //    method: 'POST',
-    //    body: JSON.stringify(files),
-    //    headers: {
-    //        RequestVerificationToken: requestVerificationToken,
-    //        'Content-Type': 'application/json'
-    //    },
-    //})
+    getFiles();
+}
+
+fileMoveButton.onclick = async () => {
+    let checkboxes = document.querySelectorAll('input[name="fileCheckbox"]:checked');
+
+    if (checkboxes.length == 0) {
+        alert('Please select saves to delete.');
+        return;
+    }
+
+    let files = [];
+
+    for (let checkbox of checkboxes) {
+        let dir = checkbox.getAttribute('data-directory');
+        let name = checkbox.getAttribute('data-name');
+
+        let filePath = `${dir}/${name}`;
+
+        files.push(filePath);
+    }
+
+    let destination = destinationSelect.options[destinationSelect.selectedIndex].value;
+
+    let result: Result = await connection.invoke('MoveFiles', destination, files);
+
+    if (!result.success) {
+        alert(JSON.stringify(result.errors));
+    }
+
+    getFiles();
 }

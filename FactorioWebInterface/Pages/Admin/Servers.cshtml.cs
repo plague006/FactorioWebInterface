@@ -12,6 +12,10 @@ namespace FactorioWebInterface.Pages.Admin
 {
     public class ServersModel : PageModel
     {
+        public static readonly FileTableModel tempSaves = new FileTableModel() { Name = "Temp Saves", Id = "tempSaveFilesTable" };
+        public static readonly FileTableModel localSaves = new FileTableModel() { Name = "Local Saves", Id = "localSaveFilesTable" };
+        public static readonly FileTableModel globalSaves = new FileTableModel() { Name = "Global Saves", Id = "globalSaveFilesTable" };
+
         private readonly UserManager<ApplicationUser> _userManger;
         private readonly IFactorioServerManager _factorioServerManager;
         private readonly ILogger<ServersModel> _logger;

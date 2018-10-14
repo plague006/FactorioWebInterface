@@ -169,14 +169,29 @@ namespace FactorioWebInterface.Hubs
             return Task.FromResult(_factorioServerManager.GetGlobalSaveFiles());
         }
 
-        public Task<Result> DeleteFiles(List<string> files)
+        public Task<Result> DeleteFiles(List<string> filePaths)
         {
-            if (files == null)
+            if (filePaths == null)
             {
                 return Task.FromResult(Result.Failure(Constants.MissingFileErrorKey, "No file."));
             }
 
-            return Task.FromResult(_factorioServerManager.DeleteFiles(files));
+            return Task.FromResult(_factorioServerManager.DeleteFiles(filePaths));
+        }
+
+        public Task<Result> MoveFiles(string destination, List<string> filePaths)
+        {
+            if (destination == null)
+            {
+                return Task.FromResult(Result.Failure(Constants.FileErrorKey, "Invalid destination."));
+            }
+
+            if (filePaths == null)
+            {
+                return Task.FromResult(Result.Failure(Constants.MissingFileErrorKey, "No file."));
+            }
+
+            return Task.FromResult(_factorioServerManager.MoveFiles(destination, filePaths));
         }
     }
 }

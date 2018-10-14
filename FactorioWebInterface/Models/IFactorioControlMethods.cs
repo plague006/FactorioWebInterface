@@ -38,6 +38,7 @@ namespace FactorioWebInterface.Models
         Task<FileMetaData[]> GetLocalSaveFiles();
         Task<FileMetaData[]> GetGlobalSaveFiles();
         Task<Result> DeleteFiles(List<string> files);
+        Task<Result> MoveFiles(string destination, List<string> filePaths);
     }
 
     public interface IFactorioControlClientMethods
@@ -47,5 +48,8 @@ namespace FactorioWebInterface.Models
         //Task FactorioWebInterfaceData(string data);
         Task SendMessage(MessageData message);
         Task FactorioStatusChanged(string newStatus, string oldStatus);
+        Task SendTempSavesFiles(FileMetaData[] files);
+        Task SendLocalSaveFiles(FileMetaData[] files);
+        Task SendGlobalSaveFiles(FileMetaData[] files);
     }
 }

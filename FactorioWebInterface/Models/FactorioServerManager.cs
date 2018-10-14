@@ -881,7 +881,7 @@ namespace FactorioWebInterface.Models
                     var fi = new FileInfo(path);
                     if (!IsSaveDirectory(fi.Directory.Name))
                     {
-                        errors.Add(new Error(Constants.FileUploadErrorKey, $"{file.FileName}"));
+                        errors.Add(new Error(Constants.FileErrorKey, $"{file.FileName}"));
                         continue;
                     }
 
@@ -901,7 +901,7 @@ namespace FactorioWebInterface.Models
                 catch (Exception e)
                 {
                     _logger.LogError("Error Uploading file.", e);
-                    errors.Add(new Error(Constants.FileUploadErrorKey, $"Error uploading {file.FileName}."));
+                    errors.Add(new Error(Constants.FileErrorKey, $"Error uploading {file.FileName}."));
                 }
             }
 
@@ -935,7 +935,7 @@ namespace FactorioWebInterface.Models
 
                     if (!IsSaveDirectory(fi.Directory.Name))
                     {
-                        errors.Add(new Error(Constants.FileUploadErrorKey, $"Error uploading {filePath}."));
+                        errors.Add(new Error(Constants.FileErrorKey, $"Error deleting {filePath}."));
                         continue;
                     }
 
@@ -944,7 +944,84 @@ namespace FactorioWebInterface.Models
                 catch (Exception e)
                 {
                     _logger.LogError("Error Deleting file.", e);
-                    errors.Add(new Error(Constants.FileUploadErrorKey, $"Error Deleting {filePath}."));
+                    errors.Add(new Error(Constants.FileErrorKey, $"Error deleting {filePath}."));
+                }
+            }
+
+            if (errors.Count != 0)
+            {
+                return Result.Failure(errors);
+            }
+            else
+            {
+                return Result.OK;
+            }
+        }
+
+        public Result MoveFiles(string destination, List<string> filePaths)
+        {
+            string dirPath = Path.Combine(FactorioServerData.baseDirectoryPath, destination);
+
+            try
+            {
+                var di = new DirectoryInfo(dirPath);
+
+                string dirName = di.Name;
+
+                if (!IsSaveDirectory(dirName))
+                {
+                    return Result.Failure(Constants.FileErrorKey, $"Error moving files");
+                }
+
+                if (!di.Exists)
+                {
+                    di.Create();
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError("Error moveing file.", e);
+                return Result.Failure(Constants.FileErrorKey, $"Error moving files");
+            }
+
+            var errors = new List<Error>();
+
+            foreach (var filePath in filePaths)
+            {
+                string path = Path.Combine(FactorioServerData.baseDirectoryPath, filePath);
+
+                try
+                {
+                    var fi = new FileInfo(path);
+
+                    if (!fi.Exists)
+                    {
+                        errors.Add(new Error(Constants.MissingFileErrorKey, $"{filePath} doesn't exists."));
+                        continue;
+                    }
+
+                    if (!IsSaveDirectory(fi.Directory.Name))
+                    {
+                        errors.Add(new Error(Constants.FileErrorKey, $"Error moving {filePath}."));
+                        continue;
+                    }
+
+                    string destinationFilePath = Path.Combine(dirPath, fi.Name);
+
+                    var destinationFileInfo = new FileInfo(destinationFilePath);
+
+                    if (destinationFileInfo.Exists)
+                    {
+                        errors.Add(new Error(Constants.FileAlreadyExistsErrorKey, $"{filePath} already exists."));
+                        continue;
+                    }
+
+                    fi.MoveTo(destinationFilePath);
+                }
+                catch (Exception e)
+                {
+                    _logger.LogError("Error moveing file.", e);
+                    errors.Add(new Error(Constants.FileErrorKey, $"Error moveing {filePath}."));
                 }
             }
 

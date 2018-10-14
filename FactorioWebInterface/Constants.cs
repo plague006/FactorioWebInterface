@@ -43,6 +43,6 @@
         public const string MissingFileErrorKey = "missingFile";
         public const string InvalidFileTypeErrorKey = "invalidFileType";
         public const string FileAlreadyExistsErrorKey = "FileAlreadyExists";
-        public const string FileUploadErrorKey = "fileUpload";
+        public const string FileErrorKey = "fileError";
     }
 }

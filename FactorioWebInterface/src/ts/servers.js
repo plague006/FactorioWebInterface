@@ -31,25 +31,32 @@ const localSaveFilesTable = document.getElementById('localSaveFilesTable');
 const globalSaveFilesTable = document.getElementById('globalSaveFilesTable');
 // XSRF/CSRF token, see https://docs.microsoft.com/en-us/aspnet/core/security/anti-request-forgery?view=aspnetcore-2.1
 let requestVerificationToken = document.querySelector('input[name="__RequestVerificationToken"][type="hidden"]').value;
-let fileUploadInput = document.getElementById('fileUploadInput');
-let fileUplaodButton = document.getElementById('fileUploadButton');
-let fileDeleteButton = document.getElementById('fileDeleteButton');
+const fileUploadInput = document.getElementById('fileUploadInput');
+const fileUplaodButton = document.getElementById('fileUploadButton');
+const fileDeleteButton = document.getElementById('fileDeleteButton');
+const fileMoveButton = document.getElementById('fileMoveButton');
+const destinationSelect = document.getElementById('destinationSelect');
 let messageCount = 0;
 const connection = new signalR.HubConnectionBuilder()
     .withUrl("/FactorioControlHub")
     .build();
+function getFiles() {
+    return __awaiter(this, void 0, void 0, function* () {
+        let tempFiles = yield connection.invoke('GetTempSaveFiles');
+        buildFileTable(tempSaveFilesTable, tempFiles);
+        let localFiles = yield connection.invoke('GetLocalSaveFiles');
+        buildFileTable(localSaveFilesTable, localFiles);
+        let globalFiles = yield connection.invoke('GetGlobalSaveFiles');
+        buildFileTable(globalSaveFilesTable, globalFiles);
+    });
+}
 function init() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             yield connection.start();
             let data = yield connection.invoke('SetServerId', serverIdInput.value);
             statusText.value = data.status;
-            let tempFiles = yield connection.invoke('GetTempSaveFiles');
-            buildFileTable(tempSaveFilesTable, tempFiles);
-            let localFiles = yield connection.invoke('GetLocalSaveFiles');
-            buildFileTable(localSaveFilesTable, localFiles);
-            let globalFiles = yield connection.invoke('GetGlobalSaveFiles');
-            buildFileTable(globalSaveFilesTable, globalFiles);
+            yield getFiles();
             for (let message of data.messages) {
                 writeMessage(message);
             }
@@ -144,9 +151,10 @@ function writeMessage(message) {
 }
 function buildFileTable(table, files) {
     let body = table.tBodies[0];
-    for (let child of body.children) {
-        child.remove();
-    }
+    body.innerHTML = "";
+    //for (let child of body.children) {
+    //    child.remove();
+    //}
     for (let file of files) {
         let row = document.createElement('tr');
         let cell = document.createElement('td');
@@ -199,16 +207,19 @@ fileUploadInput.onchange = function (ev) {
         },
     })
         .then(response => response.json())
-        .then(response => console.log('Result:', JSON.stringify(response)))
+        .then(response => {
+        console.log('Result:', JSON.stringify(response));
+        getFiles();
+    })
         .catch(error => console.error('Error:', error));
 };
 fileDeleteButton.onclick = () => __awaiter(this, void 0, void 0, function* () {
-    let files = [];
     let checkboxes = document.querySelectorAll('input[name="fileCheckbox"]:checked');
     if (checkboxes.length == 0) {
         alert('Please select saves to delete.');
         return;
     }
+    let files = [];
     for (let checkbox of checkboxes) {
         let dir = checkbox.getAttribute('data-directory');
         let name = checkbox.getAttribute('data-name');
@@ -217,15 +228,28 @@ fileDeleteButton.onclick = () => __awaiter(this, void 0, void 0, function* () {
     }
     let result = yield connection.invoke('DeleteFiles', files);
     if (!result.success) {
-        alert(result.errors);
+        alert(JSON.stringify(result.errors));
     }
-    //fetch('/admin/servers?handler=fileDelete', {
-    //    method: 'POST',
-    //    body: JSON.stringify(files),
-    //    headers: {
-    //        RequestVerificationToken: requestVerificationToken,
-    //        'Content-Type': 'application/json'
-    //    },
-    //})
+    getFiles();
+});
+fileMoveButton.onclick = () => __awaiter(this, void 0, void 0, function* () {
+    let checkboxes = document.querySelectorAll('input[name="fileCheckbox"]:checked');
+    if (checkboxes.length == 0) {
+        alert('Please select saves to delete.');
+        return;
+    }
+    let files = [];
+    for (let checkbox of checkboxes) {
+        let dir = checkbox.getAttribute('data-directory');
+        let name = checkbox.getAttribute('data-name');
+        let filePath = `${dir}/${name}`;
+        files.push(filePath);
+    }
+    let destination = destinationSelect.options[destinationSelect.selectedIndex].value;
+    let result = yield connection.invoke('MoveFiles', destination, files);
+    if (!result.success) {
+        alert(JSON.stringify(result.errors));
+    }
+    getFiles();
 });
 //# sourceMappingURL=servers.js.map
