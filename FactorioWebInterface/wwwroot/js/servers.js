@@ -2911,11 +2911,9 @@ fileUploadInput.onchange = function (ev) {
     xhr.upload.addEventListener('loadstart', function (event) {
         fileProgress.hidden = false;
         fileProgress.value = 0;
-        fileProgress.max = 100;
     }, false);
     xhr.upload.addEventListener("progress", function (event) {
-        fileProgress.value = event.loaded;
-        fileProgress.max = event.total;
+        fileProgress.value = event.loaded / event.total;
     }, false);
     xhr.onloadend = function (event) {
         fileProgress.hidden = true;

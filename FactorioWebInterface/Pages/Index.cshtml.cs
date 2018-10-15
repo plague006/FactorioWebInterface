@@ -5,7 +5,6 @@ using Microsoft.Extensions.Configuration;
 using System;
 using System.Diagnostics;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace FactorioWebInterface.Pages
 {
@@ -22,7 +21,6 @@ namespace FactorioWebInterface.Pages
 
         public void OnGet()
         {
-
         }
 
         public IActionResult OnPostRemoveRoles()

@@ -21,9 +21,11 @@ namespace FactorioWebInterface.Models
         public string BaseDirectoryPath { get; set; }
         public string TempSavesDirectoryPath { get; set; }
         public string LocalSavesDirectoroyPath { get; set; }
+        public string ServerSettingsPath { get; set; }
         public string Port { get; set; }
         public SemaphoreSlim ServerLock { get; set; }
         public RingBuffer<MessageData> ControlMessageBuffer { get; set; }
+        public FactorioServerSettings ServerSettings { get; set; }
 
         public static Dictionary<string, FactorioServerData> Servers { get; }
 
@@ -44,6 +46,7 @@ namespace FactorioWebInterface.Models
                     BaseDirectoryPath = Path.Combine(baseDirectoryPath, serverId),
                     TempSavesDirectoryPath = Path.Combine(basePath, Constants.TempSavesDirectoryName),
                     LocalSavesDirectoroyPath = Path.Combine(basePath, Constants.LocalSavesDirectoryName),
+                    ServerSettingsPath = Path.Combine(basePath, Constants.ServerSettingsFileName),
                     Port = port,
                     ServerLock = new SemaphoreSlim(1, 1),
                     ControlMessageBuffer = new RingBuffer<MessageData>(bufferSize)

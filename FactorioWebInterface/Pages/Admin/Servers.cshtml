@@ -68,7 +68,7 @@
                 <input id="fileUploadInput" type="file" multiple style="display:none" />
                 <button id="fileUploadButton" class="btn btn-primary">Upload Files</button>
                 <button id="fileDeleteButton" class="btn btn-danger">Delete Files</button>
-                <progress id="fileProgress" hidden></progress>
+                <progress id="fileProgress" hidden max="1"></progress>
             </div>
 
             <div class="row">
@@ -97,6 +97,38 @@
             @await Html.PartialAsync("_FileTablePartial", ServersModel.localSaves)
             @await Html.PartialAsync("_FileTablePartial", ServersModel.globalSaves)
 
+        </div>
+
+        <div class="col-lg-6">
+            <form class="form form-border">
+                <h2 class="form-center">Server Settings</h2>
+
+                <label for="configNameInput">Name:</label>
+                <input id="configNameInput" type="text" />
+
+                <label for="configDescriptionInput">description:</label>
+                <input id="configDescriptionInput" type="text" />
+
+                <label for="configTagsInput">Tags:</label>
+                <ol id="ConfigTagsInput" class="form-input">
+                    <li><input type="text" /></li>
+                    <li><input type="text" /></li>
+                    <li><input type="text" /></li>
+                    <li><input type="text" /></li>
+                </ol>
+
+                <label for="configMaxPlayersInput">Max Players:</label>
+                <input id="configMaxPlayersInput" type="number" />
+
+                <label for="configPublicInput">Public:</label>
+                <input id="configPublicInput" type="checkbox" />
+
+                <label for="configLanInput">Lan:</label>
+                <input id="configLanInput" type="checkbox" />
+
+                <label for="configRequireUserVerificationInput">Require User Verification:</label>
+                <input id="configRequireUserVerificationInput" type="checkbox" />
+            </form>
         </div>
 
         @section Scripts{

@@ -32,5 +32,6 @@ namespace FactorioWebInterface.Models
         Result MoveFiles(string destination, List<string> filePaths);
         Task<Result> CopyFiles(string destination, List<string> filePaths);
         Result RenameFile(string directoryPath, string fileName, string newFileName);
+        Task ReloadServerSettings(string serverId);
     }
 }

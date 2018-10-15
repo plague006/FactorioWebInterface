@@ -17,6 +17,7 @@
         public const string LocalSavesDirectoryName = "local_saves";
         public const string GlobalSavesDirectoryName = "global_saves";
         //public const string DefaultFileName = "current_map.zip";
+        public const string ServerSettingsFileName = "server-settings.json";
 
         public const string ChatTag = "[CHAT]";
         public const string DiscordTag = "[DISCORD]";

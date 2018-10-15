@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -176,7 +177,7 @@ namespace FactorioWebInterface.Models
                     case FactorioServerStatus.Stopped:
                     case FactorioServerStatus.Killed:
                     case FactorioServerStatus.Crashed:
-                    case FactorioServerStatus.Updated:                        
+                    case FactorioServerStatus.Updated:
 
                         string filePath = Path.Combine(FactorioServerData.baseDirectoryPath, saveFilePath);
 
@@ -1093,7 +1094,7 @@ namespace FactorioWebInterface.Models
                         continue;
                     }
 
-                    await fi.CopyToAsync(destinationFileInfo);                    
+                    await fi.CopyToAsync(destinationFileInfo);
                 }
                 catch (Exception e)
                 {
@@ -1159,6 +1160,72 @@ namespace FactorioWebInterface.Models
             }
         }
 
-       
+        public async Task ReloadServerSettings(string serverId)
+        {
+            if (!servers.TryGetValue(serverId, out var serverData))
+            {
+                _logger.LogError("Unknown serverId: {serverId}", serverId);
+            }
+
+            var fi = new FileInfo(serverData.ServerSettingsPath);
+            using (var s = fi.OpenText())
+            {
+                string output = await s.ReadToEndAsync();
+                var config = JsonConvert.DeserializeObject<FactorioServerSettings>(output);
+            }
+        }
+
+        public async Task<FactorioServerSettings> GetServerSettings(string serverId)
+        {
+            if (!servers.TryGetValue(serverId, out var serverData))
+            {
+                _logger.LogError("Unknown serverId: {serverId}", serverId);
+            }
+
+            try
+            {
+                await serverData.ServerLock.WaitAsync();
+
+                var serverSettings = serverData.ServerSettings;
+
+                if (serverSettings != null)
+                {
+                    return serverSettings;
+                }
+
+                var fi = new FileInfo(serverData.ServerSettingsPath);
+
+                if (!fi.Exists)
+                {
+                    // make file return default.
+                    
+                }
+
+                using (var s = fi.OpenText())
+                {
+                    string output = await s.ReadToEndAsync();
+                    serverSettings = JsonConvert.DeserializeObject<FactorioServerSettings>(output);
+                }
+
+                serverData.ServerSettings = serverSettings;
+
+                return serverSettings;
+            }
+            finally
+            {
+                serverData.ServerLock.Release();
+            }
+        }
+
+        public async Task<Result> SaveServerSettings(string serverId, FactorioServerSettings settings)
+        {
+
+
+
+
+
+
+            return Result.OK;
+        }
     }
 }

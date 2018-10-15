@@ -4,7 +4,7 @@ using System.ComponentModel;
 
 namespace FactorioWebInterface.Models
 {
-    public class FactorioServerSettingsConfig
+    public class FactorioServerSettings
     {
         [JsonProperty(PropertyName = "name")]
         public string Name { get; set; }
