@@ -80,12 +80,14 @@ namespace FactorioWebInterface.Models
             Visibility = new FactorioServerSettingsConfigVisibility() { Public = true, Lan = true },
             Username = configuration[Constants.ServerSettingsUsernameKey],
             Token = configuration[Constants.ServerSettingsTokenKey],
+            GamePassword = "",
             RequireUserVerification = true,
             MaxUploadInKilobytesPerSecond = 0,
             MinimumLatencyInTicks = 0,
             IgnorePlayerLimitForReturningPlayers = false,
-            AllowCommands = FactorioServerSettingsConfigAllowCommands.AdminOnly,
+            AllowCommands = FactorioServerSettingsConfigAllowCommands.AdminsOnly,
             AutosaveInterval = 5,
+            AutosaveSlots = 20,
             AfkAutokickInterval = 0,
             AutoPause = true,
             OnlyAdminsCanPauseTheGame = true,
@@ -107,6 +109,6 @@ namespace FactorioWebInterface.Models
     {
         public const string False = "false";
         public const string True = "true";
-        public const string AdminOnly = "admin-only";
+        public const string AdminsOnly = "admins-only";
     }
 }
