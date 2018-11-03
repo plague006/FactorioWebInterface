@@ -37,6 +37,16 @@ interface Result {
     errors: Error[];
 }
 
+interface FactorioServerSettings {
+    name: string;
+    description: string;
+    tags: string[];
+    max_players: number;
+    game_password: string;
+    auto_pause: boolean;
+    admins: string[];
+}
+
 const maxMessageCount = 100;
 
 const divMessages: HTMLDivElement = document.querySelector("#divMessages");
@@ -67,7 +77,16 @@ const fileRenameButton = document.getElementById('fileRenameButton') as HTMLButt
 const fileRenameInput = document.getElementById('fileRenameInput') as HTMLInputElement;
 const fileProgress = document.getElementById('fileProgress') as HTMLProgressElement;
 
-let messageCount = 0
+const configNameInput = document.getElementById('configNameInput') as HTMLInputElement;
+const configDescriptionInput = document.getElementById('configDescriptionInput') as HTMLInputElement;
+const configTagsInput = document.getElementById('configTagsInput') as HTMLElement;
+const configMaxPlayersInput = document.getElementById('configMaxPlayersInput') as HTMLInputElement;
+const configPasswordInput = document.getElementById('configPasswordInput') as HTMLInputElement;
+const configPauseInput = document.getElementById('configPauseInput') as HTMLInputElement;
+const configAdminInput = document.getElementById('configAdminInput') as HTMLTextAreaElement;
+const configSaveButton = document.getElementById('configSaveButton') as HTMLButtonElement;
+
+let messageCount = 0;
 
 const connection = new signalR.HubConnectionBuilder()
     .withUrl("/FactorioControlHub")
@@ -84,18 +103,51 @@ async function getFiles() {
     buildFileTable(globalSaveFilesTable, globalFiles);
 }
 
+function MakeTagInput(value: string) {
+    let listItem = document.createElement('li');
+    let input = document.createElement('input');
+    listItem.appendChild(input);
+
+    input.value = value;
+
+    return listItem;
+}
+
+async function getSettings() {
+    let settings = await connection.invoke('GetServerSettings') as FactorioServerSettings;
+
+    configNameInput.value = settings.name;
+    configDescriptionInput.value = settings.description;
+
+    configTagsInput.innerHTML = '';
+
+    for (let item of settings.tags) {
+        let input = MakeTagInput(item);
+        configTagsInput.appendChild(input);
+    }
+
+    let lastInput = MakeTagInput('');
+    configTagsInput.appendChild(lastInput);
+
+    configMaxPlayersInput.value = settings.max_players + "";
+    configPasswordInput.value = settings.game_password;
+    configPauseInput.checked = settings.auto_pause;
+    configAdminInput.value = settings.admins.join(', ');
+}
+
 async function init() {
     try {
         await connection.start();
         let data = await connection.invoke('SetServerId', serverIdInput.value) as FactorioContorlClientData;
-        statusText.value = data.status;
 
-        await getFiles();
+        getFiles();
+        getSettings();
+
+        statusText.value = data.status;
 
         for (let message of data.messages) {
             writeMessage(message);
         }
-
     } catch (ex) {
         console.log(ex.message);
     }
@@ -245,8 +297,6 @@ function createCell(parent: HTMLElement, content: string) {
     cell.innerText = content;
     parent.appendChild(cell);
 }
-
-
 
 fileUplaodButton.onclick = () => {
     fileUploadInput.click();
@@ -400,3 +450,45 @@ fileRenameButton.onclick = async () => {
 
     getFiles();
 }
+
+configTagsInput.oninput = function (this, e: Event) {
+    let target = e.target as HTMLInputElement;    
+    let bottomInput = configTagsInput.lastChild.firstChild;    
+
+    if (target === bottomInput) {
+        let lastInput = MakeTagInput('');
+        configTagsInput.appendChild(lastInput);
+    }
+}
+
+configSaveButton.onclick = async () => {
+
+    let tags = [];
+
+    for (let child of configTagsInput.children) {
+        let input = child.firstChild as HTMLInputElement;
+        let value = input.value.trim();
+        if (value !== '') {
+            tags.push(value);
+        }
+    }
+
+    let settings: FactorioServerSettings = {
+        name: configNameInput.value,
+        description: configDescriptionInput.value,
+        tags: tags,
+        max_players: parseInt(configMaxPlayersInput.value),
+        game_password: configPasswordInput.value,
+        auto_pause: configPauseInput.checked,
+        admins: configAdminInput.value.split(',')
+    };
+
+    let result: Result = await connection.invoke('SaveServerSettings', settings);
+
+    if (!result.success) {
+        alert(JSON.stringify(result.errors));
+    }
+
+    await getSettings();
+}
+

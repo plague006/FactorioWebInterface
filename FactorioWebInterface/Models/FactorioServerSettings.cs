@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using Microsoft.Extensions.Configuration;
+using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.ComponentModel;
 
@@ -69,6 +70,29 @@ namespace FactorioWebInterface.Models
 
         [JsonProperty(PropertyName = "admins")]
         public List<string> Admins { get; set; }
+
+        public static FactorioServerSettings MakeDefault(IConfiguration configuration) => new FactorioServerSettings()
+        {
+            Name = "The server's name.",
+            Description = "The server's description.",
+            Tags = new List<string>() { "The", "Server's", "Tags" },
+            MaxPlayers = 0,
+            Visibility = new FactorioServerSettingsConfigVisibility() { Public = true, Lan = true },
+            Username = configuration[Constants.ServerSettingsUsernameKey],
+            Token = configuration[Constants.ServerSettingsTokenKey],
+            RequireUserVerification = true,
+            MaxUploadInKilobytesPerSecond = 0,
+            MinimumLatencyInTicks = 0,
+            IgnorePlayerLimitForReturningPlayers = false,
+            AllowCommands = FactorioServerSettingsConfigAllowCommands.AdminOnly,
+            AutosaveInterval = 5,
+            AfkAutokickInterval = 0,
+            AutoPause = true,
+            OnlyAdminsCanPauseTheGame = true,
+            AutosaveOnlyOnServer = true,
+            NonBlockingSaving = false,
+            Admins = new List<string>()
+        };
     }
 
     public class FactorioServerSettingsConfigVisibility
@@ -77,7 +101,6 @@ namespace FactorioWebInterface.Models
         public bool Public { get; set; }
         [JsonProperty(PropertyName = "lan")]
         public bool Lan { get; set; }
-
     }
 
     public static class FactorioServerSettingsConfigAllowCommands

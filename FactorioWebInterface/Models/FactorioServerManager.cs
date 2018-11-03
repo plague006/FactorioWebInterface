@@ -7,6 +7,7 @@ using FactorioWrapperInterface;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System;
@@ -25,6 +26,7 @@ namespace FactorioWebInterface.Models
         // Match on first [*] and capture everything after.
         private static readonly Regex tag_regex = new Regex(@"(\[[^\[\]]+\])\s*((?:.|\s)*)\s*", RegexOptions.Compiled);
 
+        private readonly IConfiguration _configuration;
         private readonly IDiscordBot _discordBot;
         private readonly IHubContext<FactorioProcessHub, IFactorioProcessClientMethods> _factorioProcessHub;
         private readonly IHubContext<FactorioControlHub, IFactorioControlClientMethods> _factorioControlHub;
@@ -36,6 +38,7 @@ namespace FactorioWebInterface.Models
 
         public FactorioServerManager
         (
+            IConfiguration configuration,
             IDiscordBot discordBot,
             IHubContext<FactorioProcessHub, IFactorioProcessClientMethods> factorioProcessHub,
             IHubContext<FactorioControlHub, IFactorioControlClientMethods> factorioControlHub,
@@ -43,6 +46,7 @@ namespace FactorioWebInterface.Models
             ILogger<FactorioServerManager> logger
         )
         {
+            _configuration = configuration;
             _discordBot = discordBot;
             _factorioProcessHub = factorioProcessHub;
             _factorioControlHub = factorioControlHub;
@@ -743,6 +747,12 @@ namespace FactorioWebInterface.Models
             return await db.Regulars.ToListAsync();
         }
 
+        public async Task<List<Admin>> GetAdminsAsync()
+        {
+            var db = _dbContextFactory.Create();
+            return await db.Admins.ToListAsync();
+        }
+
         public async Task AddRegularsFromStringAsync(string data)
         {
             var db = _dbContextFactory.Create();
@@ -758,6 +768,24 @@ namespace FactorioWebInterface.Models
                     PromotedBy = "<From old list>"
                 };
                 regulars.Add(regular);
+            }
+
+            await db.SaveChangesAsync();
+        }
+
+        public async Task AddAdminsFromStringAsync(string data)
+        {
+            var db = _dbContextFactory.Create();
+            var admins = db.Admins;
+
+            var names = data.Split(',').Select(x => x.Trim());
+            foreach (var name in names)
+            {
+                var admin = new Admin()
+                {
+                    Name = name
+                };
+                admins.Add(admin);
             }
 
             await db.SaveChangesAsync();
@@ -1160,47 +1188,36 @@ namespace FactorioWebInterface.Models
             }
         }
 
-        public async Task ReloadServerSettings(string serverId)
+        private async Task<FactorioServerSettings> GetServerSettings(FactorioServerData serverData)
         {
-            if (!servers.TryGetValue(serverId, out var serverData))
+            var serverSettings = serverData.ServerSettings;
+
+            if (serverSettings != null)
             {
-                _logger.LogError("Unknown serverId: {serverId}", serverId);
+                return serverSettings;
             }
 
             var fi = new FileInfo(serverData.ServerSettingsPath);
-            using (var s = fi.OpenText())
+
+            if (!fi.Exists)
             {
-                string output = await s.ReadToEndAsync();
-                var config = JsonConvert.DeserializeObject<FactorioServerSettings>(output);
-            }
-        }
+                serverSettings = FactorioServerSettings.MakeDefault(_configuration);
 
-        public async Task<FactorioServerSettings> GetServerSettings(string serverId)
-        {
-            if (!servers.TryGetValue(serverId, out var serverData))
-            {
-                _logger.LogError("Unknown serverId: {serverId}", serverId);
-            }
+                var a = await GetAdminsAsync();
+                serverSettings.Admins = a.Select(x => x.Name).ToList();
 
-            try
-            {
-                await serverData.ServerLock.WaitAsync();
+                serverData.ServerSettings = serverSettings;
 
-                var serverSettings = serverData.ServerSettings;
-
-                if (serverSettings != null)
+                var data = JsonConvert.SerializeObject(serverSettings, Formatting.Indented);
+                using (var fs = fi.CreateText())
                 {
-                    return serverSettings;
+                    await fs.WriteAsync(data);
                 }
 
-                var fi = new FileInfo(serverData.ServerSettingsPath);
-
-                if (!fi.Exists)
-                {
-                    // make file return default.
-                    
-                }
-
+                return serverSettings;
+            }
+            else
+            {
                 using (var s = fi.OpenText())
                 {
                     string output = await s.ReadToEndAsync();
@@ -1211,21 +1228,101 @@ namespace FactorioWebInterface.Models
 
                 return serverSettings;
             }
+        }
+
+        public async Task<FactorioServerSettingsWebEditable> GetEditableServerSettings(string serverId)
+        {
+            if (!servers.TryGetValue(serverId, out var serverData))
+            {
+                _logger.LogError("Unknown serverId: {serverId}", serverId);
+                return null;
+            }
+
+            try
+            {
+                await serverData.ServerLock.WaitAsync();
+
+                var serverSettigns = await GetServerSettings(serverData);
+
+                if (serverSettigns == null)
+                {
+                    return new FactorioServerSettingsWebEditable();
+                }
+
+                var editableSettings = new FactorioServerSettingsWebEditable()
+                {
+                    Name = serverSettigns.Name,
+                    Description = serverSettigns.Description,
+                    Tags = serverSettigns.Tags,
+                    MaxPlayers = serverSettigns.MaxPlayers,
+                    GamePassword = serverSettigns.GamePassword,
+                    AutoPause = serverSettigns.AutoPause,
+                    Admins = serverSettigns.Admins
+                };
+
+                return editableSettings;
+            }
             finally
             {
                 serverData.ServerLock.Release();
             }
         }
 
-        public async Task<Result> SaveServerSettings(string serverId, FactorioServerSettings settings)
+
+        public async Task<Result> SaveEditableServerSettings(string serverId, FactorioServerSettingsWebEditable settings)
         {
+            if (!servers.TryGetValue(serverId, out var serverData))
+            {
+                _logger.LogError("Unknown serverId: {serverId}", serverId);
+                return null;
+            }
 
+            try
+            {
+                await serverData.ServerLock.WaitAsync();
 
+                var serverSettigns = await GetServerSettings(serverData);
 
+                serverSettigns.Name = settings.Name;
+                serverSettigns.Description = settings.Description;
+                serverSettigns.Tags = settings.Tags;
+                serverSettigns.MaxPlayers = settings.MaxPlayers < 0 ? 0 : settings.MaxPlayers;
+                serverSettigns.GamePassword = settings.GamePassword;
+                serverSettigns.AutoPause = settings.AutoPause;
 
+                List<string> admins;
 
+                int count = settings.Admins.Count(x => !string.IsNullOrWhiteSpace(x));
 
-            return Result.OK;
+                if (count != 0)
+                {
+                    admins = settings.Admins.Select(x => x.Trim())
+                        .Where(x => !string.IsNullOrWhiteSpace(x))
+                        .ToList();
+                }
+                else
+                {
+                    var a = await GetAdminsAsync();
+                    admins = a.Select(x => x.Name).ToList();
+                }
+
+                serverSettigns.Admins = admins;
+
+                var data = JsonConvert.SerializeObject(serverSettigns, Formatting.Indented);
+
+                await File.WriteAllTextAsync(serverData.ServerSettingsPath, data);
+
+                return Result.OK;
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Exception saving server settings.");
+                return Result.Failure(Constants.UnexpctedErrorKey);
+            }
+            finally
+            {
+                serverData.ServerLock.Release();
+            }
         }
     }
 }

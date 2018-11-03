@@ -2745,6 +2745,14 @@ const destinationSelect = document.getElementById('destinationSelect');
 const fileRenameButton = document.getElementById('fileRenameButton');
 const fileRenameInput = document.getElementById('fileRenameInput');
 const fileProgress = document.getElementById('fileProgress');
+const configNameInput = document.getElementById('configNameInput');
+const configDescriptionInput = document.getElementById('configDescriptionInput');
+const configTagsInput = document.getElementById('configTagsInput');
+const configMaxPlayersInput = document.getElementById('configMaxPlayersInput');
+const configPasswordInput = document.getElementById('configPasswordInput');
+const configPauseInput = document.getElementById('configPauseInput');
+const configAdminInput = document.getElementById('configAdminInput');
+const configSaveButton = document.getElementById('configSaveButton');
 let messageCount = 0;
 const connection = new _aspnet_signalr__WEBPACK_IMPORTED_MODULE_0__["HubConnectionBuilder"]()
     .withUrl("/FactorioControlHub")
@@ -2759,13 +2767,39 @@ function getFiles() {
         buildFileTable(globalSaveFilesTable, globalFiles);
     });
 }
+function MakeTagInput(value) {
+    let listItem = document.createElement('li');
+    let input = document.createElement('input');
+    listItem.appendChild(input);
+    input.value = value;
+    return listItem;
+}
+function getSettings() {
+    return __awaiter(this, void 0, void 0, function* () {
+        let settings = yield connection.invoke('GetServerSettings');
+        configNameInput.value = settings.name;
+        configDescriptionInput.value = settings.description;
+        configTagsInput.innerHTML = '';
+        for (let item of settings.tags) {
+            let input = MakeTagInput(item);
+            configTagsInput.appendChild(input);
+        }
+        let lastInput = MakeTagInput('');
+        configTagsInput.appendChild(lastInput);
+        configMaxPlayersInput.value = settings.max_players + "";
+        configPasswordInput.value = settings.game_password;
+        configPauseInput.checked = settings.auto_pause;
+        configAdminInput.value = settings.admins.join(', ');
+    });
+}
 function init() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             yield connection.start();
             let data = yield connection.invoke('SetServerId', serverIdInput.value);
+            getFiles();
+            getSettings();
             statusText.value = data.status;
-            yield getFiles();
             for (let message of data.messages) {
                 writeMessage(message);
             }
@@ -2999,6 +3033,38 @@ fileRenameButton.onclick = () => __awaiter(undefined, void 0, void 0, function* 
         alert(JSON.stringify(result.errors));
     }
     getFiles();
+});
+configTagsInput.oninput = function (e) {
+    let target = e.target;
+    let bottomInput = configTagsInput.lastChild.firstChild;
+    if (target === bottomInput) {
+        let lastInput = MakeTagInput('');
+        configTagsInput.appendChild(lastInput);
+    }
+};
+configSaveButton.onclick = () => __awaiter(undefined, void 0, void 0, function* () {
+    let tags = [];
+    for (let child of configTagsInput.children) {
+        let input = child.firstChild;
+        let value = input.value.trim();
+        if (value !== '') {
+            tags.push(value);
+        }
+    }
+    let settings = {
+        name: configNameInput.value,
+        description: configDescriptionInput.value,
+        tags: tags,
+        max_players: parseInt(configMaxPlayersInput.value),
+        game_password: configPasswordInput.value,
+        auto_pause: configPauseInput.checked,
+        admins: configAdminInput.value.split(',')
+    };
+    let result = yield connection.invoke('SaveServerSettings', settings);
+    if (!result.success) {
+        alert(JSON.stringify(result.errors));
+    }
+    yield getSettings();
 });
 
 

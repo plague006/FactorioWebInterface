@@ -1,6 +1,5 @@
 ﻿using FactorioWebInterface.Models;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
 using System;
 using System.Collections.Generic;
@@ -218,6 +217,33 @@ namespace FactorioWebInterface.Hubs
             }
 
             return Task.FromResult(_factorioServerManager.RenameFile(directoryPath, fileName, newFileName));
-        }        
+        }
+
+        public Task<FactorioServerSettingsWebEditable> GetServerSettings()
+        {
+            string connectionId = Context.ConnectionId;
+            if (Context.Items.TryGetValue(connectionId, out object serverId))
+            {
+                string name = Context.User.Identity.Name;
+                string id = (string)serverId;
+                return _factorioServerManager.GetEditableServerSettings(id);
+            }
+
+            return Task.FromResult(new FactorioServerSettingsWebEditable());
+        }
+
+        public async Task<Result> SaveServerSettings(FactorioServerSettingsWebEditable settings)
+        {
+            string connectionId = Context.ConnectionId;
+            if (Context.Items.TryGetValue(connectionId, out object serverId))
+            {
+                string name = Context.User.Identity.Name;
+                string id = (string)serverId;
+                return await _factorioServerManager.SaveEditableServerSettings(id, settings);
+            }
+
+            var error = Result.Failure(Constants.ServerIdErrorKey, $"The server id for the connection is invalid.");
+            return error;
+        }
     }
 }

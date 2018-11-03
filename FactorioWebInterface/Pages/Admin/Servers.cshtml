@@ -100,35 +100,32 @@
         </div>
 
         <div class="col-lg-6">
-            <form class="form form-border">
+            <div class="form form-border">
                 <h2 class="form-center">Server Settings</h2>
 
                 <label for="configNameInput">Name:</label>
                 <input id="configNameInput" type="text" />
 
-                <label for="configDescriptionInput">description:</label>
+                <label for="configDescriptionInput">Description:</label>
                 <input id="configDescriptionInput" type="text" />
 
                 <label for="configTagsInput">Tags:</label>
-                <ol id="ConfigTagsInput" class="form-input">
-                    <li><input type="text" /></li>
-                    <li><input type="text" /></li>
-                    <li><input type="text" /></li>
-                    <li><input type="text" /></li>
-                </ol>
+                <ol id="configTagsInput" class="form-input"></ol>
 
-                <label for="configMaxPlayersInput">Max Players:</label>
+                <label for="configMaxPlayersInput">Max Players (blank for unlimited):</label>
                 <input id="configMaxPlayersInput" type="number" />
 
-                <label for="configPublicInput">Public:</label>
-                <input id="configPublicInput" type="checkbox" />
+                <label for="configPasswordInput">Password (blank for no password):</label>
+                <input id="configPasswordInput" type="text" />
 
-                <label for="configLanInput">Lan:</label>
-                <input id="configLanInput" type="checkbox" />
+                <label for="configPauseInput">Auto Pause when no players online:</label>
+                <input id="configPauseInput" type="checkbox" />
 
-                <label for="configRequireUserVerificationInput">Require User Verification:</label>
-                <input id="configRequireUserVerificationInput" type="checkbox" />
-            </form>
+                <label for="configAdminInput">Admins (blank for default admins):</label>
+                <textarea id="configAdminInput"></textarea>
+
+                <button id="configSaveButton" class="form-label">Save Changes</button>
+            </div>
         </div>
 
         @section Scripts{
