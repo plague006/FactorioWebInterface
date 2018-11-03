@@ -12,6 +12,8 @@
         public const string AdminChannelID = "ADMIN";
         public const string SecurityKey = "SecurityKey";
         public const string FactorioWrapperClaim = "FactorioWrapper";
+        public const string ServerSettingsUsernameKey = "serverSettingsUsername";
+        public const string ServerSettingsTokenKey = "serverSettingsToken";
 
         public const string TempSavesDirectoryName = "saves";
         public const string LocalSavesDirectoryName = "local_saves";

@@ -1,38 +1,34 @@
 ﻿@page
-@model FactorioWebInterface.Pages.Admin.RegularsModel
+@model FactorioWebInterface.Pages.Admin.AdminsModel
 @{
-    ViewData["Title"] = "Regulars";
+    ViewData["Title"] = "In Game Admins";
 }
 
 <div class="container">
 
-    <h2>Regulars</h2>
+    <h2>In Game Admins</h2>
     <table>
         <thead>
             <tr>
                 <th>Name</th>
-                <th>Date</th>
-                <th>Promoted by</th>
             </tr>
         </thead>
         <tbody>
-            @foreach (var r in Model.Regulars)
+            @foreach (var r in Model.Admins)
             {
                 <tr>
                     <td>@r.Name</td>
-                    <td>@r.Date</td>
-                    <td>@r.PromotedBy</td>
                 </tr>
             }
         </tbody>
     </table>
 
-    <h2>Add Regulars</h2>
+    <h2>Add Admins</h2>
 
     <form method="post">
         <div class="form-group">
-            <label asp-for="Input.Regulars">Add regulars (comma seperated list): </label>
-            <textarea asp-for="Input.Regulars"></textarea>
+            <label asp-for="Input.Admins">Add in game admins (comma seperated list): </label>
+            <textarea asp-for="Input.Admins"></textarea>
         </div>
         <div class="form-group">
             <button type="submit" class="btn btn-default">Add</button>
@@ -40,3 +36,4 @@
     </form>
 
 </div>
+

@@ -22,7 +22,9 @@ namespace FactorioWebInterface.Models
         Task OnProcessRegistered(string serverId);
         Task StatusChanged(string serverId, FactorioServerStatus newStatus, FactorioServerStatus oldStatus);
         Task<List<Regular>> GetRegularsAsync();
+        Task<List<Admin>> GetAdminsAsync();
         Task AddRegularsFromStringAsync(string data);
+        Task AddAdminsFromStringAsync(string data);
         FileMetaData[] GetLocalSaveFiles(string serverId);
         FileMetaData[] GetTempSaveFiles(string serverId);
         FileMetaData[] GetGlobalSaveFiles();
@@ -32,6 +34,8 @@ namespace FactorioWebInterface.Models
         Result MoveFiles(string destination, List<string> filePaths);
         Task<Result> CopyFiles(string destination, List<string> filePaths);
         Result RenameFile(string directoryPath, string fileName, string newFileName);
-        Task ReloadServerSettings(string serverId);
+        //Task ReloadServerSettings(string serverId);
+        Task<FactorioServerSettingsWebEditable> GetEditableServerSettings(string serverId);
+        Task<Result> SaveEditableServerSettings(string serverId, FactorioServerSettingsWebEditable settings);
     }
 }

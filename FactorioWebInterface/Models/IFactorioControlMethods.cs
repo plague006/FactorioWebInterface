@@ -41,6 +41,8 @@ namespace FactorioWebInterface.Models
         Task<Result> MoveFiles(string destination, List<string> filePaths);
         Task<Result> CopyFiles(string destination, List<string> filePaths);
         Task<Result> RenameFile(string directoryPath, string fileName, string newFileName);
+        Task<FactorioServerSettingsWebEditable> GetServerSettings();
+        Task<Result> SaveServerSettings(FactorioServerSettingsWebEditable settings);
     }
 
     public interface IFactorioControlClientMethods
