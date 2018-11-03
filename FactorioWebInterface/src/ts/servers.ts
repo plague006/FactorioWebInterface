@@ -52,6 +52,7 @@ const maxMessageCount = 100;
 const divMessages: HTMLDivElement = document.querySelector("#divMessages");
 const tbMessage: HTMLInputElement = document.querySelector("#tbMessage");
 const btnSend: HTMLButtonElement = document.querySelector("#btnSend");
+const serverName = document.getElementById('serverName') as HTMLHeadingElement;
 const serverIdInput: HTMLInputElement = document.getElementById('serverIdInput') as HTMLInputElement;
 const resumeButton: HTMLButtonElement = document.getElementById('resumeButton') as HTMLButtonElement;
 const LoadButton: HTMLButtonElement = document.getElementById('loadButton') as HTMLButtonElement;
@@ -133,6 +134,8 @@ async function getSettings() {
     configPasswordInput.value = settings.game_password;
     configPauseInput.checked = settings.auto_pause;
     configAdminInput.value = settings.admins.join(', ');
+
+    serverName.innerText = settings.name;
 }
 
 async function init() {

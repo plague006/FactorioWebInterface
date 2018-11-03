@@ -19,6 +19,7 @@ const maxMessageCount = 100;
 const divMessages = document.querySelector("#divMessages");
 const tbMessage = document.querySelector("#tbMessage");
 const btnSend = document.querySelector("#btnSend");
+const serverName = document.getElementById('serverName');
 const serverIdInput = document.getElementById('serverIdInput');
 const resumeButton = document.getElementById('resumeButton');
 const LoadButton = document.getElementById('loadButton');
@@ -85,6 +86,7 @@ function getSettings() {
         configPasswordInput.value = settings.game_password;
         configPauseInput.checked = settings.auto_pause;
         configAdminInput.value = settings.admins.join(', ');
+        serverName.innerText = settings.name;
     });
 }
 function init() {
