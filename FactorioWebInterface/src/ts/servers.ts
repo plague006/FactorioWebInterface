@@ -476,11 +476,16 @@ configSaveButton.onclick = async () => {
         }
     }
 
+    let max_players = parseInt(configMaxPlayersInput.value);
+    if (isNaN(max_players)) {
+        max_players = 0;
+    }
+
     let settings: FactorioServerSettings = {
         name: configNameInput.value,
         description: configDescriptionInput.value,
         tags: tags,
-        max_players: parseInt(configMaxPlayersInput.value),
+        max_players: max_players,
         game_password: configPasswordInput.value,
         auto_pause: configPauseInput.checked,
         admins: configAdminInput.value.split(',')

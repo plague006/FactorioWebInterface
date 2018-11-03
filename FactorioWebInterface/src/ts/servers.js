@@ -348,11 +348,15 @@ configSaveButton.onclick = () => __awaiter(this, void 0, void 0, function* () {
             tags.push(value);
         }
     }
+    let max_players = parseInt(configMaxPlayersInput.value);
+    if (isNaN(max_players)) {
+        max_players = 0;
+    }
     let settings = {
         name: configNameInput.value,
         description: configDescriptionInput.value,
         tags: tags,
-        max_players: parseInt(configMaxPlayersInput.value),
+        max_players: max_players,
         game_password: configPasswordInput.value,
         auto_pause: configPauseInput.checked,
         admins: configAdminInput.value.split(',')
