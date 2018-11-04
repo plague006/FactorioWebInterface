@@ -110,14 +110,19 @@ namespace FactorioWebInterface.Models
                         }
 
                         string basePath = serverData.BaseDirectoryPath;
-
+                        
                         var startInfo = new ProcessStartInfo
                         {
+#if WINDOWS
+                            FileName = "C:/Program Files/dotnet/dotnet.exe",
+                            Arguments = $"C:/Projects/FactorioWebInterface/FactorioWrapper/bin/Windows/netcoreapp2.1/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio.exe --start-server-load-latest --server-settings {basePath}/server-settings.json --port {serverData.Port}",
+#elif WSL
+                            FileName = "/usr/bin/dotnet",
+                            Arguments = $"/mnt/c/Projects/FactorioWebInterface/FactorioWrapper/bin/Wsl/netcoreapp2.1/publish/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-latest --server-settings {basePath}/server-settings.json --port {serverData.Port}",
+#else
                             FileName = "/usr/bin/dotnet",
                             Arguments = $"/factorio/factorioWrapper/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-latest --server-settings {basePath}/server-settings.json --port {serverData.Port}",
-                            //FileName = "C:/Program Files/dotnet/dotnet.exe",
-                            //Arguments = $"C:/Projects/FactorioWebInterface/FactorioWrapper/bin/Release/netcoreapp2.1/publish/FactorioWrapper.dll {serverId} C:/factorio/Factorio1/bin/x64/factorio.exe --start-server C:/factorio/Factorio1/bin/x64/test.zip --server-settings C:/factorio/Factorio1/bin/x64/server-settings.json",
-
+#endif                           
                             UseShellExecute = false,
                             CreateNoWindow = true
                         };
@@ -217,9 +222,16 @@ namespace FactorioWebInterface.Models
 
                         var startInfo = new ProcessStartInfo
                         {
+#if WINDOWS
+                            FileName = "C:/Program Files/dotnet/dotnet.exe",
+                            Arguments = $"C:/Projects/FactorioWebInterface/FactorioWrapper/bin/Windows/netcoreapp2.1/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio.exe --start-server {fi.FullName} --server-settings {basePath}/server-settings.json --port {serverData.Port}",
+#elif WSL
+                            FileName = "/usr/bin/dotnet",
+                            Arguments = $"/mnt/c/Projects/FactorioWebInterface/FactorioWrapper/bin/Wsl/netcoreapp2.1/publish/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server {fi.FullName} --server-settings {basePath}/server-settings.json --port {serverData.Port}",
+#else
                             FileName = "/usr/bin/dotnet",
                             Arguments = $"/factorio/factorioWrapper/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server {fi.FullName} --server-settings {basePath}/server-settings.json --port {serverData.Port}",
-
+#endif
                             UseShellExecute = false,
                             CreateNoWindow = true
                         };

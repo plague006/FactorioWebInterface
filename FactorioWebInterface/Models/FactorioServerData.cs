@@ -8,8 +8,7 @@ namespace FactorioWebInterface.Models
 {
     public class FactorioServerData
     {
-        public static readonly string baseDirectoryPath = "/factorio/";
-        //public static readonly string baseDirectoryPath = "C:/factorio/";
+        public static readonly string baseDirectoryPath = "/factorio/";        
 
         public static readonly int serverCount = 6;
         public static readonly int bufferSize = 100;

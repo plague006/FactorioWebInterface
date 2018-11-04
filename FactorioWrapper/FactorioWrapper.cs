@@ -12,8 +12,13 @@ namespace FactorioWrapper
 {
     class FactorioWrapper
     {
-        //private static readonly string url = "https://localhost:44303/FactorioProcessHub";
+#if WINDOWS
+        private static readonly string url = "https://localhost:44303/FactorioProcessHub";
+#elif WSL
+        private static readonly string url = "http://localhost/FactorioProcessHub";
+#else        
         private static readonly string url = "http://88.99.214.198/FactorioProcessHub";
+#endif
 
         // This is to stop multiple threads writing to the factorio process concurrently.
         private static SemaphoreSlim factorioProcessLock = new SemaphoreSlim(1, 1);
