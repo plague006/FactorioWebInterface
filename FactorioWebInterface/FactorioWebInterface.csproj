@@ -23,8 +23,6 @@
 
   <ItemGroup>
     <None Remove="FactorioWebInterface.db" />
-    <None Remove="src\css\servers.css" />
-    <None Remove="src\css\site.css" />
     <None Remove="wwwroot\lib\bootstrap\dist\css\bootstrap-theme.css" />
     <None Remove="wwwroot\lib\bootstrap\dist\css\bootstrap-theme.css.map" />
     <None Remove="wwwroot\lib\bootstrap\dist\css\bootstrap-theme.min.css" />
@@ -60,12 +58,6 @@
   <ItemGroup>
     <Content Include="FactorioWebInterface.db">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="src\css\servers.css">
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </Content>
-    <Content Include="src\css\site.css">
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
   </ItemGroup>
 
