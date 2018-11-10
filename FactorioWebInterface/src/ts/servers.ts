@@ -57,6 +57,8 @@ const serverIdInput: HTMLInputElement = document.getElementById('serverIdInput')
 const resumeButton: HTMLButtonElement = document.getElementById('resumeButton') as HTMLButtonElement;
 const LoadButton: HTMLButtonElement = document.getElementById('loadButton') as HTMLButtonElement;
 const stopButton: HTMLButtonElement = document.getElementById('stopButton') as HTMLButtonElement;
+const saveButton: HTMLButtonElement = document.getElementById('saveButton') as HTMLButtonElement;
+const updateButton: HTMLButtonElement = document.getElementById('updateButton') as HTMLButtonElement;
 const forceStopButton: HTMLButtonElement = document.getElementById('forceStopButton') as HTMLButtonElement;
 const getStatusButton: HTMLButtonElement = document.getElementById('getStatusButton') as HTMLButtonElement;
 const statusText: HTMLInputElement = document.getElementById('statusText') as HTMLInputElement;
@@ -208,6 +210,20 @@ stopButton.onclick = () => {
     connection.invoke("Stop")
         .then(() => console.log("stopped"));
 }
+
+saveButton.onclick = () => {
+    connection.invoke("Save")
+        .then(() => console.log("saved"));
+};
+updateButton.onclick = () => {
+    console.log("updating");
+    connection.invoke("Update")
+        .then((result) => {
+            console.log("updated");
+            console.log(result);
+        });
+};
+
 
 forceStopButton.onclick = () => {
     connection.invoke("ForceStop")
@@ -455,8 +471,8 @@ fileRenameButton.onclick = async () => {
 }
 
 configTagsInput.oninput = function (this, e: Event) {
-    let target = e.target as HTMLInputElement;    
-    let bottomInput = configTagsInput.lastChild.firstChild;    
+    let target = e.target as HTMLInputElement;
+    let bottomInput = configTagsInput.lastChild.firstChild;
 
     if (target === bottomInput) {
         let lastInput = MakeTagInput('');

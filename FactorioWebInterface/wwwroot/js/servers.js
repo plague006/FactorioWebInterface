@@ -2729,6 +2729,8 @@ const serverIdInput = document.getElementById('serverIdInput');
 const resumeButton = document.getElementById('resumeButton');
 const LoadButton = document.getElementById('loadButton');
 const stopButton = document.getElementById('stopButton');
+const saveButton = document.getElementById('saveButton');
+const updateButton = document.getElementById('updateButton');
 const forceStopButton = document.getElementById('forceStopButton');
 const getStatusButton = document.getElementById('getStatusButton');
 const statusText = document.getElementById('statusText');
@@ -2850,6 +2852,18 @@ LoadButton.onclick = () => {
 stopButton.onclick = () => {
     connection.invoke("Stop")
         .then(() => console.log("stopped"));
+};
+saveButton.onclick = () => {
+    connection.invoke("Save")
+        .then(() => console.log("saved"));
+};
+updateButton.onclick = () => {
+    console.log("updating");
+    connection.invoke("Update")
+        .then((result) => {
+        console.log("updated");
+        console.log(result);
+    });
 };
 forceStopButton.onclick = () => {
     connection.invoke("ForceStop")

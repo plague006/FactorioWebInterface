@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Text;
 
 namespace FactorioWebInterface.Models
 {
@@ -29,6 +30,23 @@ namespace FactorioWebInterface.Models
         {
             Success = success;
             Errors = errors;
+        }
+
+        public override string ToString()
+        {
+            if (Success)
+            {
+                return "OK";
+            }
+            else
+            {
+                var sb = new StringBuilder();
+                foreach (var error in Errors)
+                {
+                    sb.Append(error.Key).Append(": ").AppendLine(error.Description);
+                }
+                return sb.ToString();
+            }
         }
     }
 }

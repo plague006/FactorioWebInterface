@@ -245,5 +245,31 @@ namespace FactorioWebInterface.Hubs
             var error = Result.Failure(Constants.ServerIdErrorKey, $"The server id for the connection is invalid.");
             return error;
         }
+
+        public Task<Result> Save()
+        {
+            string connectionId = Context.ConnectionId;
+            if (Context.Items.TryGetValue(connectionId, out object serverId))
+            {
+                string name = Context.User.Identity.Name;
+                string id = (string)serverId;
+                return _factorioServerManager.Save(id, name, "currently-running.zip");
+            }
+            var error = Result.Failure(Constants.ServerIdErrorKey, $"The server id for the connection is invalid.");
+            return Task.FromResult(error);
+        }
+
+        public async Task<Result> Update()
+        {
+            string connectionId = Context.ConnectionId;
+            if (Context.Items.TryGetValue(connectionId, out object serverId))
+            {
+                string name = Context.User.Identity.Name;
+                string id = (string)serverId;
+                return await _factorioServerManager.Install(id, name, "latest");                
+            }
+            var error = Result.Failure(Constants.ServerIdErrorKey, $"The server id for the connection is invalid.");
+            return error;
+        }
     }
 }

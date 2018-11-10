@@ -37,5 +37,7 @@ namespace FactorioWebInterface.Models
         //Task ReloadServerSettings(string serverId);
         Task<FactorioServerSettingsWebEditable> GetEditableServerSettings(string serverId);
         Task<Result> SaveEditableServerSettings(string serverId, FactorioServerSettingsWebEditable settings);
+        Task<Result> Install(string id, string userName, string version);
+        Task<Result> Save(string id, string userName, string saveName);
     }
 }

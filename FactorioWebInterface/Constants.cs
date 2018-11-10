@@ -47,5 +47,7 @@
         public const string InvalidFileTypeErrorKey = "invalidFileType";
         public const string FileAlreadyExistsErrorKey = "FileAlreadyExists";
         public const string FileErrorKey = "fileError";
+        public const string UpdateErrorKey = "updateError";
+        public const string NotSupportedErrorKey = "notSupportedError";
     }
 }

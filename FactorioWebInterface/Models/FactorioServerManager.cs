@@ -15,6 +15,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -32,6 +33,7 @@ namespace FactorioWebInterface.Models
         private readonly IHubContext<FactorioControlHub, IFactorioControlClientMethods> _factorioControlHub;
         private readonly DbContextFactory _dbContextFactory;
         private readonly ILogger<FactorioServerManager> _logger;
+        private readonly IHttpClientFactory _httpClientFactory;
 
         //private SemaphoreSlim serverLock = new SemaphoreSlim(1, 1);
         private Dictionary<string, FactorioServerData> servers = FactorioServerData.Servers;
@@ -43,7 +45,8 @@ namespace FactorioWebInterface.Models
             IHubContext<FactorioProcessHub, IFactorioProcessClientMethods> factorioProcessHub,
             IHubContext<FactorioControlHub, IFactorioControlClientMethods> factorioControlHub,
             DbContextFactory dbContextFactory,
-            ILogger<FactorioServerManager> logger
+            ILogger<FactorioServerManager> logger,
+            IHttpClientFactory httpClientFactory
         )
         {
             _configuration = configuration;
@@ -52,8 +55,17 @@ namespace FactorioWebInterface.Models
             _factorioControlHub = factorioControlHub;
             _dbContextFactory = dbContextFactory;
             _logger = logger;
+            _httpClientFactory = httpClientFactory;
 
             _discordBot.FactorioDiscordDataReceived += FactorioDiscordDataReceived;
+        }
+
+        private bool ExecuteProcess(string filename, string arguments)
+        {
+            _logger.LogInformation("ExecuteProcess filename: {fileName} arguments: {arguments}", filename, arguments);
+            Process proc = Process.Start(filename, arguments);
+            proc.WaitForExit();
+            return proc.ExitCode > -1;
         }
 
         private string SanitizeDiscordChat(string message)
@@ -110,7 +122,7 @@ namespace FactorioWebInterface.Models
                         }
 
                         string basePath = serverData.BaseDirectoryPath;
-                        
+
                         var startInfo = new ProcessStartInfo
                         {
 #if WINDOWS
@@ -347,6 +359,227 @@ namespace FactorioWebInterface.Models
             _logger.LogInformation("server killed :serverId {serverId} user: {userName}", serverId, userName);
 
             return Result.OK;
+        }
+
+        public async Task<Result> Save(string serverId, string userName, string saveName)
+        {
+            if (!servers.TryGetValue(serverId, out var serverData))
+            {
+                _logger.LogError("Unknown serverId: {serverId}", serverId);
+                return Result.Failure(Constants.ServerIdErrorKey, $"serverId {serverId} not found.");
+            }
+
+            if (serverData.Status != FactorioServerStatus.Running)
+                return Result.Failure(Constants.InvalidServerStateErrorKey, $"Cannot save game when in state {serverData.Status}");
+
+            var message = new MessageData()
+            {
+                MessageType = MessageType.Control,
+                Message = $"Server saved by user {userName}"
+            };
+            _ = SendToFactorioControl(serverId, message);
+
+            var command = FactorioCommandBuilder.SilentCommand()
+                .Add("game.server_save(")
+                .AddQuotedString(saveName)
+                .Add(")")
+                .Build();
+            await SendToFactorioProcess(serverId, command);
+
+            _logger.LogInformation("server saved :serverId {serverId} user: {userName}", serverId, userName);
+            return Result.OK;
+        }
+
+        private async Task<Result> DownloadAndExtract(FactorioServerData serverData, string version)
+        {
+            try
+            {
+                string basePath = serverData.BaseDirectoryPath;
+                var extractDirectoryPath = Path.Combine(basePath, "factorio");
+                var binDirectoryPath = Path.Combine(basePath, "bin");
+                var dataDirectoryPath = Path.Combine(basePath, "data");
+                var binariesPath = Path.Combine(basePath, "binaries.tar.xz");
+
+                var extractDirectory = new DirectoryInfo(extractDirectoryPath);
+                if (extractDirectory.Exists)
+                {
+                    extractDirectory.Delete(true);
+                }
+
+                var client = _httpClientFactory.CreateClient();
+                string url = $"https://factorio.com/get-download/{version}/headless/linux64";
+                var download = await client.GetAsync(url);
+                if (!download.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("Update failed: Error downloading {url}", url);
+                    return Result.Failure(Constants.UpdateErrorKey, "Error downloading file.");
+                }
+
+                var binaries = new FileInfo(binariesPath);
+
+                using (var fs = binaries.OpenWrite())
+                {
+                    await download.Content.CopyToAsync(fs);
+                }
+
+                bool success = ExecuteProcess("/bin/tar", $"-xJf {binariesPath} -C {basePath}");
+
+                var binDirectory = new DirectoryInfo(binDirectoryPath);
+                if (binDirectory.Exists)
+                {
+                    binDirectory.Delete(true);
+                }
+                var dataDirectory = new DirectoryInfo(dataDirectoryPath);
+                if (dataDirectory.Exists)
+                {
+                    dataDirectory.Delete(true);
+                }
+
+                Directory.Move(Path.Combine(extractDirectoryPath, "bin"), binDirectoryPath);
+                Directory.Move(Path.Combine(extractDirectoryPath, "data"), dataDirectoryPath);
+
+                if (extractDirectory.Exists)
+                {
+                    extractDirectory.Delete(true);
+                }
+
+                if (binaries.Exists)
+                {
+                    binaries.Delete();
+                }
+
+                if (success)
+                {
+                    return Result.OK;
+                }
+                else
+                {
+                    return Result.Failure("UpdateErrorKey", "Error extracting file.");
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, nameof(DownloadAndExtract));
+                return Result.Failure(Constants.UnexpctedErrorKey, "Unexpected error installing.");
+            }
+        }
+
+        public async Task<Result> Install(string serverId, string userName, string version)
+        {
+#if WINDOWS
+           return Result.Failure(Constants.NotSupportedErrorKey, "Install is not supported on windows.");
+#else
+            if (!servers.TryGetValue(serverId, out var serverData))
+            {
+                _logger.LogError("Unknow serverId: {serverId}", serverId);
+                return Result.Failure($"Unknow serverId: {serverId}");
+            }
+
+            try
+            {
+                await serverData.ServerLock.WaitAsync();
+
+                var oldStatus = serverData.Status;
+
+                switch (oldStatus)
+                {
+                    case FactorioServerStatus.WrapperStarting:
+                    case FactorioServerStatus.WrapperStarted:
+                    case FactorioServerStatus.Starting:
+                    case FactorioServerStatus.Running:
+                    case FactorioServerStatus.Stopping:
+                    case FactorioServerStatus.Killing:
+                    case FactorioServerStatus.Updating:
+                        return Result.Failure(Constants.InvalidServerStateErrorKey, $"Cannot Update server when in state {oldStatus}");
+                    default:
+                        break;
+                }
+
+                serverData.Status = FactorioServerStatus.Updating;
+
+                var group = _factorioControlHub.Clients.Group(serverId);
+                await group.FactorioStatusChanged(FactorioServerStatus.Updating.ToString(), oldStatus.ToString());
+
+                var messageData = new MessageData()
+                {
+                    MessageType = MessageType.Status,
+                    Message = $"[STATUS]: Changed from {oldStatus} to {FactorioServerStatus.Updating} by user {userName}"
+                };
+
+                serverData.ControlMessageBuffer.Add(messageData);
+                await group.SendMessage(messageData);
+
+            }
+            finally
+            {
+                serverData.ServerLock.Release();
+            }
+
+            // SignalR processes one message at a time, so this method needs to return before the downloading starts.
+            // Else if the use clicks the update button twice in quick succession, the first request is finished before the second requests starts,
+            // meaning the update will happen twice.
+            _ = Task.Run(async () =>
+            {
+                var result = await DownloadAndExtract(serverData, version);
+
+                try
+                {
+                    await serverData.ServerLock.WaitAsync();
+
+                    var oldStatus = serverData.Status;
+                    var group = _factorioControlHub.Clients.Group(serverId);
+
+                    if (result.Success)
+                    {
+                        serverData.Status = FactorioServerStatus.Updated;
+
+                        await group.FactorioStatusChanged(FactorioServerStatus.Updated.ToString(), oldStatus.ToString());
+
+                        var messageData = new MessageData()
+                        {
+                            MessageType = MessageType.Status,
+                            Message = $"[STATUS]: Changed from {oldStatus} to {FactorioServerStatus.Updated}"
+                        };
+
+                        serverData.ControlMessageBuffer.Add(messageData);
+                        await group.SendMessage(messageData);
+
+                        _logger.LogInformation("Updated server.");
+                    }
+                    else
+                    {
+                        serverData.Status = FactorioServerStatus.Crashed;
+
+                        await group.FactorioStatusChanged(FactorioServerStatus.Crashed.ToString(), oldStatus.ToString());
+
+                        var messageData = new MessageData()
+                        {
+                            MessageType = MessageType.Status,
+                            Message = $"[STATUS]: Changed from {oldStatus} to {FactorioServerStatus.Crashed}"
+                        };
+
+                        serverData.ControlMessageBuffer.Add(messageData);
+                        await group.SendMessage(messageData);
+
+                        var messageData2 = new MessageData()
+                        {
+                            MessageType = MessageType.Control,
+                            Message = result.ToString()
+                        };
+
+                        serverData.ControlMessageBuffer.Add(messageData2);
+                        await group.SendMessage(messageData2);
+                    }
+
+                }
+                finally
+                {
+                    serverData.ServerLock.Release();
+                }
+            });
+
+            return Result.OK;
+#endif
         }
 
         public async Task<FactorioServerStatus> GetStatus(string serverId)
