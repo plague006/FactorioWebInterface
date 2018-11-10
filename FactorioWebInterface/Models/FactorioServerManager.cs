@@ -293,6 +293,9 @@ namespace FactorioWebInterface.Models
 
         public async Task<Result> Stop(string serverId, string userName)
         {
+#if WINDOWS
+            return Result.Failure(Constants.NotSupportedErrorKey, "Stop is not supported on Windows.");
+#else
             if (!servers.TryGetValue(serverId, out var serverData))
             {
                 _logger.LogError("Unknown serverId: {serverId}", serverId);
@@ -323,6 +326,7 @@ namespace FactorioWebInterface.Models
             _logger.LogInformation("server stopped :serverId {serverId} user: {userName}", serverId, userName);
 
             return Result.OK;
+#endif
         }
 
         public async Task<Result> ForceStop(string serverId, string userName)

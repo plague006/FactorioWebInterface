@@ -2851,14 +2851,19 @@ LoadButton.onclick = () => {
 };
 stopButton.onclick = () => {
     connection.invoke("Stop")
-        .then(() => console.log("stopped"));
+        .then((result) => {
+        console.log("stopped");
+        console.log(result);
+    });
 };
 saveButton.onclick = () => {
     connection.invoke("Save")
-        .then(() => console.log("saved"));
+        .then((result) => {
+        console.log("Saved");
+        console.log(result);
+    });
 };
 updateButton.onclick = () => {
-    console.log("updating");
     connection.invoke("Update")
         .then((result) => {
         console.log("updated");
@@ -2867,7 +2872,10 @@ updateButton.onclick = () => {
 };
 forceStopButton.onclick = () => {
     connection.invoke("ForceStop")
-        .then(() => console.log("force stopped"));
+        .then((result) => {
+        console.log("ForceStopped");
+        console.log(result);
+    });
 };
 getStatusButton.onclick = () => {
     connection.invoke("GetStatus");

@@ -200,10 +200,12 @@ namespace FactorioWrapper
                 {
                     await factorioProcessLock.WaitAsync();
 
+                    Log.Information("Stopping factorio server.");
+
                     var p = factorioProcess;
                     if (p != null && !p.HasExited)
                     {
-                        Process.Start("kill", $"-2 {factorioProcess.Id}");
+                        Process.Start("kill", $"-sigterm {factorioProcess.Id}");
                     }
 
                     await ChangeStatus(FactorioServerStatus.Stopping);
@@ -211,6 +213,7 @@ namespace FactorioWrapper
                 catch (Exception e)
                 {
                     Log.Error(e, "Error stopping factorio process");
+                    await SendWrapperData("Error stopping factorio process");
                 }
                 finally
                 {
@@ -227,6 +230,8 @@ namespace FactorioWrapper
                 {
                     await factorioProcessLock.WaitAsync();
 
+                    Log.Information("Killing factorio server.");
+
                     var p = factorioProcess;
                     if (p != null && !p.HasExited)
                     {
@@ -237,7 +242,8 @@ namespace FactorioWrapper
                 }
                 catch (Exception e)
                 {
-                    Log.Error(e, "Error force stopping factorio process");
+                    Log.Error(e, "Error force killing factorio process");
+                    await SendWrapperData("Error killing factorio process");
                 }
                 finally
                 {
