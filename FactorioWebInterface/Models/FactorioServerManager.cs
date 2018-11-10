@@ -468,60 +468,11 @@ namespace FactorioWebInterface.Models
             }
         }
 
-        public async Task<Result> Install(string serverId, string userName, string version)
+        /// SignalR processes one message at a time, so this method needs to return before the downloading starts.
+        /// Else if the user clicks the update button twice in quick succession, the first request is finished before
+        /// the second requests starts, meaning the update will happen twice.
+        private void InstallInner(string serverId, FactorioServerData serverData, string version)
         {
-#if WINDOWS
-           return Result.Failure(Constants.NotSupportedErrorKey, "Install is not supported on windows.");
-#else
-            if (!servers.TryGetValue(serverId, out var serverData))
-            {
-                _logger.LogError("Unknow serverId: {serverId}", serverId);
-                return Result.Failure($"Unknow serverId: {serverId}");
-            }
-
-            try
-            {
-                await serverData.ServerLock.WaitAsync();
-
-                var oldStatus = serverData.Status;
-
-                switch (oldStatus)
-                {
-                    case FactorioServerStatus.WrapperStarting:
-                    case FactorioServerStatus.WrapperStarted:
-                    case FactorioServerStatus.Starting:
-                    case FactorioServerStatus.Running:
-                    case FactorioServerStatus.Stopping:
-                    case FactorioServerStatus.Killing:
-                    case FactorioServerStatus.Updating:
-                        return Result.Failure(Constants.InvalidServerStateErrorKey, $"Cannot Update server when in state {oldStatus}");
-                    default:
-                        break;
-                }
-
-                serverData.Status = FactorioServerStatus.Updating;
-
-                var group = _factorioControlHub.Clients.Group(serverId);
-                await group.FactorioStatusChanged(FactorioServerStatus.Updating.ToString(), oldStatus.ToString());
-
-                var messageData = new MessageData()
-                {
-                    MessageType = MessageType.Status,
-                    Message = $"[STATUS]: Changed from {oldStatus} to {FactorioServerStatus.Updating} by user {userName}"
-                };
-
-                serverData.ControlMessageBuffer.Add(messageData);
-                await group.SendMessage(messageData);
-
-            }
-            finally
-            {
-                serverData.ServerLock.Release();
-            }
-
-            // SignalR processes one message at a time, so this method needs to return before the downloading starts.
-            // Else if the use clicks the update button twice in quick succession, the first request is finished before the second requests starts,
-            // meaning the update will happen twice.
             _ = Task.Run(async () =>
             {
                 var result = await DownloadAndExtract(serverData, version);
@@ -581,6 +532,59 @@ namespace FactorioWebInterface.Models
                     serverData.ServerLock.Release();
                 }
             });
+        }
+
+        public async Task<Result> Install(string serverId, string userName, string version)
+        {
+#if WINDOWS
+           return Result.Failure(Constants.NotSupportedErrorKey, "Install is not supported on windows.");
+#else
+            if (!servers.TryGetValue(serverId, out var serverData))
+            {
+                _logger.LogError("Unknow serverId: {serverId}", serverId);
+                return Result.Failure($"Unknow serverId: {serverId}");
+            }
+
+            try
+            {
+                await serverData.ServerLock.WaitAsync();
+
+                var oldStatus = serverData.Status;
+
+                switch (oldStatus)
+                {
+                    case FactorioServerStatus.WrapperStarting:
+                    case FactorioServerStatus.WrapperStarted:
+                    case FactorioServerStatus.Starting:
+                    case FactorioServerStatus.Running:
+                    case FactorioServerStatus.Stopping:
+                    case FactorioServerStatus.Killing:
+                    case FactorioServerStatus.Updating:
+                        return Result.Failure(Constants.InvalidServerStateErrorKey, $"Cannot Update server when in state {oldStatus}");
+                    default:
+                        break;
+                }
+
+                serverData.Status = FactorioServerStatus.Updating;
+
+                var group = _factorioControlHub.Clients.Group(serverId);
+                await group.FactorioStatusChanged(FactorioServerStatus.Updating.ToString(), oldStatus.ToString());
+
+                var messageData = new MessageData()
+                {
+                    MessageType = MessageType.Status,
+                    Message = $"[STATUS]: Changed from {oldStatus} to {FactorioServerStatus.Updating} by user {userName}"
+                };
+
+                serverData.ControlMessageBuffer.Add(messageData);
+                await group.SendMessage(messageData);
+
+                InstallInner(serverId, serverData, version);
+            }
+            finally
+            {
+                serverData.ServerLock.Release();
+            }
 
             return Result.OK;
 #endif
