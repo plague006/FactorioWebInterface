@@ -16,8 +16,12 @@ namespace FactorioWrapper
         private static readonly string url = "https://localhost:44303/FactorioProcessHub";
 #elif WSL
         private static readonly string url = "http://localhost/FactorioProcessHub";
-#else        
-        private static readonly string url = "http://88.99.214.198/FactorioProcessHub";
+#else    
+        // This only works if connecting from a differnt ip.
+        //private static readonly string url = "http://88.99.214.198/FactorioProcessHub";
+
+        // If the wrapper is on the same ip as the web interface only localhost seems to work. Before the ip worked, but not anymore.
+        private static readonly string url = "http://localhost/FactorioProcessHub";
 #endif
 
         // This is to stop multiple threads writing to the factorio process concurrently.
@@ -426,8 +430,9 @@ namespace FactorioWrapper
 
                 return connectionTask.IsCompletedSuccessfully;
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                Log.Error(e, nameof(TryConnectAsync));
                 return false;
             }
         }

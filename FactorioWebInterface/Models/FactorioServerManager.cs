@@ -68,6 +68,43 @@ namespace FactorioWebInterface.Models
             return proc.ExitCode > -1;
         }
 
+        private Task SendControlMessageNonLocking(FactorioServerData serverData, MessageData message)
+        {
+            serverData.ControlMessageBuffer.Add(message);
+            return _factorioControlHub.Clients.Groups(serverData.ServerId).SendMessage(message);
+        }
+
+        private Task ChangeStatusNonLocking(FactorioServerData serverData, FactorioServerStatus newStatus, string byUser = "")
+        {
+            var oldStatus = serverData.Status;
+            serverData.Status = newStatus;
+
+            string oldStatusString = oldStatus.ToString();
+            string newStatusString = newStatus.ToString();
+
+            MessageData message;
+            if (byUser == "")
+            {
+                message = new MessageData()
+                {
+                    MessageType = MessageType.Status,
+                    Message = $"[STATUS] Change from {oldStatusString} to {newStatusString}"
+                };
+            }
+            else
+            {
+                message = new MessageData()
+                {
+                    MessageType = MessageType.Status,
+                    Message = $"[STATUS] Change from {oldStatusString} to {newStatusString} by user {byUser}"
+                };
+            }
+
+            var group = _factorioControlHub.Clients.Groups(serverData.ServerId);
+
+            return Task.WhenAll(group.FactorioStatusChanged(newStatusString, oldStatusString), group.SendMessage(message));
+        }
+
         private string SanitizeDiscordChat(string message)
         {
             StringBuilder sb = new StringBuilder(message);
@@ -337,27 +374,40 @@ namespace FactorioWebInterface.Models
                 return Result.Failure(Constants.ServerIdErrorKey, $"serverId {serverId} not found.");
             }
 
-            switch (serverData.Status)
+            try
             {
-                case FactorioServerStatus.Unknown:
-                case FactorioServerStatus.WrapperStarted:
-                case FactorioServerStatus.Starting:
-                case FactorioServerStatus.Running:
-                case FactorioServerStatus.Stopping:
-                case FactorioServerStatus.Killing:
-                case FactorioServerStatus.Updated:
-                    break;
-                default:
-                    return Result.Failure(Constants.InvalidServerStateErrorKey, $"Cannot force stop server when in state {serverData.Status}");
+                await serverData.ServerLock.WaitAsync();
+
+                switch (serverData.Status)
+                {
+                    case FactorioServerStatus.WrapperStarting:
+                        _ = ChangeStatusNonLocking(serverData, FactorioServerStatus.Killed, userName);
+                        break;
+                    case FactorioServerStatus.Unknown:
+                    case FactorioServerStatus.WrapperStarted:
+                    case FactorioServerStatus.Starting:
+                    case FactorioServerStatus.Running:
+                    case FactorioServerStatus.Stopping:
+                    case FactorioServerStatus.Killing:
+                    case FactorioServerStatus.Updated:
+                        var message = new MessageData()
+                        {
+                            MessageType = MessageType.Control,
+                            Message = $"Server killed by user {userName}"
+                        };
+
+                        _ = SendControlMessageNonLocking(serverData, message);
+
+                        break;
+                    default:
+                        return Result.Failure(Constants.InvalidServerStateErrorKey, $"Cannot force stop server when in state {serverData.Status}");
+                }
+            }
+            finally
+            {
+                serverData.ServerLock.Release();
             }
 
-            var message = new MessageData()
-            {
-                MessageType = MessageType.Control,
-                Message = $"Server killed by user {userName}"
-            };
-
-            _ = SendToFactorioControl(serverId, message);
             await _factorioProcessHub.Clients.Groups(serverId).ForceStop();
 
             _logger.LogInformation("server killed :serverId {serverId} user: {userName}", serverId, userName);
@@ -439,9 +489,23 @@ namespace FactorioWebInterface.Models
                     dataDirectory.Delete(true);
                 }
 
-                Directory.Move(Path.Combine(extractDirectoryPath, "bin"), binDirectoryPath);
-                Directory.Move(Path.Combine(extractDirectoryPath, "data"), dataDirectoryPath);
+                if (success)
+                {
+                    Directory.Move(Path.Combine(extractDirectoryPath, "bin"), binDirectoryPath);
+                    Directory.Move(Path.Combine(extractDirectoryPath, "data"), dataDirectoryPath);
 
+                    var configFile = new FileInfo(Path.Combine(basePath, "config-path.cfg"));
+                    if (!configFile.Exists)
+                    {
+                        var extractConfigFile = new FileInfo(Path.Combine(extractDirectoryPath, "config-path.cfg"));
+                        if (extractConfigFile.Exists)
+                        {
+                            extractConfigFile.MoveTo(configFile.FullName);
+                        }
+                    }
+                }
+
+                extractDirectory.Refresh();
                 if (extractDirectory.Exists)
                 {
                     extractDirectory.Delete(true);
