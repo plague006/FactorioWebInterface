@@ -18,6 +18,10 @@
         public const string TempSavesDirectoryName = "saves";
         public const string LocalSavesDirectoryName = "local_saves";
         public const string GlobalSavesDirectoryName = "global_saves";
+        public const string PublicStartSavesDirectoryName = "public/start";
+        public const string PublicFinalSavesDirectoryName = "public/final";
+        public const string PublicOldSavesDirectoryName = "public/old";
+
         //public const string DefaultFileName = "current_map.zip";
         public const string ServerSettingsFileName = "server-settings.json";
 
@@ -27,7 +31,7 @@
 
         // Sanitize string then make bold.
         public const string DiscordBold = "[DISCORD-BOLD]";
-        public const string DiscrodAdminTag = "[DISCORD-ADMIN]";
+        public const string DiscordAdminTag = "[DISCORD-ADMIN]";
         public const string DiscordAdminRawTag = "[DISCORD-ADMIN-RAW]";
         public const string JoinTag = "[JOIN]";
         public const string LeaveTag = "[LEAVE]";

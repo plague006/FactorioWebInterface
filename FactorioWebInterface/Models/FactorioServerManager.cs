@@ -772,7 +772,7 @@ namespace FactorioWebInterface.Models
                     content = Formatter.Bold(content);
                     _discordBot.SendToFactorioChannel(serverId, content);
                     break;
-                case Constants.DiscrodAdminTag:
+                case Constants.DiscordAdminTag:
                     content = content.Replace("\\n", "\n");
                     content = Formatter.Sanitize(content);
                     _discordBot.SendToFactorioAdminChannel(content);
@@ -1196,7 +1196,7 @@ namespace FactorioWebInterface.Models
             }
             catch (Exception e)
             {
-                _logger.LogError(e.ToString());
+                _logger.LogError(e, nameof(GetFile));
                 return null;
             }
         }
@@ -1211,6 +1211,24 @@ namespace FactorioWebInterface.Models
                     return true;
                 default:
                     return false;
+            }
+        }
+
+        private DirectoryInfo GetSaveDirectory(FactorioServerData serverData, string dirName)
+        {
+            switch (dirName)
+            {
+                case Constants.GlobalSavesDirectoryName:
+                case Constants.PublicStartSavesDirectoryName:
+                case Constants.PublicFinalSavesDirectoryName:
+                case Constants.PublicOldSavesDirectoryName:
+                    return new DirectoryInfo(Path.Combine(FactorioServerData.baseDirectoryPath, dirName));
+                case Constants.LocalSavesDirectoryName:
+                    return new DirectoryInfo(serverData.LocalSavesDirectoroyPath);
+                case Constants.TempSavesDirectoryName:
+                    return new DirectoryInfo(serverData.TempSavesDirectoryPath);
+                default:
+                    return null;
             }
         }
 

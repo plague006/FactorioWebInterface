@@ -34,7 +34,7 @@ namespace FactorioWebInterface.Models
 
             for (int i = 1; i <= serverCount; i++)
             {
-                string port = (34200 + i).ToString();
+                string port = (34197 + i).ToString();
                 string serverId = i.ToString();
 
                 string basePath = $"{baseDirectoryPath}{serverId}/";
@@ -42,7 +42,7 @@ namespace FactorioWebInterface.Models
                 {
                     ServerId = serverId,
                     Status = FactorioServerStatus.Unknown,
-                    BaseDirectoryPath = Path.Combine(baseDirectoryPath, serverId),
+                    BaseDirectoryPath = basePath,
                     TempSavesDirectoryPath = Path.Combine(basePath, Constants.TempSavesDirectoryName),
                     LocalSavesDirectoroyPath = Path.Combine(basePath, Constants.LocalSavesDirectoryName),
                     ServerSettingsPath = Path.Combine(basePath, Constants.ServerSettingsFileName),
