@@ -21,7 +21,7 @@
 
                     <tr>
                         <td><a href="@path">@file.Name</a></td>
-                        <td>@file.LastModifiedTime</td>
+                        <td>@file.LastModifiedTime.ToString("yyyy/MM/dd HH:mm:ss")</td>
                         <td>@file.GetSizeHumanReadable()</td>
                     </tr>
                 }
