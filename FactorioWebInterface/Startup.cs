@@ -60,9 +60,16 @@ namespace FactorioWebInterface
                 options.Lockout.MaxFailedAccessAttempts = 5;
                 options.Lockout.AllowedForNewUsers = true;
 
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < 1114112; i++)
+                {
+                    sb.Append((char)i);
+                }
+                string set = sb.ToString();
+
                 // User settings.
-                options.User.AllowedUserNameCharacters =
-                "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+()[]{}"; // Todo Find out all allowed characters for discord username.
+                options.User.AllowedUserNameCharacters = set;
+                //"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+()[]{}"; // Todo Find out all allowed characters for discord username.
                 options.User.RequireUniqueEmail = false;
             });
 
