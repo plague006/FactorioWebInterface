@@ -1,0 +1,20 @@
+﻿@page
+@model FactorioWebInterface.Pages.SavesModel
+@{
+    ViewData["Title"] = "Saves";
+}
+
+<h2>Saves</h2>
+
+<h3>Start Saves</h3>
+<p>Saves state from <b>before</b> the maps where played.</p>
+@await Html.PartialAsync("_PublicFileTablePartial", Model.StartSaves)
+
+<h3>Final Saves</h3>
+<p>Saves state from <b>after</b> the maps where played.</p>
+@await Html.PartialAsync("_PublicFileTablePartial", Model.FinalSaves)
+
+<h3>Old Saves</h3>
+<p>Some older saves.</p>
+@await Html.PartialAsync("_PublicFileTablePartial", Model.OldSaves)
+

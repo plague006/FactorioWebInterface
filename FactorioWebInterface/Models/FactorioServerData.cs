@@ -8,12 +8,14 @@ namespace FactorioWebInterface.Models
 {
     public class FactorioServerData
     {
-        public static readonly string baseDirectoryPath = "/factorio/";        
+        public static readonly string baseDirectoryPath = "/factorio/";
 
         public static readonly int serverCount = 6;
         public static readonly int bufferSize = 100;
 
-        public static string GlobalSavesDirectoryPath { get; } = Path.Combine(baseDirectoryPath, Constants.GlobalSavesDirectoryName);
+        public static string GlobalSavesDirectoryPath { get; } = Path.Combine(baseDirectoryPath, Constants.GlobalSavesDirectoryName);        
+
+        public static HashSet<string> ValidSaveDirectories { get; } = new HashSet<string>();
 
         public string ServerId { get; set; }
         public FactorioServerStatus Status { get; set; }
@@ -30,11 +32,19 @@ namespace FactorioWebInterface.Models
 
         static FactorioServerData()
         {
+            ValidSaveDirectories.Add(Constants.GlobalSavesDirectoryName);
+            ValidSaveDirectories.Add(Constants.PublicStartSavesDirectoryName);
+            ValidSaveDirectories.Add(Constants.PublicFinalSavesDirectoryName);
+            ValidSaveDirectories.Add(Constants.PublicOldSavesDirectoryName);
+            ValidSaveDirectories.Add(Constants.WindowsPublicStartSavesDirectoryName);
+            ValidSaveDirectories.Add(Constants.WindowsPublicFinalSavesDirectoryName);
+            ValidSaveDirectories.Add(Constants.WindowsPublicOldSavesDirectoryName);
+
             Servers = new Dictionary<string, FactorioServerData>();
 
             for (int i = 1; i <= serverCount; i++)
             {
-                string port = (34197 + i).ToString();
+                string port = (34200 + i).ToString();
                 string serverId = i.ToString();
 
                 string basePath = $"{baseDirectoryPath}{serverId}/";
@@ -50,6 +60,11 @@ namespace FactorioWebInterface.Models
                     ServerLock = new SemaphoreSlim(1, 1),
                     ControlMessageBuffer = new RingBuffer<MessageData>(bufferSize)
                 };
+
+                ValidSaveDirectories.Add($"{serverId}/{Constants.TempSavesDirectoryName}");
+                ValidSaveDirectories.Add($"{serverId}/{Constants.LocalSavesDirectoryName}");
+                ValidSaveDirectories.Add($"{serverId}\\{Constants.TempSavesDirectoryName}");
+                ValidSaveDirectories.Add($"{serverId}\\{Constants.LocalSavesDirectoryName}");
             }
         }
     }

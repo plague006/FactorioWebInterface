@@ -1,0 +1,31 @@
+﻿@using FactorioWebInterface.Models;
+
+@model FileMetaData[]
+
+<div class="table-responsive">
+    <table class="table table-bordered table-striped table-hover">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Date Time</th>
+                <th>Size</th>
+            </tr>
+        </thead>
+        <tbody>
+            @{
+                Array.Sort(Model, (a, b) => -a.LastModifiedTime.CompareTo(b.LastModifiedTime));
+
+                foreach (var file in Model)
+                {
+                    string path = $"/Saves?directory={file.Directory}&file={file.Name}";
+
+                    <tr>
+                        <td><a href="@path">@file.Name</a></td>
+                        <td>@file.LastModifiedTime</td>
+                        <td>@file.GetSizeHumanReadable()</td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+</div>

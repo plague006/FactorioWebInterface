@@ -18,6 +18,11 @@
         public const string TempSavesDirectoryName = "saves";
         public const string LocalSavesDirectoryName = "local_saves";
         public const string GlobalSavesDirectoryName = "global_saves";
+
+
+        public const string WindowsPublicStartSavesDirectoryName = "public\\start";
+        public const string WindowsPublicFinalSavesDirectoryName = "public\\final";
+        public const string WindowsPublicOldSavesDirectoryName = "public\\old";
         public const string PublicStartSavesDirectoryName = "public/start";
         public const string PublicFinalSavesDirectoryName = "public/final";
         public const string PublicOldSavesDirectoryName = "public/old";
@@ -49,8 +54,9 @@
         public const string InvalidServerStateErrorKey = "invalidState";
         public const string MissingFileErrorKey = "missingFile";
         public const string InvalidFileTypeErrorKey = "invalidFileType";
-        public const string FileAlreadyExistsErrorKey = "FileAlreadyExists";
+        public const string FileAlreadyExistsErrorKey = "fileAlreadyExists";
         public const string FileErrorKey = "fileError";
+        public const string InvalidDirectoryErrorKey = "invalidDirectory";
         public const string UpdateErrorKey = "updateError";
         public const string NotSupportedErrorKey = "notSupportedError";
     }

@@ -2916,6 +2916,17 @@ function writeMessage(message) {
     divMessages.appendChild(div);
     divMessages.scrollTop = divMessages.scrollHeight;
 }
+const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+function bytesToSize(bytes) {
+    // https://gist.github.com/lanqy/5193417
+    if (bytes === 0)
+        return 'n/a';
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    if (i === 0)
+        return `${bytes} ${sizes[i]})`;
+    else
+        return `${(bytes / (Math.pow(1024, i))).toFixed(1)} ${sizes[i]}`;
+}
 function buildFileTable(table, files) {
     let body = table.tBodies[0];
     body.innerHTML = "";
@@ -2937,7 +2948,7 @@ function buildFileTable(table, files) {
         row.appendChild(cell2);
         createCell(row, formatDate(file.createdTime));
         createCell(row, formatDate(file.lastModifiedTime));
-        createCell(row, file.size.toString());
+        createCell(row, bytesToSize(file.size));
         body.appendChild(row);
     }
 }

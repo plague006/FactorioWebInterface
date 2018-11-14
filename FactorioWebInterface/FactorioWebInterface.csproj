@@ -63,9 +63,6 @@
 
   <ItemGroup>
     <None Include="wwwroot\favicon.ico" />
-    <None Include="wwwroot\images\banner1.svg" />
-    <None Include="wwwroot\images\banner2.svg" />
-    <None Include="wwwroot\images\banner3.svg" />
   </ItemGroup>
 
   <ItemGroup>
@@ -104,10 +101,6 @@
     <Content Update="Pages\Admin\_ViewStart.cshtml">
       <Pack>$(IncludeRazorContentInPack)</Pack>
     </Content>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="wwwroot\js\" />
   </ItemGroup>
 
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent">

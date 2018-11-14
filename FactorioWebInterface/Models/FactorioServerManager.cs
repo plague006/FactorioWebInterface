@@ -1164,7 +1164,7 @@ namespace FactorioWebInterface.Models
                 _logger.LogError("Unknown serverId: {serverId}", serverId);
                 return new FileMetaData[0];
             }
-
+            
             var path = serverData.LocalSavesDirectoroyPath;
             var dir = Path.Combine(serverId, Constants.LocalSavesDirectoryName);
 
@@ -1178,9 +1178,56 @@ namespace FactorioWebInterface.Models
             return GetFilesMetaData(path, Constants.GlobalSavesDirectoryName);
         }
 
-        public FileInfo GetFile(string directory, string fileName)
+        
+
+        private bool IsSaveDirectory(string dirName)
         {
-            string path = Path.Combine(FactorioServerData.baseDirectoryPath, directory, fileName);
+            switch (dirName)
+            {
+                case Constants.GlobalSavesDirectoryName:
+                case Constants.LocalSavesDirectoryName:
+                case Constants.TempSavesDirectoryName:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        private DirectoryInfo GetSaveDirectory(string dirName)
+        {            
+            try
+            {
+                if (FactorioServerData.ValidSaveDirectories.Contains(dirName))
+                {
+                    var dir = new DirectoryInfo(Path.Combine(FactorioServerData.baseDirectoryPath, dirName));
+                    if (!dir.Exists)
+                    {
+                        dir.Create();
+                    }
+
+                    return dir;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        public FileInfo GetFile(string directoryName, string fileName)
+        {
+            var directory = GetSaveDirectory(directoryName);
+
+            if (directory == null)
+            {
+                return null;
+            }
+
+            string path = Path.Combine(directory.FullName, fileName);
 
             try
             {
@@ -1201,60 +1248,30 @@ namespace FactorioWebInterface.Models
             }
         }
 
-        private bool IsSaveDirectory(string dirName)
+        public async Task<Result> UploadFiles(string directoryName, IList<IFormFile> files)
         {
-            switch (dirName)
-            {
-                case Constants.GlobalSavesDirectoryName:
-                case Constants.LocalSavesDirectoryName:
-                case Constants.TempSavesDirectoryName:
-                    return true;
-                default:
-                    return false;
-            }
-        }
+            var directory = GetSaveDirectory(directoryName);
 
-        private DirectoryInfo GetSaveDirectory(FactorioServerData serverData, string dirName)
-        {
-            switch (dirName)
+            if (directory == null)
             {
-                case Constants.GlobalSavesDirectoryName:
-                case Constants.PublicStartSavesDirectoryName:
-                case Constants.PublicFinalSavesDirectoryName:
-                case Constants.PublicOldSavesDirectoryName:
-                    return new DirectoryInfo(Path.Combine(FactorioServerData.baseDirectoryPath, dirName));
-                case Constants.LocalSavesDirectoryName:
-                    return new DirectoryInfo(serverData.LocalSavesDirectoroyPath);
-                case Constants.TempSavesDirectoryName:
-                    return new DirectoryInfo(serverData.TempSavesDirectoryPath);
-                default:
-                    return null;
+                return Result.Failure(new Error(Constants.InvalidDirectoryErrorKey, directoryName));
             }
-        }
 
-        public async Task<Result> UploadFiles(string directory, IList<IFormFile> files)
-        {
             var errors = new List<Error>();
 
             foreach (var file in files)
             {
-                string path = Path.Combine(FactorioServerData.baseDirectoryPath, directory, file.FileName);
+                string path = Path.Combine(directory.FullName, file.FileName);
 
                 try
                 {
                     var fi = new FileInfo(path);
-                    if (!IsSaveDirectory(fi.Directory.Name))
-                    {
-                        errors.Add(new Error(Constants.FileErrorKey, $"{file.FileName}"));
-                        continue;
-                    }
 
                     if (fi.Exists)
                     {
                         errors.Add(new Error(Constants.FileAlreadyExistsErrorKey, $"{file.FileName} already exists."));
                         continue;
                     }
-
 
                     using (var writeStream = fi.OpenWrite())
                     using (var readStream = file.OpenReadStream())
@@ -1285,21 +1302,25 @@ namespace FactorioWebInterface.Models
 
             foreach (string filePath in filePaths)
             {
-                string path = Path.Combine(FactorioServerData.baseDirectoryPath, filePath);
+                var dirName = Path.GetDirectoryName(filePath);
+                var dir = GetSaveDirectory(dirName);
+
+                if (dir == null)
+                {
+                    errors.Add(new Error(Constants.InvalidDirectoryErrorKey, dirName));
+                    continue;
+                }
+
+                string fileName = Path.GetFileName(filePath);
+                string fullPath = Path.Combine(dir.FullName, fileName);
 
                 try
                 {
-                    var fi = new FileInfo(path);
+                    var fi = new FileInfo(fullPath);
 
                     if (!fi.Exists)
                     {
                         errors.Add(new Error(Constants.MissingFileErrorKey, $"{filePath} doesn't exists."));
-                        continue;
-                    }
-
-                    if (!IsSaveDirectory(fi.Directory.Name))
-                    {
-                        errors.Add(new Error(Constants.FileErrorKey, $"Error deleting {filePath}."));
                         continue;
                     }
 
@@ -1324,63 +1345,51 @@ namespace FactorioWebInterface.Models
 
         public Result MoveFiles(string destination, List<string> filePaths)
         {
-            string dirPath = Path.Combine(FactorioServerData.baseDirectoryPath, destination);
+            string targetDirPath = Path.Combine(FactorioServerData.baseDirectoryPath, destination);
 
-            try
+            var targetDir = GetSaveDirectory(destination);
+            if (targetDir == null)
             {
-                var di = new DirectoryInfo(dirPath);
-
-                string dirName = di.Name;
-
-                if (!IsSaveDirectory(dirName))
-                {
-                    return Result.Failure(Constants.FileErrorKey, $"Error moving files");
-                }
-
-                if (!di.Exists)
-                {
-                    di.Create();
-                }
-            }
-            catch (Exception e)
-            {
-                _logger.LogError("Error moveing file.", e);
-                return Result.Failure(Constants.FileErrorKey, $"Error moving files");
+                return Result.Failure(new Error(Constants.InvalidDirectoryErrorKey, destination));
             }
 
             var errors = new List<Error>();
 
             foreach (var filePath in filePaths)
             {
-                string path = Path.Combine(FactorioServerData.baseDirectoryPath, filePath);
+                var sourceDirName = Path.GetDirectoryName(filePath);
+                var sourceDir = GetSaveDirectory(sourceDirName);
+
+                if (sourceDir == null)
+                {
+                    errors.Add(new Error(Constants.InvalidDirectoryErrorKey, sourceDirName));
+                    continue;
+                }
+
+                string sourceFileName = Path.GetFileName(filePath);
+                string sourceFullPath = Path.Combine(sourceDir.FullName, sourceFileName);
 
                 try
                 {
-                    var fi = new FileInfo(path);
+                    var sourceFile = new FileInfo(sourceFullPath);
 
-                    if (!fi.Exists)
+                    if (!sourceFile.Exists)
                     {
                         errors.Add(new Error(Constants.MissingFileErrorKey, $"{filePath} doesn't exists."));
                         continue;
                     }
 
-                    if (!IsSaveDirectory(fi.Directory.Name))
-                    {
-                        errors.Add(new Error(Constants.FileErrorKey, $"Error moving {filePath}."));
-                        continue;
-                    }
-
-                    string destinationFilePath = Path.Combine(dirPath, fi.Name);
+                    string destinationFilePath = Path.Combine(targetDir.FullName, sourceFile.Name);
 
                     var destinationFileInfo = new FileInfo(destinationFilePath);
 
                     if (destinationFileInfo.Exists)
                     {
-                        errors.Add(new Error(Constants.FileAlreadyExistsErrorKey, $"{filePath} already exists."));
+                        errors.Add(new Error(Constants.FileAlreadyExistsErrorKey, $"{destination}/{filePath} already exists."));
                         continue;
                     }
 
-                    fi.MoveTo(destinationFilePath);
+                    sourceFile.MoveTo(destinationFilePath);
                 }
                 catch (Exception e)
                 {
@@ -1401,68 +1410,58 @@ namespace FactorioWebInterface.Models
 
         public async Task<Result> CopyFiles(string destination, List<string> filePaths)
         {
-            string dirPath = Path.Combine(FactorioServerData.baseDirectoryPath, destination);
+            string targetDirPath = Path.Combine(FactorioServerData.baseDirectoryPath, destination);
 
-            try
+            var targetDir = GetSaveDirectory(destination);
+            if (targetDir == null)
             {
-                var di = new DirectoryInfo(dirPath);
-
-                string dirName = di.Name;
-
-                if (!IsSaveDirectory(dirName))
-                {
-                    return Result.Failure(Constants.FileErrorKey, $"Error copying files");
-                }
-
-                if (!di.Exists)
-                {
-                    di.Create();
-                }
-            }
-            catch (Exception e)
-            {
-                _logger.LogError("Error copying file.", e);
-                return Result.Failure(Constants.FileErrorKey, $"Error copying files");
+                return Result.Failure(new Error(Constants.InvalidDirectoryErrorKey, destination));
             }
 
             var errors = new List<Error>();
 
             foreach (var filePath in filePaths)
             {
-                string path = Path.Combine(FactorioServerData.baseDirectoryPath, filePath);
+                var sourceDirName = Path.GetDirectoryName(filePath);
+                var sourceDir = GetSaveDirectory(sourceDirName);
+
+                if (sourceDir == null)
+                {
+                    errors.Add(new Error(Constants.InvalidDirectoryErrorKey, sourceDirName));
+                    continue;
+                }
+
+                string sourceFileName = Path.GetFileName(filePath);
+                string sourceFullPath = Path.Combine(sourceDir.FullName, sourceFileName);
 
                 try
                 {
-                    var fi = new FileInfo(path);
+                    var sourceFile = new FileInfo(sourceFullPath);
 
-                    if (!fi.Exists)
+                    if (!sourceFile.Exists)
                     {
                         errors.Add(new Error(Constants.MissingFileErrorKey, $"{filePath} doesn't exists."));
                         continue;
                     }
 
-                    if (!IsSaveDirectory(fi.Directory.Name))
-                    {
-                        errors.Add(new Error(Constants.FileErrorKey, $"Error copying {filePath}."));
-                        continue;
-                    }
-
-                    string destinationFilePath = Path.Combine(dirPath, fi.Name);
+                    string destinationFilePath = Path.Combine(targetDir.FullName, sourceFile.Name);
 
                     var destinationFileInfo = new FileInfo(destinationFilePath);
 
                     if (destinationFileInfo.Exists)
                     {
-                        errors.Add(new Error(Constants.FileAlreadyExistsErrorKey, $"{filePath} already exists."));
+                        errors.Add(new Error(Constants.FileAlreadyExistsErrorKey, $"{destination}/{filePath} already exists."));
                         continue;
                     }
 
-                    await fi.CopyToAsync(destinationFileInfo);
+                    
+                    await sourceFile.CopyToAsync(destinationFileInfo);
+                    destinationFileInfo.LastWriteTimeUtc = sourceFile.LastWriteTimeUtc;
                 }
                 catch (Exception e)
                 {
-                    _logger.LogError("Error moveing file.", e);
-                    errors.Add(new Error(Constants.FileErrorKey, $"Error moveing {filePath}."));
+                    _logger.LogError("Error copying file.", e);
+                    errors.Add(new Error(Constants.FileErrorKey, $"Error coppying {filePath}."));
                 }
             }
 
@@ -1478,28 +1477,39 @@ namespace FactorioWebInterface.Models
 
         public Result RenameFile(string directoryPath, string fileName, string newFileName)
         {
-            string dirPath = Path.Combine(FactorioServerData.baseDirectoryPath, directoryPath);
+            var directory = GetSaveDirectory(directoryPath);
+
+            if (directory == null)
+            {
+                return Result.Failure(new Error(Constants.InvalidDirectoryErrorKey, directoryPath));
+            }
 
             try
             {
-                var di = new DirectoryInfo(dirPath);
+                string actualFileName = Path.GetFileName(fileName);
 
-                string dirName = di.Name;
-
-                if (!IsSaveDirectory(dirName))
+                if (actualFileName != fileName)
                 {
-                    return Result.Failure(Constants.FileErrorKey, $"Error renaming files");
+                    return Result.Failure(Constants.FileErrorKey, $"Invalid file name {fileName}");
                 }
 
-                string filePath = Path.Combine(dirPath, fileName);
-                var fi = new FileInfo(filePath);
+                string actualNewFileName = Path.GetFileName(newFileName);
 
-                if (!fi.Exists)
+                if (actualNewFileName != newFileName)
+                {
+                    return Result.Failure(Constants.FileErrorKey, $"Invalid file name {newFileName}");
+                }
+
+
+                string filePath = Path.Combine(directory.FullName, fileName);
+                var fileInfo = new FileInfo(filePath);
+
+                if (!fileInfo.Exists)
                 {
                     return Result.Failure(Constants.MissingFileErrorKey, $"File {fileName} doesn't exist.");
                 }
 
-                string newFilePath = Path.Combine(dirPath, newFileName);
+                string newFilePath = Path.Combine(directory.FullName, newFileName);
                 var newFileInfo = new FileInfo(newFilePath);
 
                 if (newFileInfo.Exists)
@@ -1512,7 +1522,7 @@ namespace FactorioWebInterface.Models
                     newFilePath += ".zip";
                 }
 
-                fi.MoveTo(newFilePath);
+                fileInfo.MoveTo(newFilePath);
 
                 return Result.OK;
             }
