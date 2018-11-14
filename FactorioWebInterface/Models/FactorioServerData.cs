@@ -13,7 +13,8 @@ namespace FactorioWebInterface.Models
         public static readonly int serverCount = 6;
         public static readonly int bufferSize = 100;
 
-        public static string GlobalSavesDirectoryPath { get; } = Path.Combine(baseDirectoryPath, Constants.GlobalSavesDirectoryName);        
+        public static string GlobalSavesDirectoryPath { get; } = Path.Combine(baseDirectoryPath, Constants.GlobalSavesDirectoryName);
+        public static string ScenarioDirectoryPath { get; } = Path.Combine(baseDirectoryPath, Constants.ScenarioDirectoryName);
 
         public static HashSet<string> ValidSaveDirectories { get; } = new HashSet<string>();
 
@@ -22,6 +23,7 @@ namespace FactorioWebInterface.Models
         public string BaseDirectoryPath { get; set; }
         public string TempSavesDirectoryPath { get; set; }
         public string LocalSavesDirectoroyPath { get; set; }
+        //public string ScenarioDirectoryPath { get; set; }
         public string ServerSettingsPath { get; set; }
         public string Port { get; set; }
         public SemaphoreSlim ServerLock { get; set; }
@@ -56,6 +58,7 @@ namespace FactorioWebInterface.Models
                     TempSavesDirectoryPath = Path.Combine(basePath, Constants.TempSavesDirectoryName),
                     LocalSavesDirectoroyPath = Path.Combine(basePath, Constants.LocalSavesDirectoryName),
                     ServerSettingsPath = Path.Combine(basePath, Constants.ServerSettingsFileName),
+                    //ScenarioDirectoryPath = Path.Combine(basePath, Constants.ScenarioDirectoryName),
                     Port = port,
                     ServerLock = new SemaphoreSlim(1, 1),
                     ControlMessageBuffer = new RingBuffer<MessageData>(bufferSize)

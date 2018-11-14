@@ -2737,6 +2737,7 @@ const statusText = document.getElementById('statusText');
 const tempSaveFilesTable = document.getElementById('tempSaveFilesTable');
 const localSaveFilesTable = document.getElementById('localSaveFilesTable');
 const globalSaveFilesTable = document.getElementById('globalSaveFilesTable');
+const scenarioTable = document.getElementById('scenarioTable');
 // XSRF/CSRF token, see https://docs.microsoft.com/en-us/aspnet/core/security/anti-request-forgery?view=aspnetcore-2.1
 let requestVerificationToken = document.querySelector('input[name="__RequestVerificationToken"][type="hidden"]').value;
 const fileUploadInput = document.getElementById('fileUploadInput');
@@ -2768,6 +2769,12 @@ function getFiles() {
         buildFileTable(localSaveFilesTable, localFiles);
         let globalFiles = yield connection.invoke('GetGlobalSaveFiles');
         buildFileTable(globalSaveFilesTable, globalFiles);
+    });
+}
+function getScenarios() {
+    return __awaiter(this, void 0, void 0, function* () {
+        let scenarios = yield connection.invoke('GetScenarios');
+        buildScenarioTable(scenarioTable, scenarios);
     });
 }
 function MakeTagInput(value) {
@@ -2802,6 +2809,7 @@ function init() {
             yield connection.start();
             let data = yield connection.invoke('SetServerId', serverIdInput.value);
             getFiles();
+            getScenarios();
             getSettings();
             statusText.value = data.status;
             for (let message of data.messages) {
@@ -2949,6 +2957,24 @@ function buildFileTable(table, files) {
         createCell(row, formatDate(file.createdTime));
         createCell(row, formatDate(file.lastModifiedTime));
         createCell(row, bytesToSize(file.size));
+        body.appendChild(row);
+    }
+}
+function buildScenarioTable(table, scenarios) {
+    let body = table.tBodies[0];
+    body.innerHTML = "";
+    for (let scenario of scenarios) {
+        let row = document.createElement('tr');
+        let cell = document.createElement('td');
+        let checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.name = 'fileCheckbox';
+        checkbox.setAttribute('data-name', scenario.name);
+        cell.appendChild(checkbox);
+        row.appendChild(cell);
+        createCell(row, scenario.name);
+        createCell(row, formatDate(scenario.createdTime));
+        createCell(row, formatDate(scenario.lastModifiedTime));
         body.appendChild(row);
     }
 }

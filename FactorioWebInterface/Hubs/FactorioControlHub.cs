@@ -271,5 +271,10 @@ namespace FactorioWebInterface.Hubs
             var error = Result.Failure(Constants.ServerIdErrorKey, $"The server id for the connection is invalid.");
             return error;
         }
+
+        public Task<ScenarioMetaData[]> GetScenarios()
+        {
+            return Task.FromResult(_factorioServerManager.GetScenarios());
+        }
     }
 }

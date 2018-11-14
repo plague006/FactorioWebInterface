@@ -18,7 +18,7 @@
         public const string TempSavesDirectoryName = "saves";
         public const string LocalSavesDirectoryName = "local_saves";
         public const string GlobalSavesDirectoryName = "global_saves";
-
+        public const string ScenarioDirectoryName = "scenarios";
 
         public const string WindowsPublicStartSavesDirectoryName = "public\\start";
         public const string WindowsPublicFinalSavesDirectoryName = "public\\final";

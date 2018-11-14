@@ -328,6 +328,95 @@ namespace FactorioWebInterface.Models
             }
         }
 
+        public async Task<Result> LoadScenario(string serverId, string scenarioName, string userName)
+        {
+            if (!servers.TryGetValue(serverId, out var serverData))
+            {
+                _logger.LogError("Unknown serverId: {serverId}", serverId);
+                return Result.Failure(Constants.ServerIdErrorKey, $"serverId {serverId} not found.");
+            }
+
+            try
+            {
+                await serverData.ServerLock.WaitAsync();
+
+                switch (serverData.Status)
+                {
+                    case FactorioServerStatus.Unknown:
+                    case FactorioServerStatus.Stopped:
+                    case FactorioServerStatus.Killed:
+                    case FactorioServerStatus.Crashed:
+                    case FactorioServerStatus.Updated:
+
+                        string scenarioPath = Path.Combine(FactorioServerData.ScenarioDirectoryPath, scenarioName);
+
+                        var scenarioDir = new DirectoryInfo(scenarioPath);
+                        if (!scenarioDir.Exists)
+                        {
+                            return Result.Failure(Constants.MissingFileErrorKey, $"Scenario {scenarioName} not found.");
+                        }
+
+                        string basePath = serverData.BaseDirectoryPath;
+
+                        var startInfo = new ProcessStartInfo
+                        {
+#if WINDOWS
+                            FileName = "C:/Program Files/dotnet/dotnet.exe",
+                            Arguments = $"C:/Projects/FactorioWebInterface/FactorioWrapper/bin/Windows/netcoreapp2.1/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio.exe --start-server-load-scenario {scenarioName} --server-settings {basePath}/server-settings.json --port {serverData.Port}",
+#elif WSL
+                            FileName = "/usr/bin/dotnet",
+                            Arguments = $"/mnt/c/Projects/FactorioWebInterface/FactorioWrapper/bin/Wsl/netcoreapp2.1/publish/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-scenario {scenarioName} --server-settings {basePath}/server-settings.json --port {serverData.Port}",
+#else
+                            FileName = "/usr/bin/dotnet",
+                            Arguments = $"/factorio/factorioWrapper/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-scenario {scenarioName} --server-settings {basePath}/server-settings.json --port {serverData.Port}",
+#endif
+                            UseShellExecute = false,
+                            CreateNoWindow = true
+                        };
+
+                        try
+                        {
+                            Process.Start(startInfo);
+                        }
+                        catch (Exception)
+                        {
+                            _logger.LogError("Error loading serverId: {serverId} file: {file}", serverId, scenarioPath);
+                            return Result.Failure(Constants.WrapperProcessErrorKey, "Wrapper process failed to start.");
+                        }
+
+                        _logger.LogInformation("Server load serverId: {serverId} scenario: {scenario} user: {userName}", serverId, scenarioName, userName);
+
+                        serverData.Status = FactorioServerStatus.WrapperStarting;
+
+                        var group = _factorioControlHub.Clients.Group(serverId);
+                        await group.FactorioStatusChanged(FactorioServerStatus.WrapperStarting.ToString(), serverData.Status.ToString());
+
+                        var message = new MessageData()
+                        {
+                            MessageType = MessageType.Control,
+                            Message = $"Server load scenario: {scenarioName} by user: {userName}"
+                        };
+
+                        serverData.ControlMessageBuffer.Add(message);
+                        await group.SendMessage(message);
+
+                        return Result.OK;
+
+                    default:
+                        return Result.Failure(Constants.InvalidServerStateErrorKey, $"Cannot load scenario when server in state {serverData.Status}");
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError("Error loading scenario", e);
+                return Result.Failure(Constants.UnexpctedErrorKey);
+            }
+            finally
+            {
+                serverData.ServerLock.Release();
+            }
+        }
+
         public async Task<Result> Stop(string serverId, string userName)
         {
 #if WINDOWS
@@ -1479,6 +1568,32 @@ namespace FactorioWebInterface.Models
             else
             {
                 return Result.OK;
+            }
+        }
+
+        public ScenarioMetaData[] GetScenarios()
+        {
+            try
+            {
+                var dir = new DirectoryInfo(FactorioServerData.ScenarioDirectoryPath);
+                if (!dir.Exists)
+                {
+                    dir.Create();
+                }
+
+                return dir.EnumerateDirectories().Select(d =>
+                    new ScenarioMetaData()
+                    {
+                        Name = d.Name,
+                        CreatedTime = d.CreationTimeUtc,
+                        LastModifiedTime = d.LastWriteTimeUtc
+                    }
+                ).ToArray();
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e.ToString());
+                return new ScenarioMetaData[0];
             }
         }
 

@@ -22,6 +22,12 @@ interface FileMetaData {
     size: number;
 }
 
+interface ScenarioMetaData {
+    name: string;
+    createdTime: string;
+    lastModifiedTime: string;
+}
+
 interface FactorioContorlClientData {
     status: string;
     messages: MessageData[];
@@ -66,6 +72,7 @@ const statusText: HTMLInputElement = document.getElementById('statusText') as HT
 const tempSaveFilesTable: HTMLTableElement = document.getElementById('tempSaveFilesTable') as HTMLTableElement;
 const localSaveFilesTable: HTMLTableElement = document.getElementById('localSaveFilesTable') as HTMLTableElement;
 const globalSaveFilesTable: HTMLTableElement = document.getElementById('globalSaveFilesTable') as HTMLTableElement;
+const scenarioTable: HTMLTableElement = document.getElementById('scenarioTable') as HTMLTableElement;
 
 // XSRF/CSRF token, see https://docs.microsoft.com/en-us/aspnet/core/security/anti-request-forgery?view=aspnetcore-2.1
 let requestVerificationToken = (document.querySelector('input[name="__RequestVerificationToken"][type="hidden"]') as HTMLInputElement).value
@@ -104,6 +111,11 @@ async function getFiles() {
 
     let globalFiles = await connection.invoke('GetGlobalSaveFiles') as FileMetaData[];
     buildFileTable(globalSaveFilesTable, globalFiles);
+}
+
+async function getScenarios() {
+    let scenarios = await connection.invoke('GetScenarios') as ScenarioMetaData[];
+    buildScenarioTable(scenarioTable, scenarios);
 }
 
 function MakeTagInput(value: string) {
@@ -146,6 +158,7 @@ async function init() {
         let data = await connection.invoke('SetServerId', serverIdInput.value) as FactorioContorlClientData;
 
         getFiles();
+        getScenarios();
         getSettings();
 
         statusText.value = data.status;
@@ -285,7 +298,7 @@ function writeMessage(message: MessageData): void {
 const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
 function bytesToSize(bytes: number) {
     // https://gist.github.com/lanqy/5193417
-    
+
     if (bytes === 0)
         return 'n/a';
     const i = Math.floor(Math.log(bytes) / Math.log(1024));
@@ -322,6 +335,30 @@ function buildFileTable(table: HTMLTableElement, files: FileMetaData[]) {
         createCell(row, formatDate(file.createdTime));
         createCell(row, formatDate(file.lastModifiedTime));
         createCell(row, bytesToSize(file.size));
+
+        body.appendChild(row);
+    }
+}
+
+function buildScenarioTable(table: HTMLTableElement, scenarios: ScenarioMetaData[]) {
+    let body = table.tBodies[0];
+
+    body.innerHTML = "";
+
+    for (let scenario of scenarios) {
+        let row = document.createElement('tr');
+
+        let cell = document.createElement('td');
+        let checkbox = document.createElement('input') as HTMLInputElement;
+        checkbox.type = 'checkbox';
+        checkbox.name = 'fileCheckbox';
+        checkbox.setAttribute('data-name', scenario.name);
+        cell.appendChild(checkbox);
+        row.appendChild(cell);
+
+        createCell(row, scenario.name);
+        createCell(row, formatDate(scenario.createdTime));
+        createCell(row, formatDate(scenario.lastModifiedTime));
 
         body.appendChild(row);
     }
