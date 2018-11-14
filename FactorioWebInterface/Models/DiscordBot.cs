@@ -15,6 +15,16 @@ namespace FactorioWebInterface.Models
 {
     public class DiscordBot : IDiscordBot
     {
+        public class Role
+        {
+            public string Name { get; set; }
+            public ulong Id { get; set; }
+        }
+        public class AdminRoles
+        {
+            public Role[] Roles { get; set; }
+        }
+
         private class DiscordMessage
         {
             public DiscordChannel Channel { get; set; }
@@ -30,9 +40,8 @@ namespace FactorioWebInterface.Models
         private readonly DbContextFactory _dbContextFactory;
         private readonly ILogger<DiscordBot> _logger;
 
-
         private readonly ulong guildId;
-        private readonly ulong adminRoleId;
+        private readonly HashSet<ulong> validAdminRoleIds = new HashSet<ulong>();
 
         private readonly SemaphoreSlim discordLock = new SemaphoreSlim(1, 1);
         private readonly Dictionary<ulong, string> discordToServer = new Dictionary<ulong, string>();
@@ -50,10 +59,23 @@ namespace FactorioWebInterface.Models
             _dbContextFactory = dbContextFactory;
             _logger = logger;
 
-            guildId = ulong.Parse(_configuration[Constants.GuildIDKey]);
-            adminRoleId = ulong.Parse(_configuration[Constants.AdminRoleIDKey]);
+            guildId = ulong.Parse(_configuration[Constants.GuildIDKey]);            
+
+            BuildValidAdminRoleIds(configuration);
 
             InitAsync().GetAwaiter().GetResult();
+        }
+
+        private void BuildValidAdminRoleIds(IConfiguration configuration)
+        {
+            var ar = new AdminRoles();
+            configuration.GetSection(Constants.AdminRolesKey).Bind(ar);
+
+            foreach (var item in ar.Roles)
+            {
+                validAdminRoleIds.Add(item.Id);
+
+            }
         }
 
         private async Task InitAsync()
@@ -129,7 +151,7 @@ namespace FactorioWebInterface.Models
         }
 
         /// <summary>
-        /// Returns a boolean for if the discord user has the admin role in the Redmew guild.
+        /// Returns a boolean for if the discord user has the admin-like role in the Redmew guild.
         /// </summary>
         /// <param name="userId">The discord user's id.</param>        
         public async Task<bool> IsAdminRoleAsync(ulong userId)
@@ -140,13 +162,13 @@ namespace FactorioWebInterface.Models
             if (memeber == null)
                 return false;
 
-            var role = memeber.Roles.FirstOrDefault(x => x.Id == adminRoleId);
+            var role = memeber.Roles.FirstOrDefault(x => validAdminRoleIds.Contains(x.Id));
 
             return role != null;
         }
 
         /// <summary>
-        /// Returns a boolean for if the discord user has the admin role in the Redmew guild.
+        /// Returns a boolean for if the discord user has the admin-like role in the Redmew guild.
         /// </summary>
         /// <param name="userId">The discord user's id.</param> 
         public Task<bool> IsAdminRoleAsync(string userId)

@@ -125,7 +125,7 @@ namespace FactorioWebInterface.Models
 
         [Command("setadmin")]
         [RequireUserPermissions(DSharpPlus.Permissions.ManageChannels)]
-        [Description("Connects the factorio server to this channel.")]
+        [Description("Connects the factorio server to this channel.")]        
         public async Task SetAdmin(CommandContext ctx)
         {
             bool success = await _discordBot.SetServer(Constants.AdminChannelID, ctx.Channel.Id);

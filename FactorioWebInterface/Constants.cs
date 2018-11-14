@@ -8,7 +8,7 @@
         public const string ClientIDKey = "ClientID";
         public const string ClientSecretKey = "ClientSecret";
         public const string GuildIDKey = "GuildID";
-        public const string AdminRoleIDKey = "AdminRoleID";
+        public const string AdminRolesKey = "AdminRoles";
         public const string AdminChannelID = "ADMIN";
         public const string SecurityKey = "SecurityKey";
         public const string FactorioWrapperClaim = "FactorioWrapper";
