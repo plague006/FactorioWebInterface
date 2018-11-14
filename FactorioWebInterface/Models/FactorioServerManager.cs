@@ -601,7 +601,7 @@ namespace FactorioWebInterface.Models
         public async Task<Result> Install(string serverId, string userName, string version)
         {
 #if WINDOWS
-           return Result.Failure(Constants.NotSupportedErrorKey, "Install is not supported on windows.");
+            return Result.Failure(Constants.NotSupportedErrorKey, "Install is not supported on windows.");
 #else
             if (!servers.TryGetValue(serverId, out var serverData))
             {
@@ -967,14 +967,21 @@ namespace FactorioWebInterface.Models
             var regulars = await _dbContextFactory.Create().Regulars.Select(r => r.Name).ToArrayAsync();
 
             var cb = FactorioCommandBuilder.ServerCommand("regular_sync");
-            cb.Add("{");
-            foreach (var r in regulars)
+            if (regulars.Length == 0)
             {
-                cb.AddQuotedString(r);
-                cb.Add(",");
+                cb.Add("{}");
             }
-            cb.RemoveLast(1);
-            cb.Add("}");
+            else
+            {
+                cb.Add("{");
+                foreach (var r in regulars)
+                {
+                    cb.AddQuotedString(r);
+                    cb.Add(",");
+                }
+                cb.RemoveLast(1);
+                cb.Add("}");
+            }
 
             await SendToFactorioProcess(serverId, cb.Build());
             await t1;
@@ -1164,7 +1171,7 @@ namespace FactorioWebInterface.Models
                 _logger.LogError("Unknown serverId: {serverId}", serverId);
                 return new FileMetaData[0];
             }
-            
+
             var path = serverData.LocalSavesDirectoroyPath;
             var dir = Path.Combine(serverId, Constants.LocalSavesDirectoryName);
 
@@ -1178,7 +1185,7 @@ namespace FactorioWebInterface.Models
             return GetFilesMetaData(path, Constants.GlobalSavesDirectoryName);
         }
 
-        
+
 
         private bool IsSaveDirectory(string dirName)
         {
@@ -1194,7 +1201,7 @@ namespace FactorioWebInterface.Models
         }
 
         private DirectoryInfo GetSaveDirectory(string dirName)
-        {            
+        {
             try
             {
                 if (FactorioServerData.ValidSaveDirectories.Contains(dirName))
@@ -1454,7 +1461,7 @@ namespace FactorioWebInterface.Models
                         continue;
                     }
 
-                    
+
                     await sourceFile.CopyToAsync(destinationFileInfo);
                     destinationFileInfo.LastWriteTimeUtc = sourceFile.LastWriteTimeUtc;
                 }
