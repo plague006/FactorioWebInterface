@@ -60,8 +60,8 @@ namespace FactorioWebInterface.Pages.Admin
 
             if (user == null || user.Suspended)
             {
-                HttpContext.Session.SetString("returnUrl", "Account");
-                return RedirectToPage("SignIn");
+                HttpContext.Session.SetString("returnUrl", "account");
+                return RedirectToPage("signIn");
             }
 
             UserName = user.UserName;
@@ -78,8 +78,8 @@ namespace FactorioWebInterface.Pages.Admin
 
             if (user == null || user.Suspended)
             {
-                HttpContext.Session.SetString("returnUrl", "Account");
-                return RedirectToPage("SignIn");
+                HttpContext.Session.SetString("returnUrl", "account");
+                return RedirectToPage("signIn");
             }
 
             HasPassword = await _userManager.HasPasswordAsync(user);
@@ -119,8 +119,8 @@ namespace FactorioWebInterface.Pages.Admin
 
             if (user == null || user.Suspended)
             {
-                HttpContext.Session.SetString("returnUrl", "Account");
-                return RedirectToPage("SignIn");
+                HttpContext.Session.SetString("returnUrl", "account");
+                return RedirectToPage("signIn");
             }
 
             HasPassword = await _userManager.HasPasswordAsync(user);

@@ -187,7 +187,7 @@ namespace FactorioWebInterface.Pages.Admin
             {
                 _logger.LogInformation($"User {user.UserName} signed in using password.");
 
-                string returnUrl = HttpContext.Session.GetString("returnUrl") ?? "Servers";
+                string returnUrl = HttpContext.Session.GetString("returnUrl") ?? "servers";
 
                 return Redirect(returnUrl);
             }

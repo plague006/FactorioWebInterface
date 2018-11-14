@@ -82,9 +82,11 @@ namespace FactorioWebInterface
             services.AddSingleton<IDiscordBot, DiscordBot>();
             services.AddSingleton<IFactorioServerManager, FactorioServerManager>();
 
+            services.AddRouting(o => o.LowercaseUrls = true);
+
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1).AddRazorPagesOptions(options =>
             {
-                options.Conventions.AddPageRoute("/Admin/Servers", "/Admin");
+                options.Conventions.AddPageRoute("/admin/servers", "/admin");
                 services.AddAntiforgery(o => o.HeaderName = "XSRF-TOKEN");
             });
 
@@ -141,7 +143,7 @@ namespace FactorioWebInterface
             }
             else
             {
-                app.UseExceptionHandler("/Error");
+                app.UseExceptionHandler("/error");
                 app.UseHsts();
             }
 
@@ -155,8 +157,8 @@ namespace FactorioWebInterface
 
             app.UseSignalR(routes =>
             {
-                routes.MapHub<FactorioControlHub>("/FactorioControlHub");
-                routes.MapHub<FactorioProcessHub>("/FactorioProcessHub");
+                routes.MapHub<FactorioControlHub>("/factorioControlHub");
+                routes.MapHub<FactorioProcessHub>("/factorioProcessHub");
             });
 
             app.UseMvc();

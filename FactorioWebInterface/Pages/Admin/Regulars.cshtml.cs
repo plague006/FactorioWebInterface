@@ -36,8 +36,8 @@ namespace FactorioWebInterface.Pages.Admin
 
             if (user == null || user.Suspended)
             {
-                HttpContext.Session.SetString("returnUrl", "Regulars");
-                return RedirectToPage("SignIn");
+                HttpContext.Session.SetString("returnUrl", "regulars");
+                return RedirectToPage("signIn");
             }
 
             Regulars = await _factorioServerManager.GetRegularsAsync();

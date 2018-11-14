@@ -45,8 +45,8 @@ namespace FactorioWebInterface.Pages.Admin
 
             if (user == null || user.Suspended)
             {
-                HttpContext.Session.SetString("returnUrl", "Servers/" + Id);
-                return RedirectToPage("SignIn");
+                HttpContext.Session.SetString("returnUrl", "servers/" + Id);
+                return RedirectToPage("signIn");
             }
 
             return Page();
@@ -58,8 +58,8 @@ namespace FactorioWebInterface.Pages.Admin
 
             if (user == null || user.Suspended)
             {
-                HttpContext.Session.SetString("returnUrl", "Servers/" + Id);
-                return RedirectToPage("SignIn");
+                HttpContext.Session.SetString("returnUrl", "servers/" + Id);
+                return RedirectToPage("signIn");
             }
 
             var file = _factorioServerManager.GetFile(directory, name);

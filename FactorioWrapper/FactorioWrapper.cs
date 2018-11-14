@@ -13,15 +13,15 @@ namespace FactorioWrapper
     class FactorioWrapper
     {
 #if WINDOWS
-        private static readonly string url = "https://localhost:44303/FactorioProcessHub";
+        private static readonly string url = "https://localhost:44303/factorioProcessHub";
 #elif WSL
-        private static readonly string url = "http://localhost/FactorioProcessHub";
+        private static readonly string url = "http://localhost/factorioProcessHub";
 #else    
         // This only works if connecting from a differnt ip.
-        //private static readonly string url = "http://88.99.214.198/FactorioProcessHub";
+        //private static readonly string url = "http://88.99.214.198/factorioProcessHub";
 
         // If the wrapper is on the same ip as the web interface only localhost seems to work. Before the ip worked, but not anymore.
-        private static readonly string url = "http://localhost/FactorioProcessHub";
+        private static readonly string url = "http://localhost/factorioProcessHub";
 #endif
 
         // This is to stop multiple threads writing to the factorio process concurrently.
