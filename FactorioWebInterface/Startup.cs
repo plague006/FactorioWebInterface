@@ -61,7 +61,7 @@ namespace FactorioWebInterface
                 options.Lockout.AllowedForNewUsers = true;
 
                 StringBuilder sb = new StringBuilder();
-                for (int i = 0; i < 1114112; i++)
+                for (int i = 32; i < ushort.MaxValue; i++)
                 {
                     sb.Append((char)i);
                 }
