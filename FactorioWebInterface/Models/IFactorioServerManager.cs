@@ -18,7 +18,7 @@ namespace FactorioWebInterface.Models
         Task RequestStatus(string serverId);
         Task<MessageData[]> GetFactorioControlMessagesAsync(string serverId);
         Task SendToFactorioProcess(string serverId, string data);
-        void FactorioDataReceived(string serverId, string data);
+        Task FactorioDataReceived(string serverId, string data);
         void FactorioWrapperDataReceived(string serverId, string data);
         Task OnProcessRegistered(string serverId);
         Task StatusChanged(string serverId, FactorioServerStatus newStatus, FactorioServerStatus oldStatus);

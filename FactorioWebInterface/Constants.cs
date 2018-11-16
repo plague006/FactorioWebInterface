@@ -47,6 +47,7 @@
         public const string RegularPromoteTag = "[REGULAR-PROMOTE]";
         public const string RegularDemoteTag = "[REGULAR-DEOMOTE]";
         public const string DonatorSetTag = "[DONATOR-SET]";
+        public const string StartScenarioTag = "[START-SCENARIO]";
 
         public const string UnexpctedErrorKey = "unexpectedError";
         public const string ServerIdErrorKey = "serverId";

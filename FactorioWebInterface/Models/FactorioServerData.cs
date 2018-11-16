@@ -1,8 +1,10 @@
 ﻿using DSharpPlus;
 using FactorioWrapperInterface;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace FactorioWebInterface.Models
 {
@@ -30,6 +32,8 @@ namespace FactorioWebInterface.Models
         public SemaphoreSlim ServerLock { get; set; }
         public RingBuffer<MessageData> ControlMessageBuffer { get; set; }
         public FactorioServerSettings ServerSettings { get; set; }
+
+        public Func<Task> StopCallback { get; set; }
 
         public static Dictionary<string, FactorioServerData> Servers { get; }
 
