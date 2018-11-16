@@ -112,6 +112,20 @@ namespace FactorioWebInterface.Hubs
             return Task.FromResult(error);
         }
 
+        public Task<Result> StartScenario(string scenarioName)
+        {
+            string connectionId = Context.ConnectionId;
+            if (Context.Items.TryGetValue(connectionId, out object serverId))
+            {
+                string name = Context.User.Identity.Name;
+                string id = (string)serverId;
+                return _factorioServerManager.StartScenario(id, scenarioName, name);
+            }
+
+            var error = Result.Failure(Constants.ServerIdErrorKey, $"The server id for the connection is invalid.");
+            return Task.FromResult(error);
+        }
+
         public Task<Result> Stop()
         {
             string connectionId = Context.ConnectionId;
@@ -266,7 +280,7 @@ namespace FactorioWebInterface.Hubs
             {
                 string name = Context.User.Identity.Name;
                 string id = (string)serverId;
-                return await _factorioServerManager.Install(id, name, "latest");                
+                return await _factorioServerManager.Install(id, name, "latest");
             }
             var error = Result.Failure(Constants.ServerIdErrorKey, $"The server id for the connection is invalid.");
             return error;

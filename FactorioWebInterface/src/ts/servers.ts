@@ -61,7 +61,8 @@ const btnSend: HTMLButtonElement = document.querySelector("#btnSend");
 const serverName = document.getElementById('serverName') as HTMLHeadingElement;
 const serverIdInput: HTMLInputElement = document.getElementById('serverIdInput') as HTMLInputElement;
 const resumeButton: HTMLButtonElement = document.getElementById('resumeButton') as HTMLButtonElement;
-const LoadButton: HTMLButtonElement = document.getElementById('loadButton') as HTMLButtonElement;
+const loadButton: HTMLButtonElement = document.getElementById('loadButton') as HTMLButtonElement;
+const startScenarioButton: HTMLButtonElement = document.getElementById('startScenarioButton') as HTMLButtonElement;
 const stopButton: HTMLButtonElement = document.getElementById('stopButton') as HTMLButtonElement;
 const saveButton: HTMLButtonElement = document.getElementById('saveButton') as HTMLButtonElement;
 const updateButton: HTMLButtonElement = document.getElementById('updateButton') as HTMLButtonElement;
@@ -198,7 +199,7 @@ resumeButton.onclick = () => {
         .then((result) => console.log("resumed:" + result));
 }
 
-LoadButton.onclick = () => {
+loadButton.onclick = () => {
     let checkboxes = document.querySelectorAll('input[name="fileCheckbox"]:checked');
 
     if (checkboxes.length != 1) {
@@ -215,6 +216,24 @@ LoadButton.onclick = () => {
     connection.invoke("Load", filePath)
         .then((result) => {
             console.log("loaded:");
+            console.log(result);
+        });
+}
+
+startScenarioButton.onclick = () => {
+    let checkboxes = document.querySelectorAll('input[name="scenarioCheckbox"]:checked');
+
+    if (checkboxes.length != 1) {
+        alert('Select one scenario to start.');
+        return;
+    }
+
+    let checkbox = checkboxes[0];    
+    let name = checkbox.getAttribute('data-name');
+
+    connection.invoke("StartScenario", name)
+        .then((result) => {
+            console.log("scenario loaded:");
             console.log(result);
         });
 }
@@ -351,7 +370,7 @@ function buildScenarioTable(table: HTMLTableElement, scenarios: ScenarioMetaData
         let cell = document.createElement('td');
         let checkbox = document.createElement('input') as HTMLInputElement;
         checkbox.type = 'checkbox';
-        checkbox.name = 'fileCheckbox';
+        checkbox.name = 'scenarioCheckbox';
         checkbox.setAttribute('data-name', scenario.name);
         cell.appendChild(checkbox);
         row.appendChild(cell);

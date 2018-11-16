@@ -11,6 +11,7 @@ namespace FactorioWebInterface.Models
     {
         Task<Result> Resume(string serverId, string userName);
         Task<Result> Load(string serverId, string saveFilePath, string userName);
+        Task<Result> StartScenario(string serverId, string scenarioName, string userName);
         Task<Result> Stop(string serverId, string userName);
         Task<Result> ForceStop(string serverId, string userName);
         Task<FactorioServerStatus> GetStatus(string serverId);

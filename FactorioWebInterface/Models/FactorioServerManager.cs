@@ -328,7 +328,7 @@ namespace FactorioWebInterface.Models
             }
         }
 
-        public async Task<Result> LoadScenario(string serverId, string scenarioName, string userName)
+        public async Task<Result> StartScenario(string serverId, string scenarioName, string userName)
         {
             if (!servers.TryGetValue(serverId, out var serverData))
             {
@@ -348,7 +348,13 @@ namespace FactorioWebInterface.Models
                     case FactorioServerStatus.Crashed:
                     case FactorioServerStatus.Updated:
 
-                        string scenarioPath = Path.Combine(FactorioServerData.ScenarioDirectoryPath, scenarioName);
+                        string scenarioNameSafe = Path.GetFileName(scenarioName);
+                        string scenarioPath = Path.Combine(FactorioServerData.ScenarioDirectoryPath, scenarioNameSafe);
+                        scenarioPath = Path.GetFullPath(scenarioPath);
+                        if (!scenarioPath.StartsWith(FactorioServerData.ScenarioDirectoryPath))
+                        {
+                            return Result.Failure(Constants.MissingFileErrorKey, $"Scenario {scenarioName} not found.");
+                        }
 
                         var scenarioDir = new DirectoryInfo(scenarioPath);
                         if (!scenarioDir.Exists)
@@ -358,17 +364,23 @@ namespace FactorioWebInterface.Models
 
                         string basePath = serverData.BaseDirectoryPath;
 
+                        // For some reason Facotrio always takes scenarios relative to the scenario directory local to each Factorio instance
+                        // even if you provide an absolute path.
+                        // To trick Facotrio into taking scenarios from the shared scenario directory we provide a relative path from the local
+                        // scenario directory.                        
+                        string scenarioPathFromShared = Path.Combine("/../../", Constants.ScenarioDirectoryName, scenarioNameSafe);
+
                         var startInfo = new ProcessStartInfo
                         {
 #if WINDOWS
                             FileName = "C:/Program Files/dotnet/dotnet.exe",
-                            Arguments = $"C:/Projects/FactorioWebInterface/FactorioWrapper/bin/Windows/netcoreapp2.1/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio.exe --start-server-load-scenario {scenarioName} --server-settings {basePath}/server-settings.json --port {serverData.Port}",
+                            Arguments = $"C:/Projects/FactorioWebInterface/FactorioWrapper/bin/Windows/netcoreapp2.1/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio.exe --start-server-load-scenario {scenarioPathFromShared} --server-settings {basePath}/server-settings.json --port {serverData.Port}",
 #elif WSL
                             FileName = "/usr/bin/dotnet",
-                            Arguments = $"/mnt/c/Projects/FactorioWebInterface/FactorioWrapper/bin/Wsl/netcoreapp2.1/publish/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-scenario {scenarioName} --server-settings {basePath}/server-settings.json --port {serverData.Port}",
+                            Arguments = $"/mnt/c/Projects/FactorioWebInterface/FactorioWrapper/bin/Wsl/netcoreapp2.1/publish/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-scenario {scenarioPathFromShared} --server-settings {basePath}/server-settings.json --port {serverData.Port}",
 #else
                             FileName = "/usr/bin/dotnet",
-                            Arguments = $"/factorio/factorioWrapper/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-scenario {scenarioName} --server-settings {basePath}/server-settings.json --port {serverData.Port}",
+                            Arguments = $"/factorio/factorioWrapper/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-scenario {scenarioPathFromShared} --server-settings {basePath}/server-settings.json --port {serverData.Port}",
 #endif
                             UseShellExecute = false,
                             CreateNoWindow = true
@@ -1274,8 +1286,6 @@ namespace FactorioWebInterface.Models
             return GetFilesMetaData(path, Constants.GlobalSavesDirectoryName);
         }
 
-
-
         private bool IsSaveDirectory(string dirName)
         {
             switch (dirName)
@@ -1295,7 +1305,13 @@ namespace FactorioWebInterface.Models
             {
                 if (FactorioServerData.ValidSaveDirectories.Contains(dirName))
                 {
-                    var dir = new DirectoryInfo(Path.Combine(FactorioServerData.baseDirectoryPath, dirName));
+                    var dirPath = Path.Combine(FactorioServerData.baseDirectoryPath, dirName);
+                    dirPath = Path.GetFullPath(dirPath);
+
+                    if (!dirPath.StartsWith(FactorioServerData.baseDirectoryPath))
+                        return null;
+
+                    var dir = new DirectoryInfo(dirPath);
                     if (!dir.Exists)
                     {
                         dir.Create();
@@ -1314,6 +1330,20 @@ namespace FactorioWebInterface.Models
             }
         }
 
+        private string SafeFilePath(string dirPath, string fileName)
+        {
+            fileName = Path.GetFileName(fileName);
+            string path = Path.Combine(dirPath, fileName);
+            path = Path.GetFullPath(path);
+
+            if (!path.StartsWith(FactorioServerData.baseDirectoryPath))
+            {
+                return null;
+            }
+
+            return path;
+        }
+
         public FileInfo GetFile(string directoryName, string fileName)
         {
             var directory = GetSaveDirectory(directoryName);
@@ -1323,7 +1353,11 @@ namespace FactorioWebInterface.Models
                 return null;
             }
 
-            string path = Path.Combine(directory.FullName, fileName);
+            string path = SafeFilePath(directory.FullName, fileName);
+            if (path == null)
+            {
+                return null;
+            }
 
             try
             {
@@ -1357,7 +1391,12 @@ namespace FactorioWebInterface.Models
 
             foreach (var file in files)
             {
-                string path = Path.Combine(directory.FullName, file.FileName);
+                string path = SafeFilePath(directory.FullName, file.FileName);
+                if (path == null)
+                {
+                    errors.Add(new Error(Constants.FileErrorKey, $"Error uploading {file.FileName}."));
+                    continue;
+                }
 
                 try
                 {
@@ -1407,12 +1446,16 @@ namespace FactorioWebInterface.Models
                     continue;
                 }
 
-                string fileName = Path.GetFileName(filePath);
-                string fullPath = Path.Combine(dir.FullName, fileName);
+                string path = SafeFilePath(dir.FullName, filePath);
+                if (path == null)
+                {
+                    errors.Add(new Error(Constants.FileErrorKey, $"Error deleting {filePath}."));
+                    continue;
+                }
 
                 try
                 {
-                    var fi = new FileInfo(fullPath);
+                    var fi = new FileInfo(path);
 
                     if (!fi.Exists)
                     {
@@ -1462,8 +1505,12 @@ namespace FactorioWebInterface.Models
                     continue;
                 }
 
-                string sourceFileName = Path.GetFileName(filePath);
-                string sourceFullPath = Path.Combine(sourceDir.FullName, sourceFileName);
+                string sourceFullPath = SafeFilePath(sourceDir.FullName, filePath);
+                if (sourceFullPath == null)
+                {
+                    errors.Add(new Error(Constants.FileErrorKey, $"Error moveing {filePath}."));
+                    continue;
+                }
 
                 try
                 {
@@ -1527,8 +1574,12 @@ namespace FactorioWebInterface.Models
                     continue;
                 }
 
-                string sourceFileName = Path.GetFileName(filePath);
-                string sourceFullPath = Path.Combine(sourceDir.FullName, sourceFileName);
+                string sourceFullPath = SafeFilePath(sourceDir.FullName, filePath);
+                if (sourceFullPath == null)
+                {
+                    errors.Add(new Error(Constants.FileErrorKey, $"Error coppying {filePath}."));
+                    continue;
+                }
 
                 try
                 {

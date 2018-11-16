@@ -2727,7 +2727,8 @@ const btnSend = document.querySelector("#btnSend");
 const serverName = document.getElementById('serverName');
 const serverIdInput = document.getElementById('serverIdInput');
 const resumeButton = document.getElementById('resumeButton');
-const LoadButton = document.getElementById('loadButton');
+const loadButton = document.getElementById('loadButton');
+const startScenarioButton = document.getElementById('startScenarioButton');
 const stopButton = document.getElementById('stopButton');
 const saveButton = document.getElementById('saveButton');
 const updateButton = document.getElementById('updateButton');
@@ -2841,7 +2842,7 @@ resumeButton.onclick = () => {
     connection.invoke("Resume")
         .then((result) => console.log("resumed:" + result));
 };
-LoadButton.onclick = () => {
+loadButton.onclick = () => {
     let checkboxes = document.querySelectorAll('input[name="fileCheckbox"]:checked');
     if (checkboxes.length != 1) {
         alert('Select one file to load.');
@@ -2854,6 +2855,20 @@ LoadButton.onclick = () => {
     connection.invoke("Load", filePath)
         .then((result) => {
         console.log("loaded:");
+        console.log(result);
+    });
+};
+startScenarioButton.onclick = () => {
+    let checkboxes = document.querySelectorAll('input[name="scenarioCheckbox"]:checked');
+    if (checkboxes.length != 1) {
+        alert('Select one scenario to start.');
+        return;
+    }
+    let checkbox = checkboxes[0];
+    let name = checkbox.getAttribute('data-name');
+    connection.invoke("StartScenario", name)
+        .then((result) => {
+        console.log("scenario loaded:");
         console.log(result);
     });
 };
@@ -2968,7 +2983,7 @@ function buildScenarioTable(table, scenarios) {
         let cell = document.createElement('td');
         let checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
-        checkbox.name = 'fileCheckbox';
+        checkbox.name = 'scenarioCheckbox';
         checkbox.setAttribute('data-name', scenario.name);
         cell.appendChild(checkbox);
         row.appendChild(cell);

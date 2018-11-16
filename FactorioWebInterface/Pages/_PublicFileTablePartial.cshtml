@@ -17,7 +17,7 @@
 
                 foreach (var file in Model)
                 {
-                    string path = $"/Saves?directory={file.Directory}&file={file.Name}";
+                    string path = $"/saves?directory={file.Directory}&file={file.Name}";
 
                     <tr>
                         <td><a href="@path">@file.Name</a></td>
