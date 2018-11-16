@@ -18,7 +18,7 @@
         public const string TempSavesDirectoryName = "saves";
         public const string LocalSavesDirectoryName = "local_saves";
         public const string GlobalSavesDirectoryName = "global_saves";
-
+        public const string ScenarioDirectoryName = "scenarios";
 
         public const string WindowsPublicStartSavesDirectoryName = "public\\start";
         public const string WindowsPublicFinalSavesDirectoryName = "public\\final";
@@ -47,6 +47,7 @@
         public const string RegularPromoteTag = "[REGULAR-PROMOTE]";
         public const string RegularDemoteTag = "[REGULAR-DEOMOTE]";
         public const string DonatorSetTag = "[DONATOR-SET]";
+        public const string StartScenarioTag = "[START-SCENARIO]";
 
         public const string UnexpctedErrorKey = "unexpectedError";
         public const string ServerIdErrorKey = "serverId";

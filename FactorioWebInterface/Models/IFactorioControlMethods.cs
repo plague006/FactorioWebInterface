@@ -29,6 +29,7 @@ namespace FactorioWebInterface.Models
         Task<FactorioContorlClientData> SetServerId(string serverId);
         Task<Result> Resume();
         Task<Result> Load(string saveFilePath);
+        Task<Result> StartScenario(string scenarioName);
         Task<Result> Stop();
         Task<Result> ForceStop();
         Task GetStatus();
@@ -37,6 +38,7 @@ namespace FactorioWebInterface.Models
         Task<FileMetaData[]> GetTempSaveFiles();
         Task<FileMetaData[]> GetLocalSaveFiles();
         Task<FileMetaData[]> GetGlobalSaveFiles();
+        Task<ScenarioMetaData[]> GetScenarios();
         Task<Result> DeleteFiles(List<string> files);
         Task<Result> MoveFiles(string destination, List<string> filePaths);
         Task<Result> CopyFiles(string destination, List<string> filePaths);

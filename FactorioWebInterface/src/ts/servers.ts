@@ -22,6 +22,12 @@ interface FileMetaData {
     size: number;
 }
 
+interface ScenarioMetaData {
+    name: string;
+    createdTime: string;
+    lastModifiedTime: string;
+}
+
 interface FactorioContorlClientData {
     status: string;
     messages: MessageData[];
@@ -55,7 +61,8 @@ const btnSend: HTMLButtonElement = document.querySelector("#btnSend");
 const serverName = document.getElementById('serverName') as HTMLHeadingElement;
 const serverIdInput: HTMLInputElement = document.getElementById('serverIdInput') as HTMLInputElement;
 const resumeButton: HTMLButtonElement = document.getElementById('resumeButton') as HTMLButtonElement;
-const LoadButton: HTMLButtonElement = document.getElementById('loadButton') as HTMLButtonElement;
+const loadButton: HTMLButtonElement = document.getElementById('loadButton') as HTMLButtonElement;
+const startScenarioButton: HTMLButtonElement = document.getElementById('startScenarioButton') as HTMLButtonElement;
 const stopButton: HTMLButtonElement = document.getElementById('stopButton') as HTMLButtonElement;
 const saveButton: HTMLButtonElement = document.getElementById('saveButton') as HTMLButtonElement;
 const updateButton: HTMLButtonElement = document.getElementById('updateButton') as HTMLButtonElement;
@@ -66,6 +73,7 @@ const statusText: HTMLInputElement = document.getElementById('statusText') as HT
 const tempSaveFilesTable: HTMLTableElement = document.getElementById('tempSaveFilesTable') as HTMLTableElement;
 const localSaveFilesTable: HTMLTableElement = document.getElementById('localSaveFilesTable') as HTMLTableElement;
 const globalSaveFilesTable: HTMLTableElement = document.getElementById('globalSaveFilesTable') as HTMLTableElement;
+const scenarioTable: HTMLTableElement = document.getElementById('scenarioTable') as HTMLTableElement;
 
 // XSRF/CSRF token, see https://docs.microsoft.com/en-us/aspnet/core/security/anti-request-forgery?view=aspnetcore-2.1
 let requestVerificationToken = (document.querySelector('input[name="__RequestVerificationToken"][type="hidden"]') as HTMLInputElement).value
@@ -104,6 +112,11 @@ async function getFiles() {
 
     let globalFiles = await connection.invoke('GetGlobalSaveFiles') as FileMetaData[];
     buildFileTable(globalSaveFilesTable, globalFiles);
+}
+
+async function getScenarios() {
+    let scenarios = await connection.invoke('GetScenarios') as ScenarioMetaData[];
+    buildScenarioTable(scenarioTable, scenarios);
 }
 
 function MakeTagInput(value: string) {
@@ -146,6 +159,7 @@ async function init() {
         let data = await connection.invoke('SetServerId', serverIdInput.value) as FactorioContorlClientData;
 
         getFiles();
+        getScenarios();
         getSettings();
 
         statusText.value = data.status;
@@ -185,7 +199,7 @@ resumeButton.onclick = () => {
         .then((result) => console.log("resumed:" + result));
 }
 
-LoadButton.onclick = () => {
+loadButton.onclick = () => {
     let checkboxes = document.querySelectorAll('input[name="fileCheckbox"]:checked');
 
     if (checkboxes.length != 1) {
@@ -202,6 +216,24 @@ LoadButton.onclick = () => {
     connection.invoke("Load", filePath)
         .then((result) => {
             console.log("loaded:");
+            console.log(result);
+        });
+}
+
+startScenarioButton.onclick = () => {
+    let checkboxes = document.querySelectorAll('input[name="scenarioCheckbox"]:checked');
+
+    if (checkboxes.length != 1) {
+        alert('Select one scenario to start.');
+        return;
+    }
+
+    let checkbox = checkboxes[0];    
+    let name = checkbox.getAttribute('data-name');
+
+    connection.invoke("StartScenario", name)
+        .then((result) => {
+            console.log("scenario loaded:");
             console.log(result);
         });
 }
@@ -285,7 +317,7 @@ function writeMessage(message: MessageData): void {
 const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
 function bytesToSize(bytes: number) {
     // https://gist.github.com/lanqy/5193417
-    
+
     if (bytes === 0)
         return 'n/a';
     const i = Math.floor(Math.log(bytes) / Math.log(1024));
@@ -322,6 +354,30 @@ function buildFileTable(table: HTMLTableElement, files: FileMetaData[]) {
         createCell(row, formatDate(file.createdTime));
         createCell(row, formatDate(file.lastModifiedTime));
         createCell(row, bytesToSize(file.size));
+
+        body.appendChild(row);
+    }
+}
+
+function buildScenarioTable(table: HTMLTableElement, scenarios: ScenarioMetaData[]) {
+    let body = table.tBodies[0];
+
+    body.innerHTML = "";
+
+    for (let scenario of scenarios) {
+        let row = document.createElement('tr');
+
+        let cell = document.createElement('td');
+        let checkbox = document.createElement('input') as HTMLInputElement;
+        checkbox.type = 'checkbox';
+        checkbox.name = 'scenarioCheckbox';
+        checkbox.setAttribute('data-name', scenario.name);
+        cell.appendChild(checkbox);
+        row.appendChild(cell);
+
+        createCell(row, scenario.name);
+        createCell(row, formatDate(scenario.createdTime));
+        createCell(row, formatDate(scenario.lastModifiedTime));
 
         body.appendChild(row);
     }

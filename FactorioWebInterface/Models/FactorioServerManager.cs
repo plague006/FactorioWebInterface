@@ -328,6 +328,177 @@ namespace FactorioWebInterface.Models
             }
         }
 
+        private Result ValidateSceanrioName(string scenarioName)
+        {
+            string scenarioPath = Path.Combine(FactorioServerData.ScenarioDirectoryPath, scenarioName);
+            scenarioPath = Path.GetFullPath(scenarioPath);
+            if (!scenarioPath.StartsWith(FactorioServerData.ScenarioDirectoryPath))
+            {
+                return Result.Failure(Constants.MissingFileErrorKey, $"Scenario {scenarioName} not found.");
+            }
+
+            var scenarioDir = new DirectoryInfo(scenarioPath);
+            if (!scenarioDir.Exists)
+            {
+                return Result.Failure(Constants.MissingFileErrorKey, $"Scenario {scenarioName} not found.");
+            }
+
+            return Result.OK;
+        }
+
+        private async Task<Result> StartScenarioInner(FactorioServerData serverData, string scenarioName, string userName)
+        {
+            // For some reason Facotrio always takes scenarios relative to the scenario directory local to each Factorio instance
+            // even if you provide an absolute path.
+            // To trick Facotrio into taking scenarios from the shared scenario directory we provide a relative path from the local
+            // scenario directory.                        
+            string scenarioPathFromShared = Path.Combine("/../../", Constants.ScenarioDirectoryName, scenarioName);
+            string basePath = serverData.BaseDirectoryPath;
+            string serverId = serverData.ServerId;
+
+            var startInfo = new ProcessStartInfo
+            {
+#if WINDOWS
+                FileName = "C:/Program Files/dotnet/dotnet.exe",
+                Arguments = $"C:/Projects/FactorioWebInterface/FactorioWrapper/bin/Windows/netcoreapp2.1/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio.exe --start-server-load-scenario {scenarioPathFromShared} --server-settings {basePath}/server-settings.json --port {serverData.Port}",
+#elif WSL
+                            FileName = "/usr/bin/dotnet",
+                            Arguments = $"/mnt/c/Projects/FactorioWebInterface/FactorioWrapper/bin/Wsl/netcoreapp2.1/publish/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-scenario {scenarioPathFromShared} --server-settings {basePath}/server-settings.json --port {serverData.Port}",
+#else
+                            FileName = "/usr/bin/dotnet",
+                            Arguments = $"/factorio/factorioWrapper/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-scenario {scenarioPathFromShared} --server-settings {basePath}/server-settings.json --port {serverData.Port}",
+#endif
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            try
+            {
+                Process.Start(startInfo);
+            }
+            catch (Exception)
+            {
+                _logger.LogError("Error loading scenario serverId: {serverId} file: {file}", serverId, scenarioName);
+                return Result.Failure(Constants.WrapperProcessErrorKey, "Wrapper process failed to start.");
+            }
+
+            _logger.LogInformation("Server load serverId: {serverId} scenario: {scenario} user: {userName}", serverData.ServerId, scenarioName, userName);
+
+            serverData.Status = FactorioServerStatus.WrapperStarting;
+
+            var group = _factorioControlHub.Clients.Group(serverData.ServerId);
+            await group.FactorioStatusChanged(FactorioServerStatus.WrapperStarting.ToString(), serverData.Status.ToString());
+
+            var message = new MessageData()
+            {
+                MessageType = MessageType.Control,
+                Message = $"Server load scenario: {scenarioName} by user: {userName}"
+            };
+
+            serverData.ControlMessageBuffer.Add(message);
+            await group.SendMessage(message);
+
+            return Result.OK;
+        }
+
+        public async Task<Result> StartScenario(string serverId, string scenarioName, string userName)
+        {
+            if (!servers.TryGetValue(serverId, out var serverData))
+            {
+                _logger.LogError("Unknown serverId: {serverId}", serverId);
+                return Result.Failure(Constants.ServerIdErrorKey, $"serverId {serverId} not found.");
+            }
+
+            var result = ValidateSceanrioName(scenarioName);
+            if (!result.Success)
+            {
+                return result;
+            }
+
+            try
+            {
+                await serverData.ServerLock.WaitAsync();
+
+                switch (serverData.Status)
+                {
+                    case FactorioServerStatus.Unknown:
+                    case FactorioServerStatus.Stopped:
+                    case FactorioServerStatus.Killed:
+                    case FactorioServerStatus.Crashed:
+                    case FactorioServerStatus.Updated:
+                        return await StartScenarioInner(serverData, scenarioName, userName);
+                    default:
+                        return Result.Failure(Constants.InvalidServerStateErrorKey, $"Cannot load scenario when server in state {serverData.Status}");
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError("Error loading scenario", e);
+                return Result.Failure(Constants.UnexpctedErrorKey);
+            }
+            finally
+            {
+                serverData.ServerLock.Release();
+            }
+        }
+
+        public async Task<Result> ForceStartScenario(string serverId, string scenarioName, string userName)
+        {
+            if (!servers.TryGetValue(serverId, out var serverData))
+            {
+                _logger.LogError("Unknown serverId: {serverId}", serverId);
+                return Result.Failure(Constants.ServerIdErrorKey, $"serverId {serverId} not found.");
+            }
+
+            var result = ValidateSceanrioName(scenarioName);
+            if (!result.Success)
+            {
+                return result;
+            }
+
+            try
+            {
+                await serverData.ServerLock.WaitAsync();
+
+                switch (serverData.Status)
+                {
+                    case FactorioServerStatus.Unknown:
+                    case FactorioServerStatus.Stopped:
+                    case FactorioServerStatus.Killed:
+                    case FactorioServerStatus.Crashed:
+                    case FactorioServerStatus.Updated:
+                        return await StartScenarioInner(serverData, scenarioName, userName);
+                    case FactorioServerStatus.Running:
+                        serverData.StopCallback = () => StartScenarioInner(serverData, scenarioName, userName);
+
+                        await StopInner(serverId, userName);
+
+                        return Result.OK;
+                    default:
+                        return Result.Failure(Constants.InvalidServerStateErrorKey, $"Cannot force start scenario when server in state {serverData.Status}");
+                }
+            }
+            finally
+            {
+                serverData.ServerLock.Release();
+            }
+        }
+
+        private async Task StopInner(string serverId, string userName)
+        {
+            var message = new MessageData()
+            {
+                MessageType = MessageType.Control,
+                Message = $"Server stopped by user {userName}"
+            };
+
+            _ = SendToFactorioControl(serverId, message);
+
+            await _factorioProcessHub.Clients.Groups(serverId).Stop();            
+
+            _logger.LogInformation("server stopped :serverId {serverId} user: {userName}", serverId, userName);
+        }
+
         public async Task<Result> Stop(string serverId, string userName)
         {
 #if WINDOWS
@@ -349,18 +520,19 @@ namespace FactorioWebInterface.Models
                     break;
                 default:
                     return Result.Failure(Constants.InvalidServerStateErrorKey, $"Cannot stop server when in state {serverData.Status}");
+            }            
+
+            try
+            {
+                await serverData.ServerLock.WaitAsync();
+                serverData.StopCallback = null;
+            }
+            finally
+            {
+                serverData.ServerLock.Release();
             }
 
-            var message = new MessageData()
-            {
-                MessageType = MessageType.Control,
-                Message = $"Server stopped by user {userName}"
-            };
-
-            _ = SendToFactorioControl(serverId, message);
-            await _factorioProcessHub.Clients.Groups(serverId).Stop();
-
-            _logger.LogInformation("server stopped :serverId {serverId} user: {userName}", serverId, userName);
+            await StopInner(serverId, userName);           
 
             return Result.OK;
 #endif
@@ -402,6 +574,8 @@ namespace FactorioWebInterface.Models
                     default:
                         return Result.Failure(Constants.InvalidServerStateErrorKey, $"Cannot force stop server when in state {serverData.Status}");
                 }
+
+                serverData.StopCallback = null;
             }
             finally
             {
@@ -726,7 +900,7 @@ namespace FactorioWebInterface.Models
             }
         }
 
-        public void FactorioDataReceived(string serverId, string data)
+        public async Task FactorioDataReceived(string serverId, string data)
         {
             if (data == null)
             {
@@ -755,39 +929,39 @@ namespace FactorioWebInterface.Models
             {
                 case Constants.ChatTag:
                     content = Formatter.Sanitize(content);
-                    _discordBot.SendToFactorioChannel(serverId, content);
+                    _ = _discordBot.SendToFactorioChannel(serverId, content);
                     break;
                 case Constants.DiscordTag:
                     content = content.Replace("\\n", "\n");
                     content = Formatter.Sanitize(content);
-                    _discordBot.SendToFactorioChannel(serverId, content);
+                    _ = _discordBot.SendToFactorioChannel(serverId, content);
                     break;
                 case Constants.DiscordRawTag:
                     content = content.Replace("\\n", "\n");
-                    _discordBot.SendToFactorioChannel(serverId, content);
+                    _ = _discordBot.SendToFactorioChannel(serverId, content);
                     break;
                 case Constants.DiscordBold:
                     content = content.Replace("\\n", "\n");
                     content = Formatter.Sanitize(content);
                     content = Formatter.Bold(content);
-                    _discordBot.SendToFactorioChannel(serverId, content);
+                    _ = _discordBot.SendToFactorioChannel(serverId, content);
                     break;
                 case Constants.DiscordAdminTag:
                     content = content.Replace("\\n", "\n");
                     content = Formatter.Sanitize(content);
-                    _discordBot.SendToFactorioAdminChannel(content);
+                    _ = _discordBot.SendToFactorioAdminChannel(content);
                     break;
                 case Constants.DiscordAdminRawTag:
                     content = content.Replace("\\n", "\n");
-                    _discordBot.SendToFactorioAdminChannel(content);
+                    _ = _discordBot.SendToFactorioAdminChannel(content);
                     break;
                 case Constants.JoinTag:
                     content = Formatter.Sanitize(content);
-                    _discordBot.SendToFactorioChannel(serverId, "**" + content + "**");
+                    _ = _discordBot.SendToFactorioChannel(serverId, "**" + content + "**");
                     break;
                 case Constants.LeaveTag:
                     content = Formatter.Sanitize(content);
-                    _discordBot.SendToFactorioChannel(serverId, "**" + content + "**");
+                    _ = _discordBot.SendToFactorioChannel(serverId, "**" + content + "**");
                     break;
                 case Constants.DiscordEmbedTag:
                     {
@@ -800,7 +974,7 @@ namespace FactorioWebInterface.Models
                             Color = DiscordBot.infoColor
                         };
 
-                        _discordBot.SendEmbedToFactorioChannel(serverId, embed);
+                        _ = _discordBot.SendEmbedToFactorioChannel(serverId, embed);
                         break;
                     }
                 case Constants.DiscordEmbedRawTag:
@@ -813,7 +987,7 @@ namespace FactorioWebInterface.Models
                             Color = DiscordBot.infoColor
                         };
 
-                        _discordBot.SendEmbedToFactorioChannel(serverId, embed);
+                        _ = _discordBot.SendEmbedToFactorioChannel(serverId, embed);
                         break;
                     }
 
@@ -828,7 +1002,7 @@ namespace FactorioWebInterface.Models
                             Color = DiscordBot.infoColor
                         };
 
-                        _discordBot.SendEmbedToFactorioAdminChannel(embed);
+                        _ = _discordBot.SendEmbedToFactorioAdminChannel(embed);
                         break;
                     }
                 case Constants.DiscordAdminEmbedRawTag:
@@ -841,7 +1015,7 @@ namespace FactorioWebInterface.Models
                             Color = DiscordBot.infoColor
                         };
 
-                        _discordBot.SendEmbedToFactorioAdminChannel(embed);
+                        _ = _discordBot.SendEmbedToFactorioAdminChannel(embed);
                         break;
                     }
                 case Constants.RegularPromoteTag:
@@ -849,6 +1023,15 @@ namespace FactorioWebInterface.Models
                     break;
                 case Constants.RegularDemoteTag:
                     _ = DemoteRegular(serverId, content);
+                    break;
+                case Constants.StartScenarioTag:
+                    var result = await ForceStartScenario(serverId, content, "<server>");
+
+                    if (!result.Success)
+                    {
+                        _ = SendToFactorioProcess(serverId, result.ToString());
+                    }
+
                     break;
                 default:
                     break;
@@ -987,6 +1170,28 @@ namespace FactorioWebInterface.Models
             await t1;
         }
 
+        private async Task DoStoppedCallback(FactorioServerData serverData)
+        {
+            try
+            {
+                await serverData.ServerLock.WaitAsync();
+
+                var callback = serverData.StopCallback;
+                serverData.StopCallback = null;
+
+                if (callback == null)
+                {
+                    return;
+                }
+
+                await callback();
+            }
+            finally
+            {
+                serverData.ServerLock.Release();
+            }
+        }
+
         public async Task StatusChanged(string serverId, FactorioServerStatus newStatus, FactorioServerStatus oldStatus)
         {
             if (!servers.TryGetValue(serverId, out var serverData))
@@ -1013,6 +1218,8 @@ namespace FactorioWebInterface.Models
                     Color = DiscordBot.infoColor
                 };
                 discordTask = _discordBot.SendEmbedToFactorioChannel(serverId, embed);
+
+                await DoStoppedCallback(serverData);
             }
             else if (newStatus == FactorioServerStatus.Crashed)
             {
@@ -1185,8 +1392,6 @@ namespace FactorioWebInterface.Models
             return GetFilesMetaData(path, Constants.GlobalSavesDirectoryName);
         }
 
-
-
         private bool IsSaveDirectory(string dirName)
         {
             switch (dirName)
@@ -1206,7 +1411,13 @@ namespace FactorioWebInterface.Models
             {
                 if (FactorioServerData.ValidSaveDirectories.Contains(dirName))
                 {
-                    var dir = new DirectoryInfo(Path.Combine(FactorioServerData.baseDirectoryPath, dirName));
+                    var dirPath = Path.Combine(FactorioServerData.baseDirectoryPath, dirName);
+                    dirPath = Path.GetFullPath(dirPath);
+
+                    if (!dirPath.StartsWith(FactorioServerData.baseDirectoryPath))
+                        return null;
+
+                    var dir = new DirectoryInfo(dirPath);
                     if (!dir.Exists)
                     {
                         dir.Create();
@@ -1225,6 +1436,20 @@ namespace FactorioWebInterface.Models
             }
         }
 
+        private string SafeFilePath(string dirPath, string fileName)
+        {
+            fileName = Path.GetFileName(fileName);
+            string path = Path.Combine(dirPath, fileName);
+            path = Path.GetFullPath(path);
+
+            if (!path.StartsWith(FactorioServerData.baseDirectoryPath))
+            {
+                return null;
+            }
+
+            return path;
+        }
+
         public FileInfo GetFile(string directoryName, string fileName)
         {
             var directory = GetSaveDirectory(directoryName);
@@ -1234,7 +1459,11 @@ namespace FactorioWebInterface.Models
                 return null;
             }
 
-            string path = Path.Combine(directory.FullName, fileName);
+            string path = SafeFilePath(directory.FullName, fileName);
+            if (path == null)
+            {
+                return null;
+            }
 
             try
             {
@@ -1268,7 +1497,12 @@ namespace FactorioWebInterface.Models
 
             foreach (var file in files)
             {
-                string path = Path.Combine(directory.FullName, file.FileName);
+                string path = SafeFilePath(directory.FullName, file.FileName);
+                if (path == null)
+                {
+                    errors.Add(new Error(Constants.FileErrorKey, $"Error uploading {file.FileName}."));
+                    continue;
+                }
 
                 try
                 {
@@ -1318,12 +1552,16 @@ namespace FactorioWebInterface.Models
                     continue;
                 }
 
-                string fileName = Path.GetFileName(filePath);
-                string fullPath = Path.Combine(dir.FullName, fileName);
+                string path = SafeFilePath(dir.FullName, filePath);
+                if (path == null)
+                {
+                    errors.Add(new Error(Constants.FileErrorKey, $"Error deleting {filePath}."));
+                    continue;
+                }
 
                 try
                 {
-                    var fi = new FileInfo(fullPath);
+                    var fi = new FileInfo(path);
 
                     if (!fi.Exists)
                     {
@@ -1373,8 +1611,12 @@ namespace FactorioWebInterface.Models
                     continue;
                 }
 
-                string sourceFileName = Path.GetFileName(filePath);
-                string sourceFullPath = Path.Combine(sourceDir.FullName, sourceFileName);
+                string sourceFullPath = SafeFilePath(sourceDir.FullName, filePath);
+                if (sourceFullPath == null)
+                {
+                    errors.Add(new Error(Constants.FileErrorKey, $"Error moveing {filePath}."));
+                    continue;
+                }
 
                 try
                 {
@@ -1438,8 +1680,12 @@ namespace FactorioWebInterface.Models
                     continue;
                 }
 
-                string sourceFileName = Path.GetFileName(filePath);
-                string sourceFullPath = Path.Combine(sourceDir.FullName, sourceFileName);
+                string sourceFullPath = SafeFilePath(sourceDir.FullName, filePath);
+                if (sourceFullPath == null)
+                {
+                    errors.Add(new Error(Constants.FileErrorKey, $"Error coppying {filePath}."));
+                    continue;
+                }
 
                 try
                 {
@@ -1479,6 +1725,32 @@ namespace FactorioWebInterface.Models
             else
             {
                 return Result.OK;
+            }
+        }
+
+        public ScenarioMetaData[] GetScenarios()
+        {
+            try
+            {
+                var dir = new DirectoryInfo(FactorioServerData.ScenarioDirectoryPath);
+                if (!dir.Exists)
+                {
+                    dir.Create();
+                }
+
+                return dir.EnumerateDirectories().Select(d =>
+                    new ScenarioMetaData()
+                    {
+                        Name = d.Name,
+                        CreatedTime = d.CreationTimeUtc,
+                        LastModifiedTime = d.LastWriteTimeUtc
+                    }
+                ).ToArray();
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e.ToString());
+                return new ScenarioMetaData[0];
             }
         }
 

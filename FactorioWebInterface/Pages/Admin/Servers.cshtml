@@ -45,6 +45,7 @@
 
                     <button id="resumeButton" class="btn btn-success col-md-2"><span class="glyphicon glyphicon-play"></span> Resume</button>
                     <button id="loadButton" class="btn btn-success col-md-2"><span class="glyphicon glyphicon-play"></span> Load</button>
+                    <button id="startScenarioButton" class="btn btn-success col-md-2"><span class="glyphicon glyphicon-play"></span> Start Scenario</button>
                     <button id="saveButton" class="btn btn-success col-md-2"><span class="glyphicon glyphicon-floppy-disk"></span> Save </button>
                     <button id="updateButton" class="btn btn-danger col-md-2"><span class="glyphicon glyphicon-save"></span> Update </button>
                     <button id="stopButton" class="btn btn-danger col-md-2"><span class="glyphicon glyphicon-stop"></span> Stop</button>
@@ -131,6 +132,23 @@
                 <textarea id="configAdminInput"></textarea>
 
                 <button id="configSaveButton" class="form-label">Save Changes</button>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <h2>Scenarios</h2>
+            <div class="table-responsive">
+                <table id="scenarioTable" class="table table-bordered table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Select</th>
+                            <th>Name</th>
+                            <th>Created Time</th>
+                            <th>Modified Time</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
             </div>
         </div>
 

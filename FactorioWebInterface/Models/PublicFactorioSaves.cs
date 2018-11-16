@@ -23,7 +23,13 @@ namespace FactorioWebInterface.Models
             {
                 if (ValidPublicDirectories.Contains(dirName))
                 {
-                    var dir = new DirectoryInfo(Path.Combine(FactorioServerData.baseDirectoryPath, dirName));
+                    var dirPath = Path.Combine(FactorioServerData.baseDirectoryPath, dirName);
+                    dirPath = Path.GetFullPath(dirPath);
+
+                    if (!dirPath.StartsWith(FactorioServerData.baseDirectoryPath))
+                        return null;
+
+                    var dir = new DirectoryInfo(dirPath);
                     if (!dir.Exists)
                     {
                         dir.Create();
@@ -80,9 +86,24 @@ namespace FactorioWebInterface.Models
                 return null;
             }
 
+            if (Path.GetExtension(fileName) != ".zip")
+            {
+                return null;
+            }
+
+            fileName = Path.GetFileName(fileName);
+
             try
             {
-                var fi = new FileInfo(Path.Combine(dir.FullName, fileName));
+                var filePath = Path.Combine(dir.FullName, fileName);
+                filePath = Path.GetFullPath(filePath);
+
+                if (!filePath.StartsWith(FactorioServerData.basePublicDirectoryPath))
+                {
+                    return null;
+                }
+
+                var fi = new FileInfo(filePath);
                 if (fi.Exists)
                 {
                     return fi;
