@@ -135,7 +135,7 @@ namespace FactorioWebInterface.Models
         private static string MakeLogFilePath(FactorioServerData serverData, FileInfo file)
         {
             string timeStamp = file.CreationTimeUtc.ToString("yyyyMMddHHmmss");
-            return Path.Combine(serverData.LogsDirectoryPath, $"log{timeStamp}.log");
+            return Path.Combine(serverData.LogsDirectoryPath, $"{Constants.CurrentLogName}{timeStamp}.log");
         }
 
         private void RotateLogs(FactorioServerData serverData)
@@ -1514,24 +1514,24 @@ namespace FactorioWebInterface.Models
                 return null;
             }
 
-            if(file.Extension != ".log")
+            if (file.Extension != ".log")
             {
                 return null;
             }
 
-            if(file.Directory.Name == Constants.LogDirectoryName)
+            if (file.Directory.Name == Constants.LogDirectoryName)
             {
                 return file;
             }
-            else if(file.Name == Constants.CurrentLogName)
+            else if (file.Name == Constants.CurrentLogFileName)
             {
                 return file;
             }
             else
             {
                 return null;
-            }            
-        }        
+            }
+        }
 
         private bool IsSaveDirectory(string dirName)
         {

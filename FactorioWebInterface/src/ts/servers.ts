@@ -106,13 +106,13 @@ const connection = new signalR.HubConnectionBuilder()
 
 async function getFiles() {
     let tempFiles = await connection.invoke('GetTempSaveFiles') as FileMetaData[];
-    buildFileTable(tempSaveFilesTable, tempFiles);
+    buildFileTable(tempSaveFilesTable, tempFiles, 'file');
 
     let localFiles = await connection.invoke('GetLocalSaveFiles') as FileMetaData[];
-    buildFileTable(localSaveFilesTable, localFiles);
+    buildFileTable(localSaveFilesTable, localFiles, 'file');
 
     let globalFiles = await connection.invoke('GetGlobalSaveFiles') as FileMetaData[];
-    buildFileTable(globalSaveFilesTable, globalFiles);
+    buildFileTable(globalSaveFilesTable, globalFiles, 'file');
 }
 
 async function getScenarios() {
@@ -122,7 +122,7 @@ async function getScenarios() {
 
 async function getLogs() {
     let logs = await connection.invoke('GetLogFiles') as FileMetaData[];
-    buildLogFileTable(logsFileTable, logs);
+    buildFileTable(logsFileTable, logs, 'logFile');
 }
 
 function MakeTagInput(value: string) {
@@ -334,7 +334,7 @@ function bytesToSize(bytes: number) {
         return `${(bytes / (1024 ** i)).toFixed(1)} ${sizes[i]}`;
 }
 
-function buildFileTable(table: HTMLTableElement, files: FileMetaData[]) {
+function buildFileTable(table: HTMLTableElement, files: FileMetaData[], handler: string) {
     let body = table.tBodies[0];
 
     body.innerHTML = "";
@@ -354,39 +354,7 @@ function buildFileTable(table: HTMLTableElement, files: FileMetaData[]) {
         let cell2 = document.createElement('td');
         let link = document.createElement('a') as HTMLAnchorElement;
         link.innerText = file.name;
-        link.href = `/admin/servers?handler=file&directory=${file.directory}&name=${file.name}`;
-        cell2.appendChild(link);
-        row.appendChild(cell2);
-
-        createCell(row, formatDate(file.createdTime));
-        createCell(row, formatDate(file.lastModifiedTime));
-        createCell(row, bytesToSize(file.size));
-
-        body.appendChild(row);
-    }
-}
-
-function buildLogFileTable(table: HTMLTableElement, files: FileMetaData[]) {
-    let body = table.tBodies[0];
-
-    body.innerHTML = "";
-
-    for (let file of files) {
-        let row = document.createElement('tr');
-
-        let cell = document.createElement('td');
-        let checkbox = document.createElement('input') as HTMLInputElement;
-        checkbox.type = 'checkbox';
-        checkbox.name = 'fileCheckbox';
-        checkbox.setAttribute('data-directory', file.directory);
-        checkbox.setAttribute('data-name', file.name);
-        cell.appendChild(checkbox);
-        row.appendChild(cell);
-
-        let cell2 = document.createElement('td');
-        let link = document.createElement('a') as HTMLAnchorElement;
-        link.innerText = file.name;
-        link.href = `/admin/servers?handler=logFile&directory=${file.directory}&name=${file.name}`;
+        link.href = `/admin/servers?handler=${handler}&directory=${file.directory}&name=${file.name}`;
         cell2.appendChild(link);
         row.appendChild(cell2);
 

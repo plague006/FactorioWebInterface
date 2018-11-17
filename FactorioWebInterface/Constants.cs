@@ -20,7 +20,8 @@
         public const string GlobalSavesDirectoryName = "global_saves";
         public const string ScenarioDirectoryName = "scenarios";
         public const string LogDirectoryName = "logs";
-        public const string CurrentLogName = "factorio-current.log";
+        public const string CurrentLogName = "factorio-current";
+        public const string CurrentLogFileName = "factorio-current.log";
 
         public const string WindowsPublicStartSavesDirectoryName = "public\\start";
         public const string WindowsPublicFinalSavesDirectoryName = "public\\final";
