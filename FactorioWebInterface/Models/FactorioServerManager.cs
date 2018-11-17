@@ -356,17 +356,23 @@ namespace FactorioWebInterface.Models
             string basePath = serverData.BaseDirectoryPath;
             string serverId = serverData.ServerId;
 
+            var dir = new DirectoryInfo(serverData.LocalScenarioDirectoryPath);
+            if (!dir.Exists)
+            {
+                dir.Create();
+            }
+
             var startInfo = new ProcessStartInfo
             {
 #if WINDOWS
                 FileName = "C:/Program Files/dotnet/dotnet.exe",
                 Arguments = $"C:/Projects/FactorioWebInterface/FactorioWrapper/bin/Windows/netcoreapp2.1/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio.exe --start-server-load-scenario {scenarioPathFromShared} --server-settings {basePath}/server-settings.json --port {serverData.Port}",
 #elif WSL
-                            FileName = "/usr/bin/dotnet",
-                            Arguments = $"/mnt/c/Projects/FactorioWebInterface/FactorioWrapper/bin/Wsl/netcoreapp2.1/publish/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-scenario {scenarioPathFromShared} --server-settings {basePath}/server-settings.json --port {serverData.Port}",
+                FileName = "/usr/bin/dotnet",
+                Arguments = $"/mnt/c/Projects/FactorioWebInterface/FactorioWrapper/bin/Wsl/netcoreapp2.1/publish/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-scenario {scenarioPathFromShared} --server-settings {basePath}/server-settings.json --port {serverData.Port}",
 #else
-                            FileName = "/usr/bin/dotnet",
-                            Arguments = $"/factorio/factorioWrapper/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-scenario {scenarioPathFromShared} --server-settings {basePath}/server-settings.json --port {serverData.Port}",
+                FileName = "/usr/bin/dotnet",
+                Arguments = $"/factorio/factorioWrapper/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-scenario {scenarioPathFromShared} --server-settings {basePath}/server-settings.json --port {serverData.Port}",
 #endif
                 UseShellExecute = false,
                 CreateNoWindow = true
