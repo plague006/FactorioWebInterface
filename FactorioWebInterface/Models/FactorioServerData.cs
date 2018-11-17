@@ -15,6 +15,7 @@ namespace FactorioWebInterface.Models
 
         public static readonly int serverCount = 6;
         public static readonly int bufferSize = 100;
+        public static readonly int maxLogFiles = 3;
 
         public static string GlobalSavesDirectoryPath { get; } = Path.GetFullPath(Path.Combine(baseDirectoryPath, Constants.GlobalSavesDirectoryName));
         public static string ScenarioDirectoryPath { get; } = Path.GetFullPath(Path.Combine(baseDirectoryPath, Constants.ScenarioDirectoryName));
@@ -27,6 +28,8 @@ namespace FactorioWebInterface.Models
         public string TempSavesDirectoryPath { get; set; }
         public string LocalSavesDirectoroyPath { get; set; }
         public string LocalScenarioDirectoryPath { get; set; }
+        public string LogsDirectoryPath { get; set; }
+        public string CurrentLogPath { get; set; }
         public string ServerSettingsPath { get; set; }
         public string Port { get; set; }
         public SemaphoreSlim ServerLock { get; set; }
@@ -64,6 +67,8 @@ namespace FactorioWebInterface.Models
                     LocalSavesDirectoroyPath = Path.Combine(basePath, Constants.LocalSavesDirectoryName),
                     ServerSettingsPath = Path.Combine(basePath, Constants.ServerSettingsFileName),
                     LocalScenarioDirectoryPath = Path.Combine(basePath, Constants.ScenarioDirectoryName),
+                    LogsDirectoryPath = Path.Combine(basePath, Constants.LogDirectoryName),
+                    CurrentLogPath = Path.Combine(basePath, Constants.CurrentLogName),
                     Port = port,
                     ServerLock = new SemaphoreSlim(1, 1),
                     ControlMessageBuffer = new RingBuffer<MessageData>(bufferSize)

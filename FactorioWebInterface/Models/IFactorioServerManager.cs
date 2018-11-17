@@ -30,7 +30,9 @@ namespace FactorioWebInterface.Models
         FileMetaData[] GetTempSaveFiles(string serverId);
         FileMetaData[] GetGlobalSaveFiles();
         ScenarioMetaData[] GetScenarios();
-        FileInfo GetFile(string directory, string fileName);        
+        List<FileMetaData> GetLogs(string serverId);
+        FileInfo GetLogFile(string directoryName, string fileName);
+        FileInfo GetFile(string directory, string fileName);
         Task<Result> UploadFiles(string directory, IList<IFormFile> files);
         Result DeleteFiles(List<string> filePaths);
         Result MoveFiles(string destination, List<string> filePaths);

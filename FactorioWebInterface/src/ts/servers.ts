@@ -74,6 +74,7 @@ const tempSaveFilesTable: HTMLTableElement = document.getElementById('tempSaveFi
 const localSaveFilesTable: HTMLTableElement = document.getElementById('localSaveFilesTable') as HTMLTableElement;
 const globalSaveFilesTable: HTMLTableElement = document.getElementById('globalSaveFilesTable') as HTMLTableElement;
 const scenarioTable: HTMLTableElement = document.getElementById('scenarioTable') as HTMLTableElement;
+const logsFileTable: HTMLTableElement = document.getElementById('logsFileTable') as HTMLTableElement;
 
 // XSRF/CSRF token, see https://docs.microsoft.com/en-us/aspnet/core/security/anti-request-forgery?view=aspnetcore-2.1
 let requestVerificationToken = (document.querySelector('input[name="__RequestVerificationToken"][type="hidden"]') as HTMLInputElement).value
@@ -119,6 +120,11 @@ async function getScenarios() {
     buildScenarioTable(scenarioTable, scenarios);
 }
 
+async function getLogs() {
+    let logs = await connection.invoke('GetLogFiles') as FileMetaData[];
+    buildLogFileTable(logsFileTable, logs);
+}
+
 function MakeTagInput(value: string) {
     let listItem = document.createElement('li');
     let input = document.createElement('input');
@@ -160,6 +166,7 @@ async function init() {
 
         getFiles();
         getScenarios();
+        getLogs();
         getSettings();
 
         statusText.value = data.status;
@@ -228,7 +235,7 @@ startScenarioButton.onclick = () => {
         return;
     }
 
-    let checkbox = checkboxes[0];    
+    let checkbox = checkboxes[0];
     let name = checkbox.getAttribute('data-name');
 
     connection.invoke("StartScenario", name)
@@ -348,6 +355,38 @@ function buildFileTable(table: HTMLTableElement, files: FileMetaData[]) {
         let link = document.createElement('a') as HTMLAnchorElement;
         link.innerText = file.name;
         link.href = `/admin/servers?handler=file&directory=${file.directory}&name=${file.name}`;
+        cell2.appendChild(link);
+        row.appendChild(cell2);
+
+        createCell(row, formatDate(file.createdTime));
+        createCell(row, formatDate(file.lastModifiedTime));
+        createCell(row, bytesToSize(file.size));
+
+        body.appendChild(row);
+    }
+}
+
+function buildLogFileTable(table: HTMLTableElement, files: FileMetaData[]) {
+    let body = table.tBodies[0];
+
+    body.innerHTML = "";
+
+    for (let file of files) {
+        let row = document.createElement('tr');
+
+        let cell = document.createElement('td');
+        let checkbox = document.createElement('input') as HTMLInputElement;
+        checkbox.type = 'checkbox';
+        checkbox.name = 'fileCheckbox';
+        checkbox.setAttribute('data-directory', file.directory);
+        checkbox.setAttribute('data-name', file.name);
+        cell.appendChild(checkbox);
+        row.appendChild(cell);
+
+        let cell2 = document.createElement('td');
+        let link = document.createElement('a') as HTMLAnchorElement;
+        link.innerText = file.name;
+        link.href = `/admin/servers?handler=logFile&directory=${file.directory}&name=${file.name}`;
         cell2.appendChild(link);
         row.appendChild(cell2);
 

@@ -15,6 +15,7 @@ namespace FactorioWebInterface.Pages.Admin
         public static readonly FileTableModel tempSaves = new FileTableModel() { Name = "Temp Saves", Id = "tempSaveFilesTable" };
         public static readonly FileTableModel localSaves = new FileTableModel() { Name = "Local Saves", Id = "localSaveFilesTable" };
         public static readonly FileTableModel globalSaves = new FileTableModel() { Name = "Global Saves", Id = "globalSaveFilesTable" };
+        public static readonly FileTableModel logs = new FileTableModel() { Name = "Logs", Id = "logsFileTable" };
 
         private readonly UserManager<ApplicationUser> _userManger;
         private readonly IFactorioServerManager _factorioServerManager;
@@ -69,6 +70,25 @@ namespace FactorioWebInterface.Pages.Admin
             }
 
             return File(file.OpenRead(), "application/zip", file.Name);
+        }
+
+        public async Task<IActionResult> OnGetLogFile(string directory, string name)
+        {
+            var user = await _userManger.GetUserAsync(User);
+
+            if (user == null || user.Suspended)
+            {
+                HttpContext.Session.SetString("returnUrl", "servers/" + Id);
+                return RedirectToPage("signIn");
+            }
+
+            var file = _factorioServerManager.GetLogFile(directory, name);
+            if (file == null)
+            {
+                return BadRequest();
+            }
+
+            return File(file.OpenRead(), "application/text", file.Name);
         }
 
         public async Task<IActionResult> OnPostFileUploadAsync(string directory, List<IFormFile> files)

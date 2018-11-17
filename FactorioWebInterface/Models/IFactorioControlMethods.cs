@@ -39,6 +39,7 @@ namespace FactorioWebInterface.Models
         Task<FileMetaData[]> GetLocalSaveFiles();
         Task<FileMetaData[]> GetGlobalSaveFiles();
         Task<ScenarioMetaData[]> GetScenarios();
+        Task<List<FileMetaData>> GetLogFiles();
         Task<Result> DeleteFiles(List<string> files);
         Task<Result> MoveFiles(string destination, List<string> filePaths);
         Task<Result> CopyFiles(string destination, List<string> filePaths);

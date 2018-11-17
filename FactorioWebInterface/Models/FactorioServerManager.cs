@@ -132,6 +132,56 @@ namespace FactorioWebInterface.Models
             _ = SendToFactorioControl(eventArgs.ServerId, messageData);
         }
 
+        private static string MakeLogFilePath(FactorioServerData serverData, FileInfo file)
+        {
+            string timeStamp = file.CreationTimeUtc.ToString("yyyyMMddHHmmss");
+            return Path.Combine(serverData.LogsDirectoryPath, $"log{timeStamp}.log");
+        }
+
+        private void RotateLogs(FactorioServerData serverData)
+        {
+            try
+            {
+                var dir = new DirectoryInfo(serverData.LogsDirectoryPath);
+                if (!dir.Exists)
+                {
+                    dir.Create();
+                }
+
+                var currentLog = new FileInfo(serverData.CurrentLogPath);
+                if (!currentLog.Exists)
+                {
+                    currentLog.Create();
+                    return;
+                }
+
+                string path = MakeLogFilePath(serverData, currentLog);
+                currentLog.CopyTo(path);
+
+                currentLog.CreationTimeUtc = DateTime.UtcNow;
+
+                var logs = dir.GetFiles("*.log");
+
+                int removeCount = logs.Length - FactorioServerData.maxLogFiles + 1;
+                if (removeCount <= 0)
+                {
+                    return;
+                }
+
+                // sort oldest first.
+                Array.Sort(logs, (a, b) => a.CreationTimeUtc.CompareTo(b.CreationTimeUtc));
+
+                for (int i = 0; i < removeCount && i < logs.Length; i++)
+                {
+                    logs[i].Delete();
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, nameof(RotateLogs));
+            }
+        }
+
         public async Task<Result> Resume(string serverId, string userName)
         {
             if (!servers.TryGetValue(serverId, out var serverData))
@@ -157,6 +207,8 @@ namespace FactorioWebInterface.Models
                         {
                             return Result.Failure(Constants.MissingFileErrorKey, "No file to resume server from.");
                         }
+
+                        RotateLogs(serverData);
 
                         string basePath = serverData.BaseDirectoryPath;
 
@@ -267,6 +319,8 @@ namespace FactorioWebInterface.Models
                                 return Result.Failure(Constants.MissingFileErrorKey, $"File {saveFilePath} not found.");
                         }
 
+                        RotateLogs(serverData);
+
                         string basePath = serverData.BaseDirectoryPath;
 
                         var startInfo = new ProcessStartInfo
@@ -361,6 +415,8 @@ namespace FactorioWebInterface.Models
             {
                 dir.Create();
             }
+
+            RotateLogs(serverData);
 
             var startInfo = new ProcessStartInfo
             {
@@ -500,7 +556,7 @@ namespace FactorioWebInterface.Models
 
             _ = SendToFactorioControl(serverId, message);
 
-            await _factorioProcessHub.Clients.Groups(serverId).Stop();            
+            await _factorioProcessHub.Clients.Groups(serverId).Stop();
 
             _logger.LogInformation("server stopped :serverId {serverId} user: {userName}", serverId, userName);
         }
@@ -526,7 +582,7 @@ namespace FactorioWebInterface.Models
                     break;
                 default:
                     return Result.Failure(Constants.InvalidServerStateErrorKey, $"Cannot stop server when in state {serverData.Status}");
-            }            
+            }
 
             try
             {
@@ -538,7 +594,7 @@ namespace FactorioWebInterface.Models
                 serverData.ServerLock.Release();
             }
 
-            await StopInner(serverId, userName);           
+            await StopInner(serverId, userName);
 
             return Result.OK;
 #endif
@@ -1397,6 +1453,85 @@ namespace FactorioWebInterface.Models
 
             return GetFilesMetaData(path, Constants.GlobalSavesDirectoryName);
         }
+
+        public List<FileMetaData> GetLogs(string serverId)
+        {
+            if (!servers.TryGetValue(serverId, out var serverData))
+            {
+                _logger.LogError("Unknown serverId: {serverId}", serverId);
+                return new List<FileMetaData>();
+            }
+
+            List<FileMetaData> logs = new List<FileMetaData>();
+
+            var currentLog = new FileInfo(serverData.CurrentLogPath);
+            if (currentLog.Exists)
+            {
+                logs.Add(new FileMetaData()
+                {
+                    Name = currentLog.Name,
+                    CreatedTime = currentLog.CreationTimeUtc,
+                    LastModifiedTime = currentLog.LastWriteTimeUtc,
+                    Directory = Path.Combine(serverId),
+                    Size = currentLog.Length
+                });
+            }
+
+            var logsDir = new DirectoryInfo(serverData.LogsDirectoryPath);
+            if (logsDir.Exists)
+            {
+                var logfiles = logsDir.EnumerateFiles("*.log")
+                    .Select(x => new FileMetaData()
+                    {
+                        Name = x.Name,
+                        CreatedTime = x.CreationTimeUtc,
+                        LastModifiedTime = x.LastWriteTimeUtc,
+                        Directory = Path.Combine(serverId, Constants.LogDirectoryName),
+                        Size = x.Length
+                    })
+                    .OrderByDescending(x => x.CreatedTime);
+
+                logs.AddRange(logfiles);
+            }
+
+            return logs;
+        }
+
+        public FileInfo GetLogFile(string directoryName, string fileName)
+        {
+            string safeFileName = Path.GetFileName(fileName);
+            string path = Path.Combine(FactorioServerData.baseDirectoryPath, directoryName, safeFileName);
+            path = Path.GetFullPath(path);
+
+            if (!path.StartsWith(FactorioServerData.baseDirectoryPath))
+            {
+                return null;
+            }
+
+            var file = new FileInfo(path);
+            if (!file.Exists)
+            {
+                return null;
+            }
+
+            if(file.Extension != ".log")
+            {
+                return null;
+            }
+
+            if(file.Directory.Name == Constants.LogDirectoryName)
+            {
+                return file;
+            }
+            else if(file.Name == Constants.CurrentLogName)
+            {
+                return file;
+            }
+            else
+            {
+                return null;
+            }            
+        }        
 
         private bool IsSaveDirectory(string dirName)
         {

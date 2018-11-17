@@ -2739,6 +2739,7 @@ const tempSaveFilesTable = document.getElementById('tempSaveFilesTable');
 const localSaveFilesTable = document.getElementById('localSaveFilesTable');
 const globalSaveFilesTable = document.getElementById('globalSaveFilesTable');
 const scenarioTable = document.getElementById('scenarioTable');
+const logsFileTable = document.getElementById('logsFileTable');
 // XSRF/CSRF token, see https://docs.microsoft.com/en-us/aspnet/core/security/anti-request-forgery?view=aspnetcore-2.1
 let requestVerificationToken = document.querySelector('input[name="__RequestVerificationToken"][type="hidden"]').value;
 const fileUploadInput = document.getElementById('fileUploadInput');
@@ -2778,6 +2779,12 @@ function getScenarios() {
         buildScenarioTable(scenarioTable, scenarios);
     });
 }
+function getLogs() {
+    return __awaiter(this, void 0, void 0, function* () {
+        let logs = yield connection.invoke('GetLogFiles');
+        buildLogFileTable(logsFileTable, logs);
+    });
+}
 function MakeTagInput(value) {
     let listItem = document.createElement('li');
     let input = document.createElement('input');
@@ -2811,6 +2818,7 @@ function init() {
             let data = yield connection.invoke('SetServerId', serverIdInput.value);
             getFiles();
             getScenarios();
+            getLogs();
             getSettings();
             statusText.value = data.status;
             for (let message of data.messages) {
@@ -2967,6 +2975,31 @@ function buildFileTable(table, files) {
         let link = document.createElement('a');
         link.innerText = file.name;
         link.href = `/admin/servers?handler=file&directory=${file.directory}&name=${file.name}`;
+        cell2.appendChild(link);
+        row.appendChild(cell2);
+        createCell(row, formatDate(file.createdTime));
+        createCell(row, formatDate(file.lastModifiedTime));
+        createCell(row, bytesToSize(file.size));
+        body.appendChild(row);
+    }
+}
+function buildLogFileTable(table, files) {
+    let body = table.tBodies[0];
+    body.innerHTML = "";
+    for (let file of files) {
+        let row = document.createElement('tr');
+        let cell = document.createElement('td');
+        let checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.name = 'fileCheckbox';
+        checkbox.setAttribute('data-directory', file.directory);
+        checkbox.setAttribute('data-name', file.name);
+        cell.appendChild(checkbox);
+        row.appendChild(cell);
+        let cell2 = document.createElement('td');
+        let link = document.createElement('a');
+        link.innerText = file.name;
+        link.href = `/admin/servers?handler=logFile&directory=${file.directory}&name=${file.name}`;
         cell2.appendChild(link);
         row.appendChild(cell2);
         createCell(row, formatDate(file.createdTime));

@@ -183,6 +183,19 @@ namespace FactorioWebInterface.Hubs
             return Task.FromResult(_factorioServerManager.GetGlobalSaveFiles());
         }
 
+        public Task<List<FileMetaData>> GetLogFiles()
+        {
+            string connectionId = Context.ConnectionId;
+            if (Context.Items.TryGetValue(connectionId, out object serverId))
+            {
+                string id = (string)serverId;
+                var files = _factorioServerManager.GetLogs(id);
+                return Task.FromResult(files);
+            }
+
+            return Task.FromResult(new List<FileMetaData>());
+        }
+
         public Task<Result> DeleteFiles(List<string> filePaths)
         {
             if (filePaths == null)

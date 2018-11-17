@@ -152,6 +152,10 @@
             </div>
         </div>
 
+        <div class="col-lg-6">
+            @await Html.PartialAsync("_FileTablePartial", ServersModel.logs)
+        </div>
+
         @section Scripts{
             <script type="text/javascript" src="~/js/servers.js"></script>
         }
