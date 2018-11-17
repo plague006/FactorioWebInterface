@@ -106,13 +106,13 @@ const connection = new signalR.HubConnectionBuilder()
 
 async function getFiles() {
     let tempFiles = await connection.invoke('GetTempSaveFiles') as FileMetaData[];
-    buildFileTable(tempSaveFilesTable, tempFiles, 'file');
+    buildFileTable(tempSaveFilesTable, tempFiles);
 
     let localFiles = await connection.invoke('GetLocalSaveFiles') as FileMetaData[];
-    buildFileTable(localSaveFilesTable, localFiles, 'file');
+    buildFileTable(localSaveFilesTable, localFiles);
 
     let globalFiles = await connection.invoke('GetGlobalSaveFiles') as FileMetaData[];
-    buildFileTable(globalSaveFilesTable, globalFiles, 'file');
+    buildFileTable(globalSaveFilesTable, globalFiles);
 }
 
 async function getScenarios() {
@@ -122,7 +122,7 @@ async function getScenarios() {
 
 async function getLogs() {
     let logs = await connection.invoke('GetLogFiles') as FileMetaData[];
-    buildFileTable(logsFileTable, logs, 'logFile');
+    buildLogFileTable(logsFileTable, logs);
 }
 
 function MakeTagInput(value: string) {
@@ -334,7 +334,7 @@ function bytesToSize(bytes: number) {
         return `${(bytes / (1024 ** i)).toFixed(1)} ${sizes[i]}`;
 }
 
-function buildFileTable(table: HTMLTableElement, files: FileMetaData[], handler: string) {
+function buildFileTable(table: HTMLTableElement, files: FileMetaData[]) {
     let body = table.tBodies[0];
 
     body.innerHTML = "";
@@ -354,7 +354,30 @@ function buildFileTable(table: HTMLTableElement, files: FileMetaData[], handler:
         let cell2 = document.createElement('td');
         let link = document.createElement('a') as HTMLAnchorElement;
         link.innerText = file.name;
-        link.href = `/admin/servers?handler=${handler}&directory=${file.directory}&name=${file.name}`;
+        link.href = `/admin/servers?handler=file&directory=${file.directory}&name=${file.name}`;
+        cell2.appendChild(link);
+        row.appendChild(cell2);
+
+        createCell(row, formatDate(file.createdTime));
+        createCell(row, formatDate(file.lastModifiedTime));
+        createCell(row, bytesToSize(file.size));
+
+        body.appendChild(row);
+    }
+}
+
+function buildLogFileTable(table: HTMLTableElement, files: FileMetaData[]) {
+    let body = table.tBodies[0];
+
+    body.innerHTML = "";
+
+    for (let file of files) {
+        let row = document.createElement('tr');
+
+        let cell2 = document.createElement('td');
+        let link = document.createElement('a') as HTMLAnchorElement;
+        link.innerText = file.name;
+        link.href = `/admin/servers?handler=logFile&directory=${file.directory}&name=${file.name}`;
         cell2.appendChild(link);
         row.appendChild(cell2);
 

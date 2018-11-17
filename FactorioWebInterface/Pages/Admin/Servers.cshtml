@@ -153,7 +153,20 @@
         </div>
 
         <div class="col-lg-6">
-            @await Html.PartialAsync("_FileTablePartial", ServersModel.logs)
+            <h2>Logs</h2>
+            <div class="table-responsive">
+                <table id="logsFileTable" class="table table-bordered table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Created Time</th>
+                            <th>Modified Time</th>
+                            <th>Size</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
         </div>
 
         @section Scripts{

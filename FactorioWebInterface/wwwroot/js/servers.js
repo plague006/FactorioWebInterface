@@ -2766,11 +2766,11 @@ const connection = new _aspnet_signalr__WEBPACK_IMPORTED_MODULE_0__["HubConnecti
 function getFiles() {
     return __awaiter(this, void 0, void 0, function* () {
         let tempFiles = yield connection.invoke('GetTempSaveFiles');
-        buildFileTable(tempSaveFilesTable, tempFiles, 'file');
+        buildFileTable(tempSaveFilesTable, tempFiles);
         let localFiles = yield connection.invoke('GetLocalSaveFiles');
-        buildFileTable(localSaveFilesTable, localFiles, 'file');
+        buildFileTable(localSaveFilesTable, localFiles);
         let globalFiles = yield connection.invoke('GetGlobalSaveFiles');
-        buildFileTable(globalSaveFilesTable, globalFiles, 'file');
+        buildFileTable(globalSaveFilesTable, globalFiles);
     });
 }
 function getScenarios() {
@@ -2782,7 +2782,7 @@ function getScenarios() {
 function getLogs() {
     return __awaiter(this, void 0, void 0, function* () {
         let logs = yield connection.invoke('GetLogFiles');
-        buildFileTable(logsFileTable, logs, 'logFile');
+        buildLogFileTable(logsFileTable, logs);
     });
 }
 function MakeTagInput(value) {
@@ -2958,7 +2958,7 @@ function bytesToSize(bytes) {
     else
         return `${(bytes / (Math.pow(1024, i))).toFixed(1)} ${sizes[i]}`;
 }
-function buildFileTable(table, files, handler) {
+function buildFileTable(table, files) {
     let body = table.tBodies[0];
     body.innerHTML = "";
     for (let file of files) {
@@ -2974,7 +2974,24 @@ function buildFileTable(table, files, handler) {
         let cell2 = document.createElement('td');
         let link = document.createElement('a');
         link.innerText = file.name;
-        link.href = `/admin/servers?handler=${handler}&directory=${file.directory}&name=${file.name}`;
+        link.href = `/admin/servers?handler=file&directory=${file.directory}&name=${file.name}`;
+        cell2.appendChild(link);
+        row.appendChild(cell2);
+        createCell(row, formatDate(file.createdTime));
+        createCell(row, formatDate(file.lastModifiedTime));
+        createCell(row, bytesToSize(file.size));
+        body.appendChild(row);
+    }
+}
+function buildLogFileTable(table, files) {
+    let body = table.tBodies[0];
+    body.innerHTML = "";
+    for (let file of files) {
+        let row = document.createElement('tr');
+        let cell2 = document.createElement('td');
+        let link = document.createElement('a');
+        link.innerText = file.name;
+        link.href = `/admin/servers?handler=logFile&directory=${file.directory}&name=${file.name}`;
         cell2.appendChild(link);
         row.appendChild(cell2);
         createCell(row, formatDate(file.createdTime));
