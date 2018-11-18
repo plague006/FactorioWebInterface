@@ -72,14 +72,14 @@ namespace FactorioWebInterface.Hubs
             }
         }
 
-        public Task<Result> Load(string saveFilePath)
+        public Task<Result> Load(string directoryName, string fileName)
         {
             string connectionId = Context.ConnectionId;
             if (Context.Items.TryGetValue(connectionId, out object serverId))
             {
-                string name = Context.User.Identity.Name;
+                string userName = Context.User.Identity.Name;
                 string id = (string)serverId;
-                return _factorioServerManager.Load(id, saveFilePath, name);
+                return _factorioServerManager.Load(id, directoryName, fileName, userName);
             }
 
             var error = Result.Failure(Constants.ServerIdErrorKey, $"The server id for the connection is invalid.");

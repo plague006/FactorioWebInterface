@@ -269,12 +269,18 @@ namespace FactorioWebInterface.Models
             }
         }
 
-        public async Task<Result> Load(string serverId, string saveFilePath, string userName)
+        public async Task<Result> Load(string serverId, string directoryName, string fileName, string userName)
         {
             if (!servers.TryGetValue(serverId, out var serverData))
             {
                 _logger.LogError("Unknown serverId: {serverId}", serverId);
                 return Result.Failure(Constants.ServerIdErrorKey, $"serverId {serverId} not found.");
+            }
+
+            var saveFile = GetSaveFile(directoryName, fileName);
+            if (saveFile == null)
+            {
+                return Result.Failure(Constants.MissingFileErrorKey, $"File {Path.Combine(directoryName, fileName)} not found.");
             }
 
             try
@@ -289,34 +295,17 @@ namespace FactorioWebInterface.Models
                     case FactorioServerStatus.Crashed:
                     case FactorioServerStatus.Updated:
 
-                        string filePath = Path.Combine(FactorioServerData.baseDirectoryPath, saveFilePath);
-
-                        var fi = new FileInfo(filePath);
-                        if (!fi.Exists)
-                        {
-                            return Result.Failure(Constants.MissingFileErrorKey, $"File {saveFilePath} not found.");
-                        }
-
-                        if (fi.Extension != ".zip")
-                        {
-                            return Result.Failure(Constants.InvalidFileTypeErrorKey, $"File {saveFilePath} is not valid save file type.");
-                        }
-
-                        switch (fi.Directory.Name)
+                        switch (saveFile.Directory.Name)
                         {
                             case Constants.GlobalSavesDirectoryName:
                             case Constants.LocalSavesDirectoryName:
-                                string copyToPath = Path.Combine(serverData.TempSavesDirectoryPath, fi.Name);
-
-                                var target = new FileInfo(copyToPath);
-                                await fi.CopyToAsync(target);
-
-                                fi = target;
+                                string copyToPath = Path.Combine(serverData.TempSavesDirectoryPath, saveFile.Name);
+                                saveFile.CopyTo(copyToPath, true);
                                 break;
                             case Constants.TempSavesDirectoryName:
                                 break;
                             default:
-                                return Result.Failure(Constants.MissingFileErrorKey, $"File {saveFilePath} not found.");
+                                return Result.Failure(Constants.UnexpctedErrorKey, $"File {saveFile.FullName}.");
                         }
 
                         RotateLogs(serverData);
@@ -327,13 +316,13 @@ namespace FactorioWebInterface.Models
                         {
 #if WINDOWS
                             FileName = "C:/Program Files/dotnet/dotnet.exe",
-                            Arguments = $"C:/Projects/FactorioWebInterface/FactorioWrapper/bin/Windows/netcoreapp2.1/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio.exe --start-server {fi.FullName} --server-settings {basePath}/server-settings.json --port {serverData.Port}",
+                            Arguments = $"C:/Projects/FactorioWebInterface/FactorioWrapper/bin/Windows/netcoreapp2.1/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio.exe --start-server {saveFile.FullName} --server-settings {basePath}/server-settings.json --port {serverData.Port}",
 #elif WSL
                             FileName = "/usr/bin/dotnet",
-                            Arguments = $"/mnt/c/Projects/FactorioWebInterface/FactorioWrapper/bin/Wsl/netcoreapp2.1/publish/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server {fi.FullName} --server-settings {basePath}/server-settings.json --port {serverData.Port}",
+                            Arguments = $"/mnt/c/Projects/FactorioWebInterface/FactorioWrapper/bin/Wsl/netcoreapp2.1/publish/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server {saveFile.FullName} --server-settings {basePath}/server-settings.json --port {serverData.Port}",
 #else
                             FileName = "/usr/bin/dotnet",
-                            Arguments = $"/factorio/factorioWrapper/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server {fi.FullName} --server-settings {basePath}/server-settings.json --port {serverData.Port}",
+                            Arguments = $"/factorio/factorioWrapper/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server {saveFile.FullName} --server-settings {basePath}/server-settings.json --port {serverData.Port}",
 #endif
                             UseShellExecute = false,
                             CreateNoWindow = true
@@ -345,11 +334,11 @@ namespace FactorioWebInterface.Models
                         }
                         catch (Exception)
                         {
-                            _logger.LogError("Error loading serverId: {serverId} file: {file}", serverId, filePath);
+                            _logger.LogError("Error loading serverId: {serverId} file: {file}", serverId, saveFile.FullName);
                             return Result.Failure(Constants.WrapperProcessErrorKey, "Wrapper process failed to start.");
                         }
 
-                        _logger.LogInformation("Server load serverId: {serverId} file: {file} user: {userName}", serverId, filePath, userName);
+                        _logger.LogInformation("Server load serverId: {serverId} file: {file} user: {userName}", serverId, saveFile.FullName, userName);
 
                         serverData.Status = FactorioServerStatus.WrapperStarting;
 
@@ -359,7 +348,7 @@ namespace FactorioWebInterface.Models
                         var message = new MessageData()
                         {
                             MessageType = MessageType.Control,
-                            Message = $"Server load file: {fi.Name} by user: {userName}"
+                            Message = $"Server load file: {saveFile.Name} by user: {userName}"
                         };
 
                         serverData.ControlMessageBuffer.Add(message);
@@ -1591,7 +1580,7 @@ namespace FactorioWebInterface.Models
             return path;
         }
 
-        public FileInfo GetFile(string directoryName, string fileName)
+        public FileInfo GetSaveFile(string directoryName, string fileName)
         {
             var directory = GetSaveDirectory(directoryName);
 
@@ -1602,6 +1591,11 @@ namespace FactorioWebInterface.Models
 
             string path = SafeFilePath(directory.FullName, fileName);
             if (path == null)
+            {
+                return null;
+            }
+
+            if (Path.GetExtension(fileName) != ".zip")
             {
                 return null;
             }
@@ -1620,7 +1614,7 @@ namespace FactorioWebInterface.Models
             }
             catch (Exception e)
             {
-                _logger.LogError(e, nameof(GetFile));
+                _logger.LogError(e, nameof(GetSaveFile));
                 return null;
             }
         }
@@ -1638,6 +1632,17 @@ namespace FactorioWebInterface.Models
 
             foreach (var file in files)
             {
+                if (string.IsNullOrWhiteSpace(file.FileName))
+                {
+                    errors.Add(new Error(Constants.InvalidFileNameErrorKey, file.FileName ?? ""));
+                    continue;
+                }
+                if (file.FileName.Contains(" "))
+                {
+                    errors.Add(new Error(Constants.InvalidFileNameErrorKey, $"name {file.FileName} cannot contain spaces."));
+                    continue;
+                }
+
                 string path = SafeFilePath(directory.FullName, file.FileName);
                 if (path == null)
                 {
@@ -1895,8 +1900,17 @@ namespace FactorioWebInterface.Models
             }
         }
 
-        public Result RenameFile(string directoryPath, string fileName, string newFileName)
+        public Result RenameFile(string directoryPath, string fileName, string newFileName = "")
         {
+            if (string.IsNullOrWhiteSpace(newFileName))
+            {
+                return Result.Failure(Constants.InvalidFileNameErrorKey, newFileName);
+            }
+            if (newFileName.Contains(" "))
+            {
+                return Result.Failure(Constants.InvalidFileNameErrorKey, $"name { newFileName} cannot contain spaces.");
+            }
+
             var directory = GetSaveDirectory(directoryPath);
 
             if (directory == null)
@@ -2092,6 +2106,15 @@ namespace FactorioWebInterface.Models
 
         public Result DeflateSave(string directoryPath, string fileName, string newFileName = "")
         {
+            if (string.IsNullOrWhiteSpace(newFileName))
+            {
+                return Result.Failure(Constants.InvalidFileNameErrorKey, newFileName);
+            }
+            if (newFileName.Contains(" "))
+            {
+                return Result.Failure(Constants.InvalidFileNameErrorKey, $"name { newFileName} cannot contain spaces.");
+            }
+
             var directory = GetSaveDirectory(directoryPath);
 
             if (directory == null)
@@ -2144,7 +2167,7 @@ namespace FactorioWebInterface.Models
                 fileInfo.CopyTo(newFilePath);
 
                 var deflater = new SaveDeflater();
-                deflater.Deflate(newFilePath);                
+                deflater.Deflate(newFilePath);
 
                 return Result.OK;
             }

@@ -62,7 +62,7 @@ namespace FactorioWebInterface.Pages.Admin
                 return RedirectToPage("signIn");
             }
 
-            var file = _factorioServerManager.GetFile(directory, name);
+            var file = _factorioServerManager.GetSaveFile(directory, name);
             if (file == null)
             {
                 return BadRequest();

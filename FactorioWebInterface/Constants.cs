@@ -60,6 +60,7 @@
         public const string InvalidFileTypeErrorKey = "invalidFileType";
         public const string FileAlreadyExistsErrorKey = "fileAlreadyExists";
         public const string FileErrorKey = "fileError";
+        public const string InvalidFileNameErrorKey = "invalidFileName";
         public const string InvalidDirectoryErrorKey = "invalidDirectory";
         public const string UpdateErrorKey = "updateError";
         public const string NotSupportedErrorKey = "notSupportedError";

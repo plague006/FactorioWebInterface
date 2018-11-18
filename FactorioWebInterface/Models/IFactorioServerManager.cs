@@ -10,7 +10,7 @@ namespace FactorioWebInterface.Models
     public interface IFactorioServerManager
     {
         Task<Result> Resume(string serverId, string userName);
-        Task<Result> Load(string serverId, string saveFilePath, string userName);
+        Task<Result> Load(string serverId, string directoryName, string fileName, string userName);
         Task<Result> StartScenario(string serverId, string scenarioName, string userName);
         Task<Result> Stop(string serverId, string userName);
         Task<Result> ForceStop(string serverId, string userName);
@@ -32,7 +32,7 @@ namespace FactorioWebInterface.Models
         ScenarioMetaData[] GetScenarios();
         List<FileMetaData> GetLogs(string serverId);
         FileInfo GetLogFile(string directoryName, string fileName);
-        FileInfo GetFile(string directory, string fileName);
+        FileInfo GetSaveFile(string directory, string fileName);
         Task<Result> UploadFiles(string directory, IList<IFormFile> files);
         Result DeleteFiles(List<string> filePaths);
         Result MoveFiles(string destination, List<string> filePaths);

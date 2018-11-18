@@ -28,7 +28,7 @@ namespace FactorioWebInterface.Models
     {
         Task<FactorioContorlClientData> SetServerId(string serverId);
         Task<Result> Resume();
-        Task<Result> Load(string saveFilePath);
+        Task<Result> Load(string directoryName, string fileName);
         Task<Result> StartScenario(string scenarioName);
         Task<Result> Stop();
         Task<Result> ForceStop();

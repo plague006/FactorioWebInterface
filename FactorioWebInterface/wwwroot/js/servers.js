@@ -2862,8 +2862,7 @@ loadButton.onclick = () => {
     let checkbox = checkboxes[0];
     let dir = checkbox.getAttribute('data-directory');
     let name = checkbox.getAttribute('data-name');
-    let filePath = `${dir}/${name}`;
-    connection.invoke("Load", filePath)
+    connection.invoke("Load", dir, name)
         .then((result) => {
         console.log("loaded:");
         console.log(result);
@@ -3056,6 +3055,10 @@ fileUploadInput.onchange = function (ev) {
     xhr.onloadend = function (event) {
         fileProgressContiner.hidden = true;
         getFiles();
+        var result = JSON.parse(xhr.responseText);
+        if (!result.success) {
+            alert(JSON.stringify(result.errors));
+        }
     };
     xhr.send(formData);
 };
