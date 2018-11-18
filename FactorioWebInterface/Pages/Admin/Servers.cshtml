@@ -70,14 +70,16 @@
 
             <div class="row">
                 <input id="fileUploadInput" type="file" multiple style="display:none" />
-                <button id="fileUploadButton" class="btn btn-primary">Upload Files</button>
-                <button id="fileDeleteButton" class="btn btn-danger">Delete Files</button>
-                <progress id="fileProgress" hidden max="1"></progress>
+                <button id="fileUploadButton" class="btn btn-primary">Upload Saves</button>
+                <button id="fileDeleteButton" class="btn btn-danger">Delete Saves</button>
+                <span id="fileProgressContiner" hidden>
+                    Uploading<progress id="fileProgress" max="1"></progress>
+                </span>
             </div>
 
             <div class="row">
-                <button id="fileMoveButton" class="btn btn-primary">Move Files</button>
-                <button id="fileCopyButton" class="btn btn-primary">Copy Files</button>
+                <button id="fileMoveButton" class="btn btn-primary">Move Saves</button>
+                <button id="fileCopyButton" class="btn btn-primary">Copy Saves</button>
                 <label> Destination</label>
                 <select id="destinationSelect">
                     <option value="@Constants.GlobalSavesDirectoryName">Global</option>
@@ -95,9 +97,13 @@
             </div>
 
             <div class="row">
-                <button id="fileRenameButton" class="btn btn-primary">Rename File</button>
+                <button id="saveRenameButton" class="btn btn-primary">Rename Save</button>
+                <button id="saveDeflateButton" class="btn btn-primary">Deflate Save</button>
                 <label>New Name:</label>
                 <input id="fileRenameInput" type="text" class="input-zone-input" />
+                <span id="deflateProgress" hidden>
+                    Deflating<progress></progress>
+                </span>
             </div>
 
             @await Html.PartialAsync("_FileTablePartial", ServersModel.tempSaves)

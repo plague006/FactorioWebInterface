@@ -46,6 +46,7 @@ namespace FactorioWebInterface.Models
         Task<Result> RenameFile(string directoryPath, string fileName, string newFileName);
         Task<FactorioServerSettingsWebEditable> GetServerSettings();
         Task<Result> SaveServerSettings(FactorioServerSettingsWebEditable settings);
+        Task<Result> DeflateSave(string directoryPath, string fileName, string newFileName);
     }
 
     public interface IFactorioControlClientMethods

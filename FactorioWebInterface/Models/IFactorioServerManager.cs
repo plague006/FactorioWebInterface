@@ -43,5 +43,6 @@ namespace FactorioWebInterface.Models
         Task<Result> SaveEditableServerSettings(string serverId, FactorioServerSettingsWebEditable settings);
         Task<Result> Install(string id, string userName, string version);
         Task<Result> Save(string id, string userName, string saveName);
+        Result DeflateSave(string directoryPath, string fileName, string newFileName);
     }
 }

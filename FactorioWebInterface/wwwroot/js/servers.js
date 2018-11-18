@@ -2748,9 +2748,12 @@ const fileDeleteButton = document.getElementById('fileDeleteButton');
 const fileMoveButton = document.getElementById('fileMoveButton');
 const fileCopyButton = document.getElementById('fileCopyButton');
 const destinationSelect = document.getElementById('destinationSelect');
-const fileRenameButton = document.getElementById('fileRenameButton');
+const saveRenameButton = document.getElementById('saveRenameButton');
+const saveDeflateButton = document.getElementById('saveDeflateButton');
 const fileRenameInput = document.getElementById('fileRenameInput');
 const fileProgress = document.getElementById('fileProgress');
+const fileProgressContiner = document.getElementById('fileProgressContiner');
+const deflateProgress = document.getElementById('deflateProgress');
 const configNameInput = document.getElementById('configNameInput');
 const configDescriptionInput = document.getElementById('configDescriptionInput');
 const configTagsInput = document.getElementById('configTagsInput');
@@ -3044,14 +3047,14 @@ fileUploadInput.onchange = function (ev) {
     xhr.open('POST', '/admin/servers?handler=fileUpload', true);
     xhr.setRequestHeader('RequestVerificationToken', requestVerificationToken);
     xhr.upload.addEventListener('loadstart', function (event) {
-        fileProgress.hidden = false;
+        fileProgressContiner.hidden = false;
         fileProgress.value = 0;
     }, false);
     xhr.upload.addEventListener("progress", function (event) {
         fileProgress.value = event.loaded / event.total;
     }, false);
     xhr.onloadend = function (event) {
-        fileProgress.hidden = true;
+        fileProgressContiner.hidden = true;
         getFiles();
     };
     xhr.send(formData);
@@ -3115,13 +3118,13 @@ fileCopyButton.onclick = () => __awaiter(undefined, void 0, void 0, function* ()
     }
     getFiles();
 });
-fileRenameButton.onclick = () => __awaiter(undefined, void 0, void 0, function* () {
+saveRenameButton.onclick = () => __awaiter(undefined, void 0, void 0, function* () {
     let checkboxes = document.querySelectorAll('input[name="fileCheckbox"]:checked');
     if (checkboxes.length != 1) {
         alert('Please select one file to rename.');
         return;
     }
-    let newName = fileRenameInput.value;
+    let newName = fileRenameInput.value.trim();
     if (newName === "") {
         alert('New name cannot be empty');
         return;
@@ -3130,6 +3133,24 @@ fileRenameButton.onclick = () => __awaiter(undefined, void 0, void 0, function* 
     let dir = checkbox.getAttribute('data-directory');
     let name = checkbox.getAttribute('data-name');
     let result = yield connection.invoke('RenameFile', dir, name, newName);
+    if (!result.success) {
+        alert(JSON.stringify(result.errors));
+    }
+    getFiles();
+});
+saveDeflateButton.onclick = () => __awaiter(undefined, void 0, void 0, function* () {
+    let checkboxes = document.querySelectorAll('input[name="fileCheckbox"]:checked');
+    if (checkboxes.length != 1) {
+        alert('Please select one file to deflate.');
+        return;
+    }
+    let newName = fileRenameInput.value.trim();
+    let checkbox = checkboxes[0];
+    let dir = checkbox.getAttribute('data-directory');
+    let name = checkbox.getAttribute('data-name');
+    deflateProgress.hidden = false;
+    let result = yield connection.invoke('DeflateSave', dir, name, newName);
+    deflateProgress.hidden = true;
     if (!result.success) {
         alert(JSON.stringify(result.errors));
     }

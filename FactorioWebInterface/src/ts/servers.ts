@@ -85,9 +85,12 @@ const fileDeleteButton = document.getElementById('fileDeleteButton') as HTMLButt
 const fileMoveButton = document.getElementById('fileMoveButton') as HTMLButtonElement;
 const fileCopyButton = document.getElementById('fileCopyButton') as HTMLButtonElement;
 const destinationSelect = document.getElementById('destinationSelect') as HTMLSelectElement;
-const fileRenameButton = document.getElementById('fileRenameButton') as HTMLButtonElement;
+const saveRenameButton = document.getElementById('saveRenameButton') as HTMLButtonElement;
+const saveDeflateButton = document.getElementById('saveDeflateButton') as HTMLButtonElement;
 const fileRenameInput = document.getElementById('fileRenameInput') as HTMLInputElement;
 const fileProgress = document.getElementById('fileProgress') as HTMLProgressElement;
+const fileProgressContiner = document.getElementById('fileProgressContiner') as HTMLSpanElement;
+const deflateProgress = document.getElementById('deflateProgress') as HTMLSpanElement;
 
 const configNameInput = document.getElementById('configNameInput') as HTMLInputElement;
 const configDescriptionInput = document.getElementById('configDescriptionInput') as HTMLInputElement;
@@ -446,7 +449,7 @@ fileUploadInput.onchange = function (this: HTMLInputElement, ev: Event) {
     xhr.setRequestHeader('RequestVerificationToken', requestVerificationToken);
 
     xhr.upload.addEventListener('loadstart', function (event) {
-        fileProgress.hidden = false;
+        fileProgressContiner.hidden = false;
         fileProgress.value = 0;
     }, false);
 
@@ -455,7 +458,7 @@ fileUploadInput.onchange = function (this: HTMLInputElement, ev: Event) {
     }, false);
 
     xhr.onloadend = function (event) {
-        fileProgress.hidden = true;
+        fileProgressContiner.hidden = true;
         getFiles();
     }
 
@@ -480,8 +483,8 @@ fileDeleteButton.onclick = async () => {
 
         files.push(filePath);
     }
-
-    let result: Result = await connection.invoke('DeleteFiles', files);
+    
+    let result: Result = await connection.invoke('DeleteFiles', files);    
 
     if (!result.success) {
         alert(JSON.stringify(result.errors));
@@ -550,7 +553,7 @@ fileCopyButton.onclick = async () => {
     getFiles();
 }
 
-fileRenameButton.onclick = async () => {
+saveRenameButton.onclick = async () => {
     let checkboxes = document.querySelectorAll('input[name="fileCheckbox"]:checked');
 
     if (checkboxes.length != 1) {
@@ -558,7 +561,7 @@ fileRenameButton.onclick = async () => {
         return;
     }
 
-    let newName = fileRenameInput.value;
+    let newName = fileRenameInput.value.trim();
     if (newName === "") {
         alert('New name cannot be empty');
         return;
@@ -569,6 +572,31 @@ fileRenameButton.onclick = async () => {
     let name = checkbox.getAttribute('data-name');
 
     let result: Result = await connection.invoke('RenameFile', dir, name, newName);
+
+    if (!result.success) {
+        alert(JSON.stringify(result.errors));
+    }
+
+    getFiles();
+}
+
+saveDeflateButton.onclick = async () => {
+    let checkboxes = document.querySelectorAll('input[name="fileCheckbox"]:checked');
+
+    if (checkboxes.length != 1) {
+        alert('Please select one file to deflate.');
+        return;
+    }
+
+    let newName = fileRenameInput.value.trim();
+
+    let checkbox = checkboxes[0];
+    let dir = checkbox.getAttribute('data-directory');
+    let name = checkbox.getAttribute('data-name');
+
+    deflateProgress.hidden = false;
+    let result: Result = await connection.invoke('DeflateSave', dir, name, newName);
+    deflateProgress.hidden = true;
 
     if (!result.success) {
         alert(JSON.stringify(result.errors));

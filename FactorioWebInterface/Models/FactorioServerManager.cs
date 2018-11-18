@@ -1930,16 +1930,16 @@ namespace FactorioWebInterface.Models
                 }
 
                 string newFilePath = Path.Combine(directory.FullName, newFileName);
+                if (Path.GetExtension(newFilePath) != ".zip")
+                {
+                    newFilePath += ".zip";
+                }
+
                 var newFileInfo = new FileInfo(newFilePath);
 
                 if (newFileInfo.Exists)
                 {
                     return Result.Failure(Constants.FileAlreadyExistsErrorKey, $"File {fileName} already exists.");
-                }
-
-                if (newFileInfo.Extension != ".zip")
-                {
-                    newFilePath += ".zip";
                 }
 
                 fileInfo.MoveTo(newFilePath);
@@ -2087,6 +2087,71 @@ namespace FactorioWebInterface.Models
             finally
             {
                 serverData.ServerLock.Release();
+            }
+        }
+
+        public Result DeflateSave(string directoryPath, string fileName, string newFileName = "")
+        {
+            var directory = GetSaveDirectory(directoryPath);
+
+            if (directory == null)
+            {
+                return Result.Failure(new Error(Constants.InvalidDirectoryErrorKey, directoryPath));
+            }
+
+            try
+            {
+                string actualFileName = Path.GetFileName(fileName);
+
+                if (actualFileName != fileName)
+                {
+                    return Result.Failure(Constants.FileErrorKey, $"Invalid file name {fileName}");
+                }
+
+                if (string.IsNullOrWhiteSpace(newFileName))
+                {
+                    newFileName = Path.GetFileNameWithoutExtension(actualFileName) + "-deflated";
+                }
+
+                string actualNewFileName = Path.GetFileName(newFileName);
+
+                if (actualNewFileName != newFileName)
+                {
+                    return Result.Failure(Constants.FileErrorKey, $"Invalid file name {newFileName}");
+                }
+
+                string filePath = Path.Combine(directory.FullName, fileName);
+                var fileInfo = new FileInfo(filePath);
+
+                if (!fileInfo.Exists)
+                {
+                    return Result.Failure(Constants.MissingFileErrorKey, $"File {fileName} doesn't exist.");
+                }
+
+                string newFilePath = Path.Combine(directory.FullName, newFileName);
+                if (Path.GetExtension(newFilePath) != ".zip")
+                {
+                    newFilePath += ".zip";
+                }
+
+                var newFileInfo = new FileInfo(newFilePath);
+
+                if (newFileInfo.Exists)
+                {
+                    return Result.Failure(Constants.FileAlreadyExistsErrorKey, $"File {newFileInfo.Name} already exists.");
+                }
+
+                fileInfo.CopyTo(newFilePath);
+
+                var deflater = new SaveDeflater();
+                deflater.Deflate(newFilePath);                
+
+                return Result.OK;
+            }
+            catch (Exception e)
+            {
+                _logger.LogError("Error deflating file.", e);
+                return Result.Failure(Constants.FileErrorKey, $"Error deflating files");
             }
         }
     }
