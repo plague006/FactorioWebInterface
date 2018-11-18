@@ -2106,15 +2106,6 @@ namespace FactorioWebInterface.Models
 
         public Result DeflateSave(string directoryPath, string fileName, string newFileName = "")
         {
-            if (string.IsNullOrWhiteSpace(newFileName))
-            {
-                return Result.Failure(Constants.InvalidFileNameErrorKey, newFileName);
-            }
-            if (newFileName.Contains(" "))
-            {
-                return Result.Failure(Constants.InvalidFileNameErrorKey, $"name { newFileName} cannot contain spaces.");
-            }
-
             var directory = GetSaveDirectory(directoryPath);
 
             if (directory == null)
@@ -2134,6 +2125,11 @@ namespace FactorioWebInterface.Models
                 if (string.IsNullOrWhiteSpace(newFileName))
                 {
                     newFileName = Path.GetFileNameWithoutExtension(actualFileName) + "-deflated";
+                }
+
+                if (newFileName.Contains(" "))
+                {
+                    return Result.Failure(Constants.InvalidFileNameErrorKey, $"name { newFileName} cannot contain spaces.");
                 }
 
                 string actualNewFileName = Path.GetFileName(newFileName);
