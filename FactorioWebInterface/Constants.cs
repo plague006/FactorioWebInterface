@@ -54,6 +54,7 @@
         public const string StartScenarioTag = "[START-SCENARIO]";
         public const string BanTag = "[BAN]";
         public const string UnBannedTag = "[UNBANNED]";
+        public const string PingTag = "[PING]";
 
         public const string UnexpctedErrorKey = "unexpectedError";
         public const string ServerIdErrorKey = "serverId";

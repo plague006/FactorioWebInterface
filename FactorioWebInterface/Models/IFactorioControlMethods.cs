@@ -59,5 +59,6 @@ namespace FactorioWebInterface.Models
         Task SendTempSavesFiles(FileMetaData[] files);
         Task SendLocalSaveFiles(FileMetaData[] files);
         Task SendGlobalSaveFiles(FileMetaData[] files);
+        Task DeflateFinished(Result result);
     }
 }

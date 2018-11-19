@@ -219,7 +219,7 @@ loadButton.onclick = () => {
 
     let checkbox = checkboxes[0];
     let dir = checkbox.getAttribute('data-directory');
-    let name = checkbox.getAttribute('data-name');    
+    let name = checkbox.getAttribute('data-name');
 
     connection.invoke("Load", dir, name)
         .then((result) => {
@@ -455,7 +455,7 @@ fileUploadInput.onchange = function (this: HTMLInputElement, ev: Event) {
         fileProgress.value = event.loaded / event.total;
     }, false);
 
-    xhr.onloadend = function (event) {        
+    xhr.onloadend = function (event) {
         fileProgressContiner.hidden = true;
         getFiles();
 
@@ -463,7 +463,7 @@ fileUploadInput.onchange = function (this: HTMLInputElement, ev: Event) {
         if (!result.success) {
             alert(JSON.stringify(result.errors))
         }
-    }    
+    }
 
     xhr.send(formData);
 };
@@ -486,8 +486,8 @@ fileDeleteButton.onclick = async () => {
 
         files.push(filePath);
     }
-    
-    let result: Result = await connection.invoke('DeleteFiles', files);    
+
+    let result: Result = await connection.invoke('DeleteFiles', files);
 
     if (!result.success) {
         alert(JSON.stringify(result.errors));
@@ -597,16 +597,23 @@ saveDeflateButton.onclick = async () => {
     let dir = checkbox.getAttribute('data-directory');
     let name = checkbox.getAttribute('data-name');
 
-    deflateProgress.hidden = false;
     let result: Result = await connection.invoke('DeflateSave', dir, name, newName);
+    if (!result.success) {
+        alert(JSON.stringify(result.errors));
+        return;
+    }
+
+    deflateProgress.hidden = false;
+}
+
+connection.on('DeflateFinished', (result: Result) => {
     deflateProgress.hidden = true;
+    getFiles();
 
     if (!result.success) {
         alert(JSON.stringify(result.errors));
     }
-
-    getFiles();
-}
+});
 
 configTagsInput.oninput = function (this, e: Event) {
     let target = e.target as HTMLInputElement;

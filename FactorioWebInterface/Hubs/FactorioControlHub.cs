@@ -307,7 +307,7 @@ namespace FactorioWebInterface.Hubs
 
         public Task<Result> DeflateSave(string directoryPath, string fileName, string newFileName)
         {
-            return Task.FromResult(_factorioServerManager.DeflateSave(directoryPath, fileName, newFileName));
+            return Task.FromResult(_factorioServerManager.DeflateSave(Context.ConnectionId, directoryPath, fileName, newFileName));
         }
     }
 }

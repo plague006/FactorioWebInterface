@@ -1139,9 +1139,40 @@ namespace FactorioWebInterface.Models
                 case Constants.UnBannedTag:
                     await DoUnBan(serverId, content);
                     break;
+                case Constants.PingTag:
+                    DoPing(serverId, content);
+                    break;
                 default:
                     break;
             }
+        }
+
+        public void DoPing(string serverId, string content)
+        {
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                return;
+            }
+
+            int firstSpace = content.IndexOf(' ');
+            int rest = content.Length - firstSpace - 1;
+
+            if (rest < 1)
+            {
+                return;
+            }
+
+            var funcToken = content.Substring(0, firstSpace);
+            var data = content.Substring(firstSpace + 1, rest);
+
+            var command = FactorioCommandBuilder
+                .ServerCommand("raise_callback")
+                .Add(funcToken)
+                .Add(",")
+                .Add(data)
+                .Build();
+
+            SendToFactorioProcess(serverId, command);
         }
 
         public async Task FactorioControlDataReceived(string serverId, string data, string userName)
@@ -2432,7 +2463,7 @@ namespace FactorioWebInterface.Models
             }
         }
 
-        public Result DeflateSave(string directoryPath, string fileName, string newFileName = "")
+        public Result DeflateSave(string connectionId, string directoryPath, string fileName, string newFileName = "")
         {
             var directory = GetSaveDirectory(directoryPath);
 
@@ -2488,10 +2519,23 @@ namespace FactorioWebInterface.Models
                     return Result.Failure(Constants.FileAlreadyExistsErrorKey, $"File {newFileInfo.Name} already exists.");
                 }
 
-                fileInfo.CopyTo(newFilePath);
+                Task.Run(() =>
+                {
+                    try
+                    {
+                        fileInfo.CopyTo(newFilePath);
 
-                var deflater = new SaveDeflater();
-                deflater.Deflate(newFilePath);
+                        var deflater = new SaveDeflater();
+                        deflater.Deflate(newFilePath);
+
+                        _factorioControlHub.Clients.Clients(connectionId).DeflateFinished(Result.OK);
+                    }
+                    catch (Exception e)
+                    {
+                        _logger.LogError("Error deflating file.", e);
+                        _factorioControlHub.Clients.Clients(connectionId).DeflateFinished(Result.Failure(Constants.FileErrorKey, $"Error deflating files"));
+                    }
+                });
 
                 return Result.OK;
             }

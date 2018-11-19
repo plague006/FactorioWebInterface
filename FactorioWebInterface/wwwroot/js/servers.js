@@ -3151,13 +3151,19 @@ saveDeflateButton.onclick = () => __awaiter(undefined, void 0, void 0, function*
     let checkbox = checkboxes[0];
     let dir = checkbox.getAttribute('data-directory');
     let name = checkbox.getAttribute('data-name');
-    deflateProgress.hidden = false;
     let result = yield connection.invoke('DeflateSave', dir, name, newName);
+    if (!result.success) {
+        alert(JSON.stringify(result.errors));
+        return;
+    }
+    deflateProgress.hidden = false;
+});
+connection.on('DeflateFinished', (result) => {
     deflateProgress.hidden = true;
+    getFiles();
     if (!result.success) {
         alert(JSON.stringify(result.errors));
     }
-    getFiles();
 });
 configTagsInput.oninput = function (e) {
     let target = e.target;
