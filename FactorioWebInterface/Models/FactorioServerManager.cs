@@ -1222,6 +1222,37 @@ namespace FactorioWebInterface.Models
             }
         }
 
+        public async Task BanPlayer(Ban ban)
+        {
+            var command = $"/ban {ban.Username} {ban.Reason}";
+            command.Substring(0, command.Length - 1);
+
+            foreach (var server in servers)
+            {
+                if (server.Value.Status == FactorioServerStatus.Running)
+                {
+                    _ = SendToFactorioProcess(server.Key, command);
+                }
+            }
+
+            await AddBanToDatabase(ban);
+        }
+
+        public async Task UnBanPlayer(string username)
+        {
+            var command = $"/unban {username}";
+
+            foreach (var server in servers)
+            {
+                if (server.Value.Status == FactorioServerStatus.Running)
+                {
+                    _ = SendToFactorioProcess(server.Key, command);
+                }
+            }
+
+            await RemoveBanFromDatabase(username);
+        }
+
         private async Task AddBanToDatabase(Ban ban)
         {
             try
@@ -1626,20 +1657,48 @@ namespace FactorioWebInterface.Models
 
         public async Task AddAdminsFromStringAsync(string data)
         {
-            var db = _dbContextFactory.Create();
-            var admins = db.Admins;
-
-            var names = data.Split(',').Select(x => x.Trim());
-            foreach (var name in names)
+            try
             {
-                var admin = new Admin()
-                {
-                    Name = name
-                };
-                admins.Add(admin);
-            }
+                var db = _dbContextFactory.Create();
+                var admins = db.Admins;
 
-            await db.SaveChangesAsync();
+                var names = data.Split(',').Select(x => x.Trim());
+                foreach (var name in names)
+                {
+                    if (admins.Any(a => a.Name == name))
+                    {
+                        continue;
+                    }
+
+                    admins.Add(new Admin() { Name = name });
+                }
+
+                await db.SaveChangesAsync();
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, nameof(AddAdminsFromStringAsync));
+            }
+        }
+
+        public async Task RemoveAdmin(string name)
+        {
+            try
+            {
+                var db = _dbContextFactory.Create();
+                var admins = db.Admins;
+
+                var admin = await admins.SingleOrDefaultAsync(a => a.Name == name);
+                if (admin != null)
+                {
+                    admins.Remove(admin);
+                    await db.SaveChangesAsync();
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, nameof(RemoveAdmin));
+            }
         }
 
         public Task OnProcessRegistered(string serverId)

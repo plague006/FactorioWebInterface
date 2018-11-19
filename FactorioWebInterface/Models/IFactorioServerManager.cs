@@ -25,9 +25,12 @@ namespace FactorioWebInterface.Models
         Task StatusChanged(string serverId, FactorioServerStatus newStatus, FactorioServerStatus oldStatus);
         Task<List<Regular>> GetRegularsAsync();
         Task<List<Ban>> GetBansAsync();
+        Task BanPlayer(Ban ban);
+        Task UnBanPlayer(string username);
         Task<List<Admin>> GetAdminsAsync();
         Task AddRegularsFromStringAsync(string data);
         Task AddAdminsFromStringAsync(string data);
+        Task RemoveAdmin(string name);
         FileMetaData[] GetLocalSaveFiles(string serverId);
         FileMetaData[] GetTempSaveFiles(string serverId);
         FileMetaData[] GetGlobalSaveFiles();

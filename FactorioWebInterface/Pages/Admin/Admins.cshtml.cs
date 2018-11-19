@@ -47,8 +47,31 @@ namespace FactorioWebInterface.Pages.Admin
 
         public async Task<IActionResult> OnPostAsync()
         {
+            var user = await _userManger.GetUserAsync(User);
+
+            if (user == null || user.Suspended)
+            {
+                HttpContext.Session.SetString("returnUrl", "admins");
+                return RedirectToPage("signIn");
+            }
+
             var data = Input.Admins;
             await _factorioServerManager.AddAdminsFromStringAsync(data);
+
+            return RedirectToPage();
+        }
+
+        public async Task<IActionResult> OnPostRemoveAdminAsync(string name)
+        {
+            var user = await _userManger.GetUserAsync(User);
+
+            if (user == null || user.Suspended)
+            {
+                HttpContext.Session.SetString("returnUrl", "admins");
+                return RedirectToPage("signIn");
+            }
+
+            await _factorioServerManager.RemoveAdmin(name);
 
             return RedirectToPage();
         }
