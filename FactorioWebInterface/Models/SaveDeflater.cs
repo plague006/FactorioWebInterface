@@ -8,7 +8,7 @@ namespace FactorioWebInterface.Models
 {
     public class SaveDeflater
     {
-        private static readonly string FILE_MISSING_MESSAGE = "File was removed to decrease save file size. Please visit https://github.com/Valansch/RedMew if you wish to download this scenario.";
+        private static readonly string FILE_MISSING_MESSAGE = "error('File was removed to decrease save file size. Please visit https://github.com/Valansch/RedMew if you wish to download this scenario.')";
         private static readonly Regex luaPathRegex = new Regex(@"(?<=.*/)(.*)", RegexOptions.Compiled);
         private static readonly Regex lineRegex = new Regex(@"(^.*?(?=(--)))|^((?!--).)*", RegexOptions.Compiled);
         private static readonly Regex pathRegex = new Regex(@"(?<=require\s*\(?\s*('|""))((\w|/|\.|_)+)", RegexOptions.Compiled);
