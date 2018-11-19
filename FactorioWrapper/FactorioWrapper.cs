@@ -336,24 +336,41 @@ namespace FactorioWrapper
                 return;
             }
 
-            SendFactorioOutputData(data);
-
-            if (status != FactorioServerStatus.Starting)
-            {
-                return;
-            }
-
-            var match = outputRegex.Match(data);
-            if (!match.Success)
+            if (status != FactorioServerStatus.Running)
             {
                 SendFactorioOutputData(data);
+
+                if (status == FactorioServerStatus.Starting)
+                {
+                    var match = outputRegex.Match(data);
+                    if (!match.Success)
+                    {
+                        return;
+                    }
+
+                    string line = match.Groups[1].Value;
+
+                    if (line.StartsWith("Factorio initialised"))
+                    {
+                        await ChangeStatus(FactorioServerStatus.Running);
+                    }
+                }
             }
-
-            string line = match.Groups[1].Value;
-
-            if (line.StartsWith("Factorio initialised"))
+            else
             {
-                await ChangeStatus(FactorioServerStatus.Running);
+                var match = outputRegex.Match(data);
+                if (!match.Success)
+                {
+                    SendFactorioOutputData(data);
+                    return;
+                }
+
+                string line = match.Groups[1].Value;
+
+                if (!line.StartsWith("Warning TransmissionControlHelper.cpp"))
+                {
+                    SendFactorioOutputData(data);
+                }
             }
         }
 
