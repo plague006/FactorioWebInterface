@@ -32,6 +32,7 @@
 
         //public const string DefaultFileName = "current_map.zip";
         public const string ServerSettingsFileName = "server-settings.json";
+        public const string ServerBanListFileName = "server-banlist.json";
 
         public const string ChatTag = "[CHAT]";
         public const string DiscordTag = "[DISCORD]";
@@ -51,6 +52,8 @@
         public const string RegularDemoteTag = "[REGULAR-DEOMOTE]";
         public const string DonatorSetTag = "[DONATOR-SET]";
         public const string StartScenarioTag = "[START-SCENARIO]";
+        public const string BanTag = "[BAN]";
+        public const string UnBannedTag = "[UNBANNED]";
 
         public const string UnexpctedErrorKey = "unexpectedError";
         public const string ServerIdErrorKey = "serverId";

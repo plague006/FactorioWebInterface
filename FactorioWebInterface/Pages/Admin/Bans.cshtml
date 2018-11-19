@@ -1,0 +1,34 @@
+﻿@page
+@model FactorioWebInterface.Pages.Admin.BansModel
+@{
+    ViewData["Title"] = "Bans";
+}
+
+<div class="container-fluid">
+    <h2>Bans</h2>
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped table-hover">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Reason</th>
+                    <th>Address</th>
+                    <th>Admin</th>
+                    <th>DateTime</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var b in Model.Bans)
+                {
+                    <tr>
+                        <td>@b.Username</td>
+                        <td>@b.Reason</td>
+                        <td>@b.Address</td>
+                        <td>@b.Admin</td>
+                        <td>@b.DateTime.ToString("yyyy/MM/dd HH:mm:ss")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

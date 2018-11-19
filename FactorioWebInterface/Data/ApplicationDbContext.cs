@@ -19,6 +19,7 @@ namespace FactorioWebInterface.Data
         public DbSet<Regular> Regulars { get; set; }
         public DbSet<Donator> Donators { get; set; }
         public DbSet<Admin> Admins { get; set; }
+        public DbSet<Ban> Bans { get; set; }
 
         /// <summary>
         /// This just changes the default names for the tables, becasue I didn't like all the tables

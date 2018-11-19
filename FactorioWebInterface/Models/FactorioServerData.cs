@@ -31,6 +31,7 @@ namespace FactorioWebInterface.Models
         public string LogsDirectoryPath { get; set; }
         public string CurrentLogPath { get; set; }
         public string ServerSettingsPath { get; set; }
+        public string ServerBanListPath { get; set; }
         public string Port { get; set; }
         public SemaphoreSlim ServerLock { get; set; }
         public RingBuffer<MessageData> ControlMessageBuffer { get; set; }
@@ -69,6 +70,7 @@ namespace FactorioWebInterface.Models
                     LocalScenarioDirectoryPath = Path.Combine(basePath, Constants.ScenarioDirectoryName),
                     LogsDirectoryPath = Path.Combine(basePath, Constants.LogDirectoryName),
                     CurrentLogPath = Path.Combine(basePath, Constants.CurrentLogFileName),
+                    ServerBanListPath = Path.Combine(basePath, Constants.ServerBanListFileName),
                     Port = port,
                     ServerLock = new SemaphoreSlim(1, 1),
                     ControlMessageBuffer = new RingBuffer<MessageData>(bufferSize)

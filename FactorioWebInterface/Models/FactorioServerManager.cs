@@ -27,6 +27,12 @@ namespace FactorioWebInterface.Models
         // Match on first [*] and capture everything after.
         private static readonly Regex tag_regex = new Regex(@"(\[[^\[\]]+\])\s*((?:.|\s)*)\s*", RegexOptions.Compiled);
 
+        private static readonly JsonSerializerSettings banListSerializerSettings = new JsonSerializerSettings()
+        {
+            Formatting = Formatting.Indented,
+            NullValueHandling = NullValueHandling.Ignore
+        };
+
         private readonly IConfiguration _configuration;
         private readonly IDiscordBot _discordBot;
         private readonly IHubContext<FactorioProcessHub, IFactorioProcessClientMethods> _factorioProcessHub;
@@ -58,6 +64,22 @@ namespace FactorioWebInterface.Models
             _httpClientFactory = httpClientFactory;
 
             _discordBot.FactorioDiscordDataReceived += FactorioDiscordDataReceived;
+
+            //AddBansToDatabaseFromFile();
+        }
+
+        private void AddBansToDatabaseFromFile()
+        {
+            var data = File.ReadAllText("D:\\diff2\\server-banlist.json");
+            var serverBans = JsonConvert.DeserializeObject<List<ServerBan>>(data);
+
+            var date = DateTime.UtcNow.Date;
+
+            var bans = serverBans.Select(x => new Ban() { Username = x.Username, Address = x.Address, Reason = x.Reason, DateTime = date });
+
+            var db = _dbContextFactory.Create();
+            db.Bans.AddRange(bans);
+            db.SaveChanges();
         }
 
         private bool ExecuteProcess(string filename, string arguments)
@@ -182,6 +204,30 @@ namespace FactorioWebInterface.Models
             }
         }
 
+        private async Task BuildBanList(FactorioServerData serverData)
+        {
+            try
+            {
+                var db = _dbContextFactory.Create();
+
+                var bans = await db.Bans.Select(b => new ServerBan()
+                {
+                    Username = b.Username,
+                    Address = b.Address,
+                    Reason = b.Reason
+                })
+                .ToArrayAsync();
+
+                string data = JsonConvert.SerializeObject(bans, banListSerializerSettings);
+
+                await File.WriteAllTextAsync(serverData.ServerBanListPath, data);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, nameof(BuildBanList));
+            }
+        }
+
         public async Task<Result> Resume(string serverId, string userName)
         {
             if (!servers.TryGetValue(serverId, out var serverData))
@@ -209,6 +255,7 @@ namespace FactorioWebInterface.Models
                         }
 
                         RotateLogs(serverData);
+                        await BuildBanList(serverData);
 
                         string basePath = serverData.BaseDirectoryPath;
 
@@ -309,6 +356,7 @@ namespace FactorioWebInterface.Models
                         }
 
                         RotateLogs(serverData);
+                        await BuildBanList(serverData);
 
                         string basePath = serverData.BaseDirectoryPath;
 
@@ -406,6 +454,7 @@ namespace FactorioWebInterface.Models
             }
 
             RotateLogs(serverData);
+            await BuildBanList(serverData);
 
             var startInfo = new ProcessStartInfo
             {
@@ -1084,9 +1133,223 @@ namespace FactorioWebInterface.Models
                     }
 
                     break;
+                case Constants.BanTag:
+                    await DoBan(serverId, content);
+                    break;
+                case Constants.UnBannedTag:
+                    await DoUnBan(serverId, content);
+                    break;
                 default:
                     break;
             }
+        }
+
+        public async Task FactorioControlDataReceived(string serverId, string data, string userName)
+        {
+            if (string.IsNullOrWhiteSpace(data))
+            {
+                return;
+            }
+
+            if (data.StartsWith("/ban"))
+            {
+                string[] words = data.Split(' ');
+
+                if (words.Length < 2)
+                {
+                    return;
+                }
+
+                string player = words[1];
+
+                string reason;
+                if (words.Length > 2)
+                {
+                    reason = string.Join(' ', words, 2, words.Length - 2);
+                }
+                else
+                {
+                    reason = "unspecified.";
+                }
+
+                Ban ban = new Ban()
+                {
+                    Username = player,
+                    Reason = reason,
+                    Admin = userName,
+                    DateTime = DateTime.UtcNow
+                };
+
+                var command = $"/ban {player} {reason}";
+                command.Substring(0, command.Length - 1);
+
+                foreach (var server in servers)
+                {
+                    if (server.Key != serverId && server.Value.Status == FactorioServerStatus.Running)
+                    {
+                        _ = SendToFactorioProcess(server.Key, command);
+                    }
+                }
+
+                await AddBanToDatabase(ban);
+            }
+            else if (data.StartsWith("/unban"))
+            {
+                string[] words = data.Split(' ');
+
+                if (words.Length < 2)
+                {
+                    return;
+                }
+
+                string player = words[1];
+
+                var command = $"/unban {player}";
+
+                foreach (var server in servers)
+                {
+                    if (server.Key != serverId && server.Value.Status == FactorioServerStatus.Running)
+                    {
+                        _ = SendToFactorioProcess(server.Key, command);
+                    }
+                }
+
+                await RemoveBanFromDatabase(player);
+            }
+            else
+            {
+                await SendToFactorioProcess(serverId, data);
+            }
+        }
+
+        private async Task AddBanToDatabase(Ban ban)
+        {
+            try
+            {
+                var db = _dbContextFactory.Create();
+
+                var old = await db.Bans.SingleOrDefaultAsync(b => b.Username == ban.Username);
+                if (old == null)
+                {
+                    db.Add(ban);
+                }
+                else
+                {
+                    old.Admin = ban.Admin;
+                    old.DateTime = DateTime.UtcNow;
+                    old.Reason = ban.Reason;
+                    db.Update(old);
+                }
+
+                await db.SaveChangesAsync();
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, nameof(DoBan));
+            }
+        }
+
+        private async Task DoBan(string serverId, string content)
+        {
+            string[] words = content.Split(' ');
+
+            if (words.Length < 7)
+            {
+                return;
+            }
+
+            string player = words[0];
+
+            int index = 4;
+            if (words[1] == "(not")
+            {
+                if (words.Length < 10)
+                {
+                    return;
+                }
+                index += 3;
+            }
+
+            string admin = words[index];
+
+            if (admin == "<server>.")
+            {
+                return;
+            }
+
+            index += 2;
+            string reason = string.Join(' ', words, index, words.Length - index);
+
+            var command = $"/ban {player} {reason}";
+            command.Substring(0, command.Length - 1);
+
+            foreach (var server in servers)
+            {
+                if (server.Key != serverId && server.Value.Status == FactorioServerStatus.Running)
+                {
+                    _ = SendToFactorioProcess(server.Key, command);
+                }
+            }
+
+            var ban = new Ban()
+            {
+                Username = player,
+                Admin = admin,
+                Reason = reason,
+                DateTime = DateTime.UtcNow
+            };
+
+            await AddBanToDatabase(ban);
+        }
+
+        private async Task RemoveBanFromDatabase(string username)
+        {
+            try
+            {
+                var db = _dbContextFactory.Create();
+
+                var old = await db.Bans.SingleOrDefaultAsync(b => b.Username == username);
+                if (old == null)
+                {
+                    return;
+                }
+
+                db.Bans.Remove(old);
+                await db.SaveChangesAsync();
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, nameof(DoBan));
+            }
+        }
+
+        private async Task DoUnBan(string serverId, string content)
+        {
+            string[] words = content.Split(' ');
+            if (words.Length < 5)
+            {
+                return;
+            }
+
+            string admin = words[4];
+            if (admin == "<server>.")
+            {
+                return;
+            }
+
+            string player = words[0];
+
+            var command = $"/unban {player}";
+
+            foreach (var server in servers)
+            {
+                if (server.Key != serverId && server.Value.Status == FactorioServerStatus.Running)
+                {
+                    _ = SendToFactorioProcess(server.Key, command);
+                }
+            }
+
+            await RemoveBanFromDatabase(player);
         }
 
         private async Task PromoteRegular(string serverId, string content)
@@ -1327,6 +1590,12 @@ namespace FactorioWebInterface.Models
         {
             var db = _dbContextFactory.Create();
             return await db.Regulars.ToListAsync();
+        }
+
+        public async Task<List<Ban>> GetBansAsync()
+        {
+            var db = _dbContextFactory.Create();
+            return await db.Bans.ToListAsync();
         }
 
         public async Task<List<Admin>> GetAdminsAsync()

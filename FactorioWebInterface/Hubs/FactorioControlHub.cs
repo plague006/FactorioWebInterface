@@ -91,8 +91,9 @@ namespace FactorioWebInterface.Hubs
             string connectionId = Context.ConnectionId;
             if (Context.Items.TryGetValue(connectionId, out object serverId))
             {
+                string userName = Context.User.Identity.Name;
                 string id = (string)serverId;
-                _factorioServerManager.SendToFactorioProcess(id, data);
+                _factorioServerManager.FactorioControlDataReceived(id, data, userName);
             }
 
             return Task.FromResult(0);

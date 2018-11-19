@@ -9,26 +9,18 @@ using System.Threading.Tasks;
 
 namespace FactorioWebInterface.Pages.Admin
 {
-    public class RegularsModel : PageModel
+    public class BansModel : PageModel
     {
         private readonly UserManager<ApplicationUser> _userManger;
         private readonly IFactorioServerManager _factorioServerManager;
 
-        public RegularsModel(UserManager<ApplicationUser> userManger, IFactorioServerManager factorioServerManager)
+        public BansModel(UserManager<ApplicationUser> userManger, IFactorioServerManager factorioServerManager)
         {
             _userManger = userManger;
             _factorioServerManager = factorioServerManager;
         }
 
-        public List<Regular> Regulars { get; private set; }
-
-        public class InputModel
-        {
-            public string Regulars { get; set; }
-        }
-
-        [BindProperty]
-        public InputModel Input { get; set; }
+        public List<Ban> Bans { get; private set; }
 
         public async Task<IActionResult> OnGetAsync()
         {
@@ -36,21 +28,13 @@ namespace FactorioWebInterface.Pages.Admin
 
             if (user == null || user.Suspended)
             {
-                HttpContext.Session.SetString("returnUrl", "regulars");
+                HttpContext.Session.SetString("returnUrl", "bans");
                 return RedirectToPage("signIn");
             }
 
-            Regulars = await _factorioServerManager.GetRegularsAsync();
+            Bans = await _factorioServerManager.GetBansAsync();
 
             return Page();
-        }
-
-        public async Task<IActionResult> OnPostAsync()
-        {
-            var data = Input.Regulars;
-            await _factorioServerManager.AddRegularsFromStringAsync(data);
-
-            return RedirectToPage();
         }
     }
 }
