@@ -2703,6 +2703,8 @@ var VERSION = "1.1.0-preview2-35157";
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _aspnet_signalr__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @aspnet/signalr */ "./node_modules/@aspnet/signalr/dist/esm/index.js");
+/* harmony import */ var jquery__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! jquery */ "jquery");
+/* harmony import */ var jquery__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(jquery__WEBPACK_IMPORTED_MODULE_1__);
 var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     return new (P || (P = Promise))(function (resolve, reject) {
         function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
@@ -2711,6 +2713,7 @@ var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _argume
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+
 
 var MessageType;
 (function (MessageType) {
@@ -2770,22 +2773,37 @@ function getFiles() {
     return __awaiter(this, void 0, void 0, function* () {
         let tempFiles = yield connection.invoke('GetTempSaveFiles');
         buildFileTable(tempSaveFilesTable, tempFiles);
+        updateFileTable(tempSaveFilesTable, tempFiles);
         let localFiles = yield connection.invoke('GetLocalSaveFiles');
         buildFileTable(localSaveFilesTable, localFiles);
+        updateFileTable(localSaveFilesTable, localFiles);
         let globalFiles = yield connection.invoke('GetGlobalSaveFiles');
         buildFileTable(globalSaveFilesTable, globalFiles);
+        updateFileTable(globalSaveFilesTable, globalFiles);
+    });
+}
+function updateAllSaveFileTables() {
+    return __awaiter(this, void 0, void 0, function* () {
+        let tempFiles = yield connection.invoke('GetTempSaveFiles');
+        updateFileTable(tempSaveFilesTable, tempFiles);
+        let localFiles = yield connection.invoke('GetLocalSaveFiles');
+        updateFileTable(localSaveFilesTable, localFiles);
+        let globalFiles = yield connection.invoke('GetGlobalSaveFiles');
+        updateFileTable(globalSaveFilesTable, globalFiles);
     });
 }
 function getScenarios() {
     return __awaiter(this, void 0, void 0, function* () {
         let scenarios = yield connection.invoke('GetScenarios');
-        buildScenarioTable(scenarioTable, scenarios);
+        buildScenarioTable(scenarioTable);
+        updateBuildScenarioTable(scenarioTable, scenarios);
     });
 }
 function getLogs() {
     return __awaiter(this, void 0, void 0, function* () {
         let logs = yield connection.invoke('GetLogFiles');
-        buildLogFileTable(logsFileTable, logs);
+        buildLogFileTable(logsFileTable);
+        updateLogFileTable(logsFileTable, logs);
     });
 }
 function MakeTagInput(value) {
@@ -2961,6 +2979,27 @@ function bytesToSize(bytes) {
         return `${(bytes / (Math.pow(1024, i))).toFixed(1)} ${sizes[i]}`;
 }
 function buildFileTable(table, files) {
+    let cells = table.tHead.rows[0].cells;
+    let input = cells[0].firstChild;
+    input.onchange = () => toggleSelectTable(input, table);
+    cells[0].onclick = () => sortTable(table, 'select');
+    cells[1].onclick = () => sortTable(table, 'name');
+    cells[2].onclick = () => sortTable(table, 'createdTime');
+    cells[3].onclick = () => sortTable(table, 'lastModifiedTime');
+    cells[4].onclick = () => sortTable(table, 'size');
+    let jTable = jquery__WEBPACK_IMPORTED_MODULE_1__(table);
+    jTable.data('select', r => {
+        let value = r.children[0].firstChild;
+        return value.checked ? 1 : 0;
+    });
+    jTable.data('name', r => r.children[1].firstChild.textContent.toLowerCase());
+    jTable.data('createdTime', r => r.children[2].getAttribute('data-date'));
+    jTable.data('lastModifiedTime', r => r.children[3].getAttribute('data-date'));
+    jTable.data('size', r => parseInt(r.children[4].getAttribute('data-size')));
+    jTable.data('sortProperty', 'lastModifiedTime');
+    jTable.data('ascending', false);
+}
+function updateFileTable(table, files) {
     let body = table.tBodies[0];
     body.innerHTML = "";
     for (let file of files) {
@@ -2979,13 +3018,47 @@ function buildFileTable(table, files) {
         link.href = `/admin/servers?handler=file&directory=${file.directory}&name=${file.name}`;
         cell2.appendChild(link);
         row.appendChild(cell2);
-        createCell(row, formatDate(file.createdTime));
-        createCell(row, formatDate(file.lastModifiedTime));
-        createCell(row, bytesToSize(file.size));
+        let cell3 = document.createElement('td');
+        cell3.innerText = formatDate(file.createdTime);
+        cell3.setAttribute('data-date', file.createdTime);
+        row.appendChild(cell3);
+        let cell4 = document.createElement('td');
+        cell4.innerText = formatDate(file.lastModifiedTime);
+        cell4.setAttribute('data-date', file.lastModifiedTime);
+        row.appendChild(cell4);
+        let cell5 = document.createElement('td');
+        cell5.innerText = bytesToSize(file.size);
+        cell5.setAttribute('data-size', file.size.toString());
+        row.appendChild(cell5);
         body.appendChild(row);
     }
+    let jTable = jquery__WEBPACK_IMPORTED_MODULE_1__(table);
+    let rows = [];
+    let rc = body.rows;
+    for (let r of rc) {
+        rows.push(r);
+    }
+    jTable.data('rows', rows);
+    let ascending = !jTable.data('ascending');
+    jTable.data('ascending', ascending);
+    let property = jTable.data('sortProperty');
+    sortTable(table, property);
 }
-function buildLogFileTable(table, files) {
+function buildLogFileTable(table) {
+    let cells = table.tHead.rows[0].cells;
+    cells[0].onclick = () => sortTable(table, 'name');
+    cells[1].onclick = () => sortTable(table, 'createdTime');
+    cells[2].onclick = () => sortTable(table, 'lastModifiedTime');
+    cells[3].onclick = () => sortTable(table, 'size');
+    let jTable = jquery__WEBPACK_IMPORTED_MODULE_1__(table);
+    jTable.data('name', r => r.children[0].firstChild.textContent.toLowerCase());
+    jTable.data('createdTime', r => r.children[1].getAttribute('data-date'));
+    jTable.data('lastModifiedTime', r => r.children[2].getAttribute('data-date'));
+    jTable.data('size', r => parseInt(r.children[3].getAttribute('data-size')));
+    jTable.data('sortProperty', 'lastModifiedTime');
+    jTable.data('ascending', false);
+}
+function updateLogFileTable(table, files) {
     let body = table.tBodies[0];
     body.innerHTML = "";
     for (let file of files) {
@@ -2996,13 +3069,52 @@ function buildLogFileTable(table, files) {
         link.href = `/admin/servers?handler=logFile&directory=${file.directory}&name=${file.name}`;
         cell2.appendChild(link);
         row.appendChild(cell2);
-        createCell(row, formatDate(file.createdTime));
-        createCell(row, formatDate(file.lastModifiedTime));
-        createCell(row, bytesToSize(file.size));
+        let cell3 = document.createElement('td');
+        cell3.innerText = formatDate(file.createdTime);
+        cell3.setAttribute('data-date', file.createdTime);
+        row.appendChild(cell3);
+        let cell4 = document.createElement('td');
+        cell4.innerText = formatDate(file.lastModifiedTime);
+        cell4.setAttribute('data-date', file.lastModifiedTime);
+        row.appendChild(cell4);
+        let cell5 = document.createElement('td');
+        cell5.innerText = bytesToSize(file.size);
+        cell5.setAttribute('data-size', file.size.toString());
+        row.appendChild(cell5);
         body.appendChild(row);
     }
+    let jTable = jquery__WEBPACK_IMPORTED_MODULE_1__(table);
+    let rows = [];
+    let rc = body.rows;
+    for (let r of rc) {
+        rows.push(r);
+    }
+    jTable.data('rows', rows);
+    let ascending = !jTable.data('ascending');
+    jTable.data('ascending', ascending);
+    let property = jTable.data('sortProperty');
+    sortTable(table, property);
 }
-function buildScenarioTable(table, scenarios) {
+function buildScenarioTable(table) {
+    let cells = table.tHead.rows[0].cells;
+    let input = cells[0].firstChild;
+    input.onchange = () => toggleSelectTable(input, table);
+    cells[0].onclick = () => sortTable(table, 'select');
+    cells[1].onclick = () => sortTable(table, 'name');
+    cells[2].onclick = () => sortTable(table, 'createdTime');
+    cells[3].onclick = () => sortTable(table, 'lastModifiedTime');
+    let jTable = jquery__WEBPACK_IMPORTED_MODULE_1__(table);
+    jTable.data('select', r => {
+        let value = r.children[0].firstChild;
+        return value.checked ? 1 : 0;
+    });
+    jTable.data('name', r => r.children[1].firstChild.textContent.toLowerCase());
+    jTable.data('createdTime', r => r.children[2].getAttribute('data-date'));
+    jTable.data('lastModifiedTime', r => r.children[3].getAttribute('data-date'));
+    jTable.data('sortProperty', 'lastModifiedTime');
+    jTable.data('ascending', false);
+}
+function updateBuildScenarioTable(table, scenarios) {
     let body = table.tBodies[0];
     body.innerHTML = "";
     for (let scenario of scenarios) {
@@ -3015,10 +3127,27 @@ function buildScenarioTable(table, scenarios) {
         cell.appendChild(checkbox);
         row.appendChild(cell);
         createCell(row, scenario.name);
-        createCell(row, formatDate(scenario.createdTime));
-        createCell(row, formatDate(scenario.lastModifiedTime));
+        let cell3 = document.createElement('td');
+        cell3.innerText = formatDate(scenario.createdTime);
+        cell3.setAttribute('data-date', scenario.createdTime);
+        row.appendChild(cell3);
+        let cell4 = document.createElement('td');
+        cell4.innerText = formatDate(scenario.lastModifiedTime);
+        cell4.setAttribute('data-date', scenario.lastModifiedTime);
+        row.appendChild(cell4);
         body.appendChild(row);
     }
+    let jTable = jquery__WEBPACK_IMPORTED_MODULE_1__(table);
+    let rows = [];
+    let rc = body.rows;
+    for (let r of rc) {
+        rows.push(r);
+    }
+    jTable.data('rows', rows);
+    let ascending = !jTable.data('ascending');
+    jTable.data('ascending', ascending);
+    let property = jTable.data('sortProperty');
+    sortTable(table, property);
 }
 function formatDate(dateString) {
     let date = new Date(dateString);
@@ -3054,7 +3183,7 @@ fileUploadInput.onchange = function (ev) {
     }, false);
     xhr.onloadend = function (event) {
         fileProgressContiner.hidden = true;
-        getFiles();
+        updateAllSaveFileTables();
         var result = JSON.parse(xhr.responseText);
         if (!result.success) {
             alert(JSON.stringify(result.errors));
@@ -3079,7 +3208,7 @@ fileDeleteButton.onclick = () => __awaiter(undefined, void 0, void 0, function* 
     if (!result.success) {
         alert(JSON.stringify(result.errors));
     }
-    getFiles();
+    updateAllSaveFileTables();
 });
 fileMoveButton.onclick = () => __awaiter(undefined, void 0, void 0, function* () {
     let checkboxes = document.querySelectorAll('input[name="fileCheckbox"]:checked');
@@ -3099,7 +3228,7 @@ fileMoveButton.onclick = () => __awaiter(undefined, void 0, void 0, function* ()
     if (!result.success) {
         alert(JSON.stringify(result.errors));
     }
-    getFiles();
+    updateAllSaveFileTables();
 });
 fileCopyButton.onclick = () => __awaiter(undefined, void 0, void 0, function* () {
     let checkboxes = document.querySelectorAll('input[name="fileCheckbox"]:checked');
@@ -3119,7 +3248,7 @@ fileCopyButton.onclick = () => __awaiter(undefined, void 0, void 0, function* ()
     if (!result.success) {
         alert(JSON.stringify(result.errors));
     }
-    getFiles();
+    updateAllSaveFileTables();
 });
 saveRenameButton.onclick = () => __awaiter(undefined, void 0, void 0, function* () {
     let checkboxes = document.querySelectorAll('input[name="fileCheckbox"]:checked');
@@ -3139,7 +3268,7 @@ saveRenameButton.onclick = () => __awaiter(undefined, void 0, void 0, function* 
     if (!result.success) {
         alert(JSON.stringify(result.errors));
     }
-    getFiles();
+    updateAllSaveFileTables();
 });
 saveDeflateButton.onclick = () => __awaiter(undefined, void 0, void 0, function* () {
     let checkboxes = document.querySelectorAll('input[name="fileCheckbox"]:checked');
@@ -3160,7 +3289,7 @@ saveDeflateButton.onclick = () => __awaiter(undefined, void 0, void 0, function*
 });
 connection.on('DeflateFinished', (result) => {
     deflateProgress.hidden = true;
-    getFiles();
+    updateAllSaveFileTables();
     if (!result.success) {
         alert(JSON.stringify(result.errors));
     }
@@ -3201,7 +3330,75 @@ configSaveButton.onclick = () => __awaiter(undefined, void 0, void 0, function* 
     }
     yield getSettings();
 });
+function toggleSelectTable(input, table) {
+    let checkboxes = table.querySelectorAll('input[type="checkbox"]');
+    for (let checkbox of checkboxes) {
+        checkbox.checked = input.checked;
+    }
+}
+function sortTable(table, property) {
+    let jTable = jquery__WEBPACK_IMPORTED_MODULE_1__(table);
+    let rows = jTable.data('rows');
+    let keySelector = jTable.data(property);
+    let sortProperty = jTable.data('sortProperty');
+    let ascending;
+    if (sortProperty === property) {
+        ascending = !jTable.data('ascending');
+        jTable.data('ascending', ascending);
+    }
+    else {
+        jTable.data('sortProperty', property);
+        ascending = true;
+        jTable.data('ascending', ascending);
+    }
+    if (ascending) {
+        rows.sort((a, b) => {
+            let left = keySelector(a);
+            let right = keySelector(b);
+            if (left === right) {
+                return 0;
+            }
+            else if (left > right) {
+                return 1;
+            }
+            else {
+                return -1;
+            }
+        });
+    }
+    else {
+        rows.sort((a, b) => {
+            let left = keySelector(a);
+            let right = keySelector(b);
+            if (left === right) {
+                return 0;
+            }
+            else if (left > right) {
+                return -1;
+            }
+            else {
+                return 1;
+            }
+        });
+    }
+    let body = table.tBodies[0];
+    body.innerHTML = "";
+    for (let r of rows) {
+        body.appendChild(r);
+    }
+}
 
+
+/***/ }),
+
+/***/ "jquery":
+/*!*************************!*\
+  !*** external "jQuery" ***!
+  \*************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = jQuery;
 
 /***/ })
 

@@ -23,6 +23,8 @@
 
   <ItemGroup>
     <None Remove="FactorioWebInterface.db" />
+    <None Remove="src\ts\admins.ts" />
+    <None Remove="src\ts\saves.ts" />
     <None Remove="wwwroot\lib\bootstrap\dist\css\bootstrap-theme.css" />
     <None Remove="wwwroot\lib\bootstrap\dist\css\bootstrap-theme.css.map" />
     <None Remove="wwwroot\lib\bootstrap\dist\css\bootstrap-theme.min.css" />
@@ -91,6 +93,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <TypeScriptCompile Include="src\ts\admins.ts" />
+    <TypeScriptCompile Include="src\ts\bans.ts" />
+    <TypeScriptCompile Include="src\ts\saves.ts" />
     <TypeScriptCompile Include="src\ts\servers.ts" />
   </ItemGroup>
 

@@ -5,7 +5,10 @@ const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 
 module.exports = {
     entry: {
-        servers: "./src/ts/servers.ts"
+        servers: "./src/ts/servers.ts",
+        bans: "./src/ts/bans.ts",
+        admins: "./src/ts/admins.ts",
+        saves: "./src/ts/saves.ts",
     },
     output: {
         path: path.resolve(__dirname, "wwwroot"),
@@ -14,6 +17,9 @@ module.exports = {
     },
     resolve: {
         extensions: [".js", ".ts"]
+    },
+    externals: {
+        jquery: 'jQuery'
     },
     module: {
         rules: [

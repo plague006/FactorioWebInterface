@@ -24,7 +24,7 @@
 
     <h2>Admin list</h2>
     <div class="table-responsive">
-        <table class="table table-bordered table-striped table-hover">
+        <table id="adminsTable" class="table table-bordered table-striped table-hover">
             <thead>
                 <tr>
                     <th>Name</th>
@@ -47,6 +47,10 @@
             </tbody>
         </table>
     </div>
+
+    @section Scripts{
+        <script type="text/javascript" src="~/js/admins.js"></script>
+    }
 
 </div>
 

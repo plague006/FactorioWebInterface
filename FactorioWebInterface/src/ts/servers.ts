@@ -110,22 +110,38 @@ const connection = new signalR.HubConnectionBuilder()
 async function getFiles() {
     let tempFiles = await connection.invoke('GetTempSaveFiles') as FileMetaData[];
     buildFileTable(tempSaveFilesTable, tempFiles);
+    updateFileTable(tempSaveFilesTable, tempFiles);
 
     let localFiles = await connection.invoke('GetLocalSaveFiles') as FileMetaData[];
     buildFileTable(localSaveFilesTable, localFiles);
+    updateFileTable(localSaveFilesTable, localFiles);
 
     let globalFiles = await connection.invoke('GetGlobalSaveFiles') as FileMetaData[];
     buildFileTable(globalSaveFilesTable, globalFiles);
+    updateFileTable(globalSaveFilesTable, globalFiles);
+}
+
+async function updateAllSaveFileTables() {
+    let tempFiles = await connection.invoke('GetTempSaveFiles') as FileMetaData[];
+    updateFileTable(tempSaveFilesTable, tempFiles);
+
+    let localFiles = await connection.invoke('GetLocalSaveFiles') as FileMetaData[];
+    updateFileTable(localSaveFilesTable, localFiles);
+
+    let globalFiles = await connection.invoke('GetGlobalSaveFiles') as FileMetaData[];
+    updateFileTable(globalSaveFilesTable, globalFiles);
 }
 
 async function getScenarios() {
     let scenarios = await connection.invoke('GetScenarios') as ScenarioMetaData[];
-    buildScenarioTable(scenarioTable, scenarios);
+    buildScenarioTable(scenarioTable);
+    updateBuildScenarioTable(scenarioTable, scenarios);
 }
 
 async function getLogs() {
     let logs = await connection.invoke('GetLogFiles') as FileMetaData[];
-    buildLogFileTable(logsFileTable, logs);
+    buildLogFileTable(logsFileTable);
+    updateLogFileTable(logsFileTable, logs)
 }
 
 function MakeTagInput(value: string) {
@@ -336,6 +352,34 @@ function bytesToSize(bytes: number) {
 }
 
 function buildFileTable(table: HTMLTableElement, files: FileMetaData[]) {
+    let cells = table.tHead.rows[0].cells;
+
+    let input = cells[0].firstChild as HTMLInputElement;
+    input.onchange = () => toggleSelectTable(input, table);
+
+    cells[0].onclick = () => sortTable(table, 'select');
+    cells[1].onclick = () => sortTable(table, 'name');
+    cells[2].onclick = () => sortTable(table, 'createdTime');
+    cells[3].onclick = () => sortTable(table, 'lastModifiedTime');
+    cells[4].onclick = () => sortTable(table, 'size');
+
+    let jTable = $(table);
+
+    jTable.data('select', r => {
+        let value = r.children[0].firstChild as HTMLInputElement;
+        return value.checked ? 1 : 0;
+    });
+
+    jTable.data('name', r => r.children[1].firstChild.textContent.toLowerCase());
+    jTable.data('createdTime', r => r.children[2].getAttribute('data-date'));
+    jTable.data('lastModifiedTime', r => r.children[3].getAttribute('data-date'));
+    jTable.data('size', r => parseInt(r.children[4].getAttribute('data-size')));
+
+    jTable.data('sortProperty', 'lastModifiedTime');
+    jTable.data('ascending', false);
+}
+
+function updateFileTable(table: HTMLTableElement, files: FileMetaData[]) {
     let body = table.tBodies[0];
 
     body.innerHTML = "";
@@ -359,15 +403,60 @@ function buildFileTable(table: HTMLTableElement, files: FileMetaData[]) {
         cell2.appendChild(link);
         row.appendChild(cell2);
 
-        createCell(row, formatDate(file.createdTime));
-        createCell(row, formatDate(file.lastModifiedTime));
-        createCell(row, bytesToSize(file.size));
+        let cell3 = document.createElement('td');
+        cell3.innerText = formatDate(file.createdTime);
+        cell3.setAttribute('data-date', file.createdTime);
+        row.appendChild(cell3);
+
+        let cell4 = document.createElement('td');
+        cell4.innerText = formatDate(file.lastModifiedTime);
+        cell4.setAttribute('data-date', file.lastModifiedTime);
+        row.appendChild(cell4);
+
+        let cell5 = document.createElement('td');
+        cell5.innerText = bytesToSize(file.size);
+        cell5.setAttribute('data-size', file.size.toString());
+        row.appendChild(cell5);
 
         body.appendChild(row);
     }
+
+    let jTable = $(table);
+
+    let rows: HTMLTableRowElement[] = []
+    let rc = body.rows;
+    for (let r of rc) {
+        rows.push(r);
+    }
+    jTable.data('rows', rows);
+
+    let ascending = !jTable.data('ascending');
+    jTable.data('ascending', ascending);
+    let property = jTable.data('sortProperty');
+
+    sortTable(table, property);
 }
 
-function buildLogFileTable(table: HTMLTableElement, files: FileMetaData[]) {
+function buildLogFileTable(table: HTMLTableElement) {
+    let cells = table.tHead.rows[0].cells;
+
+    cells[0].onclick = () => sortTable(table, 'name');
+    cells[1].onclick = () => sortTable(table, 'createdTime');
+    cells[2].onclick = () => sortTable(table, 'lastModifiedTime');
+    cells[3].onclick = () => sortTable(table, 'size');
+
+    let jTable = $(table);
+
+    jTable.data('name', r => r.children[0].firstChild.textContent.toLowerCase());
+    jTable.data('createdTime', r => r.children[1].getAttribute('data-date'));
+    jTable.data('lastModifiedTime', r => r.children[2].getAttribute('data-date'));
+    jTable.data('size', r => parseInt(r.children[3].getAttribute('data-size')));
+
+    jTable.data('sortProperty', 'lastModifiedTime');
+    jTable.data('ascending', false);
+}
+
+function updateLogFileTable(table: HTMLTableElement, files: FileMetaData[]) {
     let body = table.tBodies[0];
 
     body.innerHTML = "";
@@ -382,15 +471,67 @@ function buildLogFileTable(table: HTMLTableElement, files: FileMetaData[]) {
         cell2.appendChild(link);
         row.appendChild(cell2);
 
-        createCell(row, formatDate(file.createdTime));
-        createCell(row, formatDate(file.lastModifiedTime));
-        createCell(row, bytesToSize(file.size));
+        let cell3 = document.createElement('td');
+        cell3.innerText = formatDate(file.createdTime);
+        cell3.setAttribute('data-date', file.createdTime);
+        row.appendChild(cell3);
+
+        let cell4 = document.createElement('td');
+        cell4.innerText = formatDate(file.lastModifiedTime);
+        cell4.setAttribute('data-date', file.lastModifiedTime);
+        row.appendChild(cell4);
+
+        let cell5 = document.createElement('td');
+        cell5.innerText = bytesToSize(file.size);
+        cell5.setAttribute('data-size', file.size.toString());
+        row.appendChild(cell5);
 
         body.appendChild(row);
     }
+
+    let jTable = $(table);
+
+    let rows: HTMLTableRowElement[] = []
+    let rc = body.rows;
+    for (let r of rc) {
+        rows.push(r);
+    }
+    jTable.data('rows', rows);
+
+    let ascending = !jTable.data('ascending');
+    jTable.data('ascending', ascending);
+    let property = jTable.data('sortProperty');
+
+    sortTable(table, property);
 }
 
-function buildScenarioTable(table: HTMLTableElement, scenarios: ScenarioMetaData[]) {
+function buildScenarioTable(table: HTMLTableElement) {
+    let cells = table.tHead.rows[0].cells;
+
+    let input = cells[0].firstChild as HTMLInputElement;
+    input.onchange = () => toggleSelectTable(input, table);
+
+    cells[0].onclick = () => sortTable(table, 'select');
+    cells[1].onclick = () => sortTable(table, 'name');
+    cells[2].onclick = () => sortTable(table, 'createdTime');
+    cells[3].onclick = () => sortTable(table, 'lastModifiedTime');
+
+    let jTable = $(table);
+
+    jTable.data('select', r => {
+        let value = r.children[0].firstChild as HTMLInputElement;
+        return value.checked ? 1 : 0;
+    });
+
+    jTable.data('name', r => r.children[1].firstChild.textContent.toLowerCase());
+    jTable.data('createdTime', r => r.children[2].getAttribute('data-date'));
+    jTable.data('lastModifiedTime', r => r.children[3].getAttribute('data-date'));
+
+    jTable.data('sortProperty', 'lastModifiedTime');
+    jTable.data('ascending', false);
+}
+
+function updateBuildScenarioTable(table: HTMLTableElement, scenarios: ScenarioMetaData[]) {
     let body = table.tBodies[0];
 
     body.innerHTML = "";
@@ -407,11 +548,34 @@ function buildScenarioTable(table: HTMLTableElement, scenarios: ScenarioMetaData
         row.appendChild(cell);
 
         createCell(row, scenario.name);
-        createCell(row, formatDate(scenario.createdTime));
-        createCell(row, formatDate(scenario.lastModifiedTime));
+
+        let cell3 = document.createElement('td');
+        cell3.innerText = formatDate(scenario.createdTime);
+        cell3.setAttribute('data-date', scenario.createdTime);
+        row.appendChild(cell3);
+
+        let cell4 = document.createElement('td');
+        cell4.innerText = formatDate(scenario.lastModifiedTime);
+        cell4.setAttribute('data-date', scenario.lastModifiedTime);
+        row.appendChild(cell4);
 
         body.appendChild(row);
     }
+
+    let jTable = $(table);
+
+    let rows: HTMLTableRowElement[] = []
+    let rc = body.rows;
+    for (let r of rc) {
+        rows.push(r);
+    }
+    jTable.data('rows', rows);
+
+    let ascending = !jTable.data('ascending');
+    jTable.data('ascending', ascending);
+    let property = jTable.data('sortProperty');
+
+    sortTable(table, property);
 }
 
 function formatDate(dateString: string): string {
@@ -457,7 +621,7 @@ fileUploadInput.onchange = function (this: HTMLInputElement, ev: Event) {
 
     xhr.onloadend = function (event) {
         fileProgressContiner.hidden = true;
-        getFiles();
+        updateAllSaveFileTables();
 
         var result = JSON.parse(xhr.responseText) as Result;
         if (!result.success) {
@@ -493,7 +657,7 @@ fileDeleteButton.onclick = async () => {
         alert(JSON.stringify(result.errors));
     }
 
-    getFiles();
+    updateAllSaveFileTables();
 }
 
 fileMoveButton.onclick = async () => {
@@ -523,7 +687,7 @@ fileMoveButton.onclick = async () => {
         alert(JSON.stringify(result.errors));
     }
 
-    getFiles();
+    updateAllSaveFileTables();
 }
 
 fileCopyButton.onclick = async () => {
@@ -553,7 +717,7 @@ fileCopyButton.onclick = async () => {
         alert(JSON.stringify(result.errors));
     }
 
-    getFiles();
+    updateAllSaveFileTables();
 }
 
 saveRenameButton.onclick = async () => {
@@ -580,7 +744,7 @@ saveRenameButton.onclick = async () => {
         alert(JSON.stringify(result.errors));
     }
 
-    getFiles();
+    updateAllSaveFileTables();
 }
 
 saveDeflateButton.onclick = async () => {
@@ -608,7 +772,7 @@ saveDeflateButton.onclick = async () => {
 
 connection.on('DeflateFinished', (result: Result) => {
     deflateProgress.hidden = true;
-    getFiles();
+    updateAllSaveFileTables();
 
     if (!result.success) {
         alert(JSON.stringify(result.errors));
@@ -660,4 +824,65 @@ configSaveButton.onclick = async () => {
 
     await getSettings();
 }
+
+function toggleSelectTable(input: HTMLInputElement, table: HTMLTableElement) {
+    let checkboxes = table.querySelectorAll('input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
+
+    for (let checkbox of checkboxes) {
+        checkbox.checked = input.checked;
+    }
+}
+
+function sortTable(table: HTMLTableElement, property: string) {
+    let jTable = $(table);
+
+    let rows: HTMLTableRowElement[] = jTable.data('rows');
+    let keySelector: (r: HTMLTableRowElement) => any = jTable.data(property);
+
+    let sortProperty = jTable.data('sortProperty');
+
+    let ascending: boolean;
+    if (sortProperty === property) {
+        ascending = !jTable.data('ascending');
+        jTable.data('ascending', ascending);
+    } else {
+        jTable.data('sortProperty', property);
+        ascending = true;
+        jTable.data('ascending', ascending);
+    }
+
+    if (ascending) {
+        rows.sort((a, b) => {
+            let left = keySelector(a);
+            let right = keySelector(b);
+            if (left === right) {
+                return 0;
+            } else if (left > right) {
+                return 1;
+            } else {
+                return -1;
+            }
+        });
+    } else {
+        rows.sort((a, b) => {
+            let left = keySelector(a);
+            let right = keySelector(b);
+            if (left === right) {
+                return 0;
+            } else if (left > right) {
+                return -1;
+            } else {
+                return 1;
+            }
+        });
+    }
+
+    let body = table.tBodies[0];
+    body.innerHTML = "";
+
+    for (let r of rows) {
+        body.appendChild(r);
+    }
+}
+
 

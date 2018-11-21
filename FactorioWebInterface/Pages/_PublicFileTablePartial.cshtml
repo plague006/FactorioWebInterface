@@ -1,9 +1,9 @@
 ﻿@using FactorioWebInterface.Models;
 
-@model FileMetaData[]
+@model PublicFileTableModel
 
 <div class="table-responsive">
-    <table class="table table-bordered table-striped table-hover">
+    <table id="@Model.Id" class="table table-bordered table-striped table-hover">
         <thead>
             <tr>
                 <th>Name</th>
@@ -13,16 +13,16 @@
         </thead>
         <tbody>
             @{
-                Array.Sort(Model, (a, b) => -a.LastModifiedTime.CompareTo(b.LastModifiedTime));
+                Array.Sort(Model.Saves, (a, b) => -a.LastModifiedTime.CompareTo(b.LastModifiedTime));
 
-                foreach (var file in Model)
+                foreach (var file in Model.Saves)
                 {
                     string path = $"/saves?directory={file.Directory}&file={file.Name}";
 
                     <tr>
                         <td><a href="@path">@file.Name</a></td>
                         <td>@file.LastModifiedTime.ToString("yyyy/MM/dd HH:mm:ss")</td>
-                        <td>@file.GetSizeHumanReadable()</td>
+                        <td data-size="@file.Size">@file.GetSizeHumanReadable()</td>
                     </tr>
                 }
             }

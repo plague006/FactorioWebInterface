@@ -75,7 +75,7 @@ namespace FactorioWebInterface.Models
 
             var date = DateTime.UtcNow.Date;
 
-            var bans = serverBans.Select(x => new Ban() { Username = x.Username, Address = x.Address, Reason = x.Reason, DateTime = date });
+            var bans = serverBans.Select(x => new Ban() { Username = x.Username.ToLowerInvariant(), Address = x.Address, Reason = x.Reason, DateTime = date });
 
             var db = _dbContextFactory.Create();
             db.Bans.AddRange(bans);
@@ -1286,6 +1286,8 @@ namespace FactorioWebInterface.Models
 
         private async Task AddBanToDatabase(Ban ban)
         {
+            ban.Username = ban.Username.ToLowerInvariant();
+
             try
             {
                 var db = _dbContextFactory.Create();

@@ -6,18 +6,31 @@ namespace FactorioWebInterface.Pages
 {
     public class SavesModel : PageModel
     {
-        public FileMetaData[] StartSaves { get; private set; }
-        public FileMetaData[] FinalSaves { get; private set; }
-        public FileMetaData[] OldSaves { get; private set; }
-
+        public PublicFileTableModel StartSaves { get; private set; }
+        public PublicFileTableModel FinalSaves { get; private set; }
+        public PublicFileTableModel OldSaves { get; private set; }
 
         public IActionResult OnGet(string directory, string file)
         {
             if (string.IsNullOrWhiteSpace(directory) || string.IsNullOrWhiteSpace(file))
             {
-                StartSaves = PublicFactorioSaves.GetFiles(Constants.PublicStartSavesDirectoryName) ?? new FileMetaData[0];
-                FinalSaves = PublicFactorioSaves.GetFiles(Constants.PublicFinalSavesDirectoryName) ?? new FileMetaData[0];
-                OldSaves = PublicFactorioSaves.GetFiles(Constants.PublicOldSavesDirectoryName) ?? new FileMetaData[0];
+                StartSaves = new PublicFileTableModel()
+                {
+                    Id = "startSavesTable",
+                    Saves = PublicFactorioSaves.GetFiles(Constants.PublicStartSavesDirectoryName) ?? new FileMetaData[0]
+                };
+
+                FinalSaves = new PublicFileTableModel()
+                {
+                    Id = "finalSavesTable",
+                    Saves = PublicFactorioSaves.GetFiles(Constants.PublicFinalSavesDirectoryName) ?? new FileMetaData[0]
+                };
+
+                OldSaves = new PublicFileTableModel()
+                {
+                    Id = "oldSavesTable",
+                    Saves = PublicFactorioSaves.GetFiles(Constants.PublicOldSavesDirectoryName) ?? new FileMetaData[0]
+                };
 
                 return Page();
             }

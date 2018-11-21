@@ -52,7 +52,7 @@
             <h4>Ban List</h4>
 
             <div class="table-responsive">
-                <table class="table table-bordered table-striped table-hover">
+                <table id="bansTable" class="table table-bordered table-striped table-hover">
                     <thead>
                         <tr>
                             <th>Username</th>
@@ -84,5 +84,9 @@
             </div>
         </div>
     </div>
+
+    @section Scripts{
+        <script type="text/javascript" src="~/js/bans.js"></script>
+    }
 
 </div>
