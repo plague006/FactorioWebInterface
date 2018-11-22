@@ -59,7 +59,7 @@ namespace FactorioWebInterface.Models
             _dbContextFactory = dbContextFactory;
             _logger = logger;
 
-            guildId = ulong.Parse(_configuration[Constants.GuildIDKey]);            
+            guildId = ulong.Parse(_configuration[Constants.GuildIDKey]);
 
             BuildValidAdminRoleIds(configuration);
 
@@ -118,7 +118,7 @@ namespace FactorioWebInterface.Models
                 }
                 catch (Exception e)
                 {
-                    _logger.LogError("messageQueue consumer", e);
+                    _logger.LogError(e, "messageQueue consumer");
                 }
             });
 
