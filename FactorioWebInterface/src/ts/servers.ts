@@ -222,7 +222,11 @@ function send() {
 
 resumeButton.onclick = () => {
     connection.invoke("Resume")
-        .then((result) => console.log("resumed:" + result));
+        .then((result: Result) => {
+            if (!result.success) {
+                alert(JSON.stringify(result.errors));                
+            }
+        });
 }
 
 loadButton.onclick = () => {
@@ -238,9 +242,10 @@ loadButton.onclick = () => {
     let name = checkbox.getAttribute('data-name');
 
     connection.invoke("Load", dir, name)
-        .then((result) => {
-            console.log("loaded:");
-            console.log(result);
+        .then((result: Result) => {
+            if (!result.success) {
+                alert(JSON.stringify(result.errors));
+            }
         });
 }
 
@@ -256,41 +261,46 @@ startScenarioButton.onclick = () => {
     let name = checkbox.getAttribute('data-name');
 
     connection.invoke("StartScenario", name)
-        .then((result) => {
-            console.log("scenario loaded:");
-            console.log(result);
+        .then((result: Result) => {
+            if (!result.success) {
+                alert(JSON.stringify(result.errors));
+            }
         });
 }
 
 stopButton.onclick = () => {
     connection.invoke("Stop")
-        .then((result) => {
-            console.log("stopped");
-            console.log(result);
+        .then((result: Result) => {
+            if (!result.success) {
+                alert(JSON.stringify(result.errors));
+            }
         });
 }
 
 saveButton.onclick = () => {
     connection.invoke("Save")
-        .then((result) => {
-            console.log("Saved");
-            console.log(result);
+        .then((result: Result) => {
+            if (!result.success) {
+                alert(JSON.stringify(result.errors));
+            }
         });
 };
 
 updateButton.onclick = () => {
     connection.invoke("Update")
-        .then((result) => {
-            console.log("updated");
-            console.log(result);
+        .then((result: Result) => {
+            if (!result.success) {
+                alert(JSON.stringify(result.errors));
+            }
         });
 };
 
 forceStopButton.onclick = () => {
     connection.invoke("ForceStop")
-        .then((result) => {
-            console.log("ForceStopped");
-            console.log(result);
+        .then((result: Result) => {
+            if (!result.success) {
+                alert(JSON.stringify(result.errors));
+            }
         });
 }
 
