@@ -77,7 +77,7 @@ namespace FactorioWebInterface.Models
 
             var bans = serverBans.Select(x => new Ban() { Username = x.Username.ToLowerInvariant(), Address = x.Address, Reason = x.Reason, DateTime = date });
 
-            var db = _dbContextFactory.Create();
+            var db = _dbContextFactory.Create<ApplicationDbContext>();
             db.Bans.AddRange(bans);
             db.SaveChanges();
         }
@@ -208,7 +208,7 @@ namespace FactorioWebInterface.Models
         {
             try
             {
-                var db = _dbContextFactory.Create();
+                var db = _dbContextFactory.Create<ApplicationDbContext>();
 
                 var bans = await db.Bans.Select(b => new ServerBan()
                 {
@@ -1290,7 +1290,7 @@ namespace FactorioWebInterface.Models
 
             try
             {
-                var db = _dbContextFactory.Create();
+                var db = _dbContextFactory.Create<ApplicationDbContext>();
 
                 var old = await db.Bans.SingleOrDefaultAsync(b => b.Username == ban.Username);
                 if (old == null)
@@ -1370,7 +1370,7 @@ namespace FactorioWebInterface.Models
         {
             try
             {
-                var db = _dbContextFactory.Create();
+                var db = _dbContextFactory.Create<ApplicationDbContext>();
 
                 var old = await db.Bans.SingleOrDefaultAsync(b => b.Username == username);
                 if (old == null)
@@ -1425,7 +1425,7 @@ namespace FactorioWebInterface.Models
             string target = parms[0];
             string promoter = parms.Length > 1 ? parms[1] : "<server>";
 
-            var db = _dbContextFactory.Create();
+            var db = _dbContextFactory.Create<ApplicationDbContext>();
 
             var regular = new Regular() { Name = target, Date = DateTimeOffset.Now, PromotedBy = promoter };
 
@@ -1467,7 +1467,7 @@ namespace FactorioWebInterface.Models
         {
             content = content.Trim();
 
-            var db = _dbContextFactory.Create();
+            var db = _dbContextFactory.Create<ApplicationDbContext>();
 
             var regular = new Regular() { Name = content };
 
@@ -1525,7 +1525,7 @@ namespace FactorioWebInterface.Models
             };
             var t1 = _discordBot.SendEmbedToFactorioChannel(serverId, embed);
 
-            var regulars = await _dbContextFactory.Create().Regulars.Select(r => r.Name).ToArrayAsync();
+            var regulars = await _dbContextFactory.Create<ApplicationDbContext>().Regulars.Select(r => r.Name).ToArrayAsync();
 
             var cb = FactorioCommandBuilder.ServerCommand("regular_sync");
             if (regulars.Length == 0)
@@ -1652,25 +1652,25 @@ namespace FactorioWebInterface.Models
 
         public async Task<List<Regular>> GetRegularsAsync()
         {
-            var db = _dbContextFactory.Create();
+            var db = _dbContextFactory.Create<ApplicationDbContext>();
             return await db.Regulars.ToListAsync();
         }
 
         public async Task<List<Ban>> GetBansAsync()
         {
-            var db = _dbContextFactory.Create();
+            var db = _dbContextFactory.Create<ApplicationDbContext>();
             return await db.Bans.ToListAsync();
         }
 
         public async Task<List<Admin>> GetAdminsAsync()
         {
-            var db = _dbContextFactory.Create();
+            var db = _dbContextFactory.Create<ApplicationDbContext>();
             return await db.Admins.ToListAsync();
         }
 
         public async Task AddRegularsFromStringAsync(string data)
         {
-            var db = _dbContextFactory.Create();
+            var db = _dbContextFactory.Create<ApplicationDbContext>();
             var regulars = db.Regulars;
 
             var names = data.Split(',').Select(x => x.Trim());
@@ -1692,7 +1692,7 @@ namespace FactorioWebInterface.Models
         {
             try
             {
-                var db = _dbContextFactory.Create();
+                var db = _dbContextFactory.Create<ApplicationDbContext>();
                 var admins = db.Admins;
 
                 var names = data.Split(',').Select(x => x.Trim());
@@ -1718,7 +1718,7 @@ namespace FactorioWebInterface.Models
         {
             try
             {
-                var db = _dbContextFactory.Create();
+                var db = _dbContextFactory.Create<ApplicationDbContext>();
                 var admins = db.Admins;
 
                 var admin = await admins.SingleOrDefaultAsync(a => a.Name == name);

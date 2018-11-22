@@ -101,7 +101,7 @@ namespace FactorioWebInterface.Models
 
             var discordTask = DiscordClient.ConnectAsync();
 
-            using (var context = _dbContextFactory.Create())
+            using (var context = _dbContextFactory.Create<ApplicationDbContext>())
             {
                 foreach (var ds in context.DiscordServers)
                 {
@@ -186,7 +186,7 @@ namespace FactorioWebInterface.Models
             {
                 await discordLock.WaitAsync();
 
-                using (var context = _dbContextFactory.Create())
+                using (var context = _dbContextFactory.Create<ApplicationDbContext>())
                 {
                     var query = context.DiscordServers.Where(x => x.DiscordChannelId == channelId || x.ServerId == serverId);
 
@@ -223,7 +223,7 @@ namespace FactorioWebInterface.Models
             {
                 await discordLock.WaitAsync();
 
-                using (var context = _dbContextFactory.Create())
+                using (var context = _dbContextFactory.Create<ApplicationDbContext>())
                 {
                     var query = context.DiscordServers.Where(x => x.DiscordChannelId == channelId);
 
