@@ -52,6 +52,7 @@ namespace FactorioWebInterface.Models
         public DiscordClient DiscordClient { get; private set; }
 
         public event EventHandler<IDiscordBot, ServerMessageEventArgs> FactorioDiscordDataReceived;
+        public Func<string, bool> ServerValidator { get; set; }
 
         public DiscordBot(IConfiguration configuration, DbContextFactory dbContextFactory, ILogger<DiscordBot> logger)
         {
@@ -181,7 +182,11 @@ namespace FactorioWebInterface.Models
 
         public async Task<bool> SetServer(string serverId, ulong channelId)
         {
-            //todo check serverId is valid.
+            if (!ServerValidator(serverId) && serverId != Constants.AdminChannelID)
+            {
+                return false;
+            }
+
             try
             {
                 await discordLock.WaitAsync();
