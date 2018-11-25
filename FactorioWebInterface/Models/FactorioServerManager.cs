@@ -1664,7 +1664,7 @@ namespace FactorioWebInterface.Models
                     }
                 }
 
-                await RemoveBanFromDatabase(player);
+                await RemoveBanFromDatabase(player, userName);
             }
             else
             {
@@ -1682,13 +1682,13 @@ namespace FactorioWebInterface.Models
             await AddBanToDatabase(ban);
         }
 
-        public async Task UnBanPlayer(string username)
+        public async Task UnBanPlayer(string username, string admin)
         {
             var command = $"/unban {username}";
 
             SendToEachRunningServer(command);
 
-            await RemoveBanFromDatabase(username);
+            await RemoveBanFromDatabase(username, admin);
         }
 
         private async Task AddBanToDatabase(Ban ban)
@@ -1713,6 +1713,7 @@ namespace FactorioWebInterface.Models
                 }
 
                 await db.SaveChangesAsync();
+                _logger.LogInformation("[BAN]" + " " + ban.Username + " was banned by: " + ban.Admin + ". Reason: " + ban.Reason);
             }
             catch (Exception e)
             {
@@ -1767,7 +1768,7 @@ namespace FactorioWebInterface.Models
             await AddBanToDatabase(ban);
         }
 
-        private async Task RemoveBanFromDatabase(string username)
+        private async Task RemoveBanFromDatabase(string username, string admin)
         {
             try
             {
@@ -1781,6 +1782,7 @@ namespace FactorioWebInterface.Models
 
                 db.Bans.Remove(old);
                 await db.SaveChangesAsync();
+                _logger.LogInformation("[UNBAN]" + " " + username + " was unbanned by: " + admin);
             }
             catch (Exception e)
             {
@@ -1808,7 +1810,7 @@ namespace FactorioWebInterface.Models
 
             SendToEachRunningServerExcept(command, serverId);
 
-            await RemoveBanFromDatabase(player);
+            await RemoveBanFromDatabase(player, admin);
         }
 
         private async Task PromoteRegular(string serverId, string content)

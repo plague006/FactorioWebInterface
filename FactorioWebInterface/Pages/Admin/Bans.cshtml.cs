@@ -101,7 +101,7 @@ namespace FactorioWebInterface.Pages.Admin
                 return RedirectToPage("signIn");
             }
 
-            await _factorioServerManager.UnBanPlayer(username);
+            await _factorioServerManager.UnBanPlayer(username, user.UserName);
             Bans = await _factorioServerManager.GetBansAsync();
 
             Input = new InputModel

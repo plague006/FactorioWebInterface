@@ -27,7 +27,7 @@ namespace FactorioWebInterface.Models
         Task<List<Regular>> GetRegularsAsync();
         Task<List<Ban>> GetBansAsync();
         Task BanPlayer(Ban ban);
-        Task UnBanPlayer(string username);
+        Task UnBanPlayer(string username, string admin);
         Task<List<Admin>> GetAdminsAsync();
         Task AddRegularsFromStringAsync(string data);
         Task AddAdminsFromStringAsync(string data);
