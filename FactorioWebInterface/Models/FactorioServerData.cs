@@ -33,8 +33,8 @@ namespace FactorioWebInterface.Models
         public string ServerSettingsPath { get; set; }
         public string ServerBanListPath { get; set; }
         public string Port { get; set; }
-        public bool IsRemote { get; }
-        public string SshIdentity { get; }
+        public bool IsRemote { get; set; }
+        public string SshIdentity { get; set; }
         public SemaphoreSlim ServerLock { get; set; }
         public RingBuffer<MessageData> ControlMessageBuffer { get; set; }
         public FactorioServerSettings ServerSettings { get; set; }
