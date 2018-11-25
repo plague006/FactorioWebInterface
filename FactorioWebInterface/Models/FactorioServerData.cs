@@ -13,7 +13,7 @@ namespace FactorioWebInterface.Models
         public static readonly string baseDirectoryPath = Path.GetFullPath("/factorio/");
         public static readonly string basePublicDirectoryPath = Path.GetFullPath("/factorio/public/");
 
-        public static readonly int serverCount = 6;
+        public static readonly int serverCount = 12;
         public static readonly int bufferSize = 100;
         public static readonly int maxLogFiles = 20;
 
@@ -38,6 +38,7 @@ namespace FactorioWebInterface.Models
         public FactorioServerSettings ServerSettings { get; set; }
 
         public Func<Task> StopCallback { get; set; }
+        public HashSet<string> TrackingDataSets { get; set; } = new HashSet<string>();
 
         public static Dictionary<string, FactorioServerData> Servers { get; }
 

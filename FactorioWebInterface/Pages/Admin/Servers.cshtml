@@ -35,7 +35,7 @@
                         <button class="btn btn-primary dropdown-toggle " type="button" data-toggle="dropdown">Server @Model.Id <span class="caret"></span></button>
                         <ul class="dropdown-menu">
                             @{
-                                for (int i = 1; i <= 6; i++)
+                                for (int i = 1; i <= FactorioServerData.serverCount; i++)
                                 {
                                     <li><a href="/admin/servers/@i">@i</a></li>
                                 }

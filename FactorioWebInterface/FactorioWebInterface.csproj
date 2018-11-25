@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <None Remove="FactorioWebInterface.db" />
+    <None Remove="Scenario.db" />
     <None Remove="src\ts\admins.ts" />
     <None Remove="src\ts\saves.ts" />
     <None Remove="wwwroot\lib\bootstrap\dist\css\bootstrap-theme.css" />
@@ -61,10 +62,9 @@
     <Content Include="FactorioWebInterface.db">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="wwwroot\favicon.ico" />
+    <Content Include="Scenario.db">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>

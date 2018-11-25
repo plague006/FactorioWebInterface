@@ -104,7 +104,7 @@ const configSaveButton = document.getElementById('configSaveButton') as HTMLButt
 let messageCount = 0;
 
 const connection = new signalR.HubConnectionBuilder()
-    .withUrl("/FactorioControlHub")
+    .withUrl("/factorioControlHub")
     .build();
 
 async function getFiles() {

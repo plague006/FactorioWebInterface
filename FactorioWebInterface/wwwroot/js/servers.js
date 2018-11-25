@@ -2767,7 +2767,7 @@ const configAdminInput = document.getElementById('configAdminInput');
 const configSaveButton = document.getElementById('configSaveButton');
 let messageCount = 0;
 const connection = new _aspnet_signalr__WEBPACK_IMPORTED_MODULE_0__["HubConnectionBuilder"]()
-    .withUrl("/FactorioControlHub")
+    .withUrl("/factorioControlHub")
     .build();
 function getFiles() {
     return __awaiter(this, void 0, void 0, function* () {
