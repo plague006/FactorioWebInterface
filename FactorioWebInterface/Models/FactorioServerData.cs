@@ -13,7 +13,7 @@ namespace FactorioWebInterface.Models
         public static readonly string baseDirectoryPath = Path.GetFullPath("/factorio/");
         public static readonly string basePublicDirectoryPath = Path.GetFullPath("/factorio/public/");
 
-        public static readonly int serverCount = 6;
+        public static readonly int serverCount = 7;
         public static readonly int bufferSize = 100;
         public static readonly int maxLogFiles = 20;
 
@@ -33,6 +33,8 @@ namespace FactorioWebInterface.Models
         public string ServerSettingsPath { get; set; }
         public string ServerBanListPath { get; set; }
         public string Port { get; set; }
+        public bool IsRemote { get; }
+        public string SshIdentity { get; }
         public SemaphoreSlim ServerLock { get; set; }
         public RingBuffer<MessageData> ControlMessageBuffer { get; set; }
         public FactorioServerSettings ServerSettings { get; set; }
@@ -73,7 +75,8 @@ namespace FactorioWebInterface.Models
                     ServerBanListPath = Path.Combine(basePath, Constants.ServerBanListFileName),
                     Port = port,
                     ServerLock = new SemaphoreSlim(1, 1),
-                    ControlMessageBuffer = new RingBuffer<MessageData>(bufferSize)
+                    ControlMessageBuffer = new RingBuffer<MessageData>(bufferSize),
+                    IsRemote = false
                 };
 
                 ValidSaveDirectories.Add($"{serverId}/{Constants.TempSavesDirectoryName}");
@@ -81,6 +84,8 @@ namespace FactorioWebInterface.Models
                 ValidSaveDirectories.Add($"{serverId}\\{Constants.TempSavesDirectoryName}");
                 ValidSaveDirectories.Add($"{serverId}\\{Constants.LocalSavesDirectoryName}");
             }
+            Servers["7"].IsRemote = true;
+            Servers["7"].SshIdentity = "usvserver";
         }
     }
 }
