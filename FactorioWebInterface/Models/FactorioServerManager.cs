@@ -37,6 +37,7 @@ namespace FactorioWebInterface.Models
         private readonly IDiscordBot _discordBot;
         private readonly IHubContext<FactorioProcessHub, IFactorioProcessClientMethods> _factorioProcessHub;
         private readonly IHubContext<FactorioControlHub, IFactorioControlClientMethods> _factorioControlHub;
+        private readonly IHubContext<ScenarioDataHub, IScenarioDataClientMethods> _scenariolHub;
         private readonly DbContextFactory _dbContextFactory;
         private readonly ILogger<FactorioServerManager> _logger;
         private readonly IHttpClientFactory _httpClientFactory;
@@ -50,6 +51,7 @@ namespace FactorioWebInterface.Models
             IDiscordBot discordBot,
             IHubContext<FactorioProcessHub, IFactorioProcessClientMethods> factorioProcessHub,
             IHubContext<FactorioControlHub, IFactorioControlClientMethods> factorioControlHub,
+            IHubContext<ScenarioDataHub, IScenarioDataClientMethods> scenariolHub,
             DbContextFactory dbContextFactory,
             ILogger<FactorioServerManager> logger,
             IHttpClientFactory httpClientFactory
@@ -59,27 +61,13 @@ namespace FactorioWebInterface.Models
             _discordBot = discordBot;
             _factorioProcessHub = factorioProcessHub;
             _factorioControlHub = factorioControlHub;
+            _scenariolHub = scenariolHub;
             _dbContextFactory = dbContextFactory;
             _logger = logger;
             _httpClientFactory = httpClientFactory;
 
+            _discordBot.ServerValidator = IsValidServerId;
             _discordBot.FactorioDiscordDataReceived += FactorioDiscordDataReceived;
-
-            //AddBansToDatabaseFromFile();
-        }
-
-        private void AddBansToDatabaseFromFile()
-        {
-            var data = File.ReadAllText("D:\\diff2\\server-banlist.json");
-            var serverBans = JsonConvert.DeserializeObject<List<ServerBan>>(data);
-
-            var date = DateTime.UtcNow.Date;
-
-            var bans = serverBans.Select(x => new Ban() { Username = x.Username.ToLowerInvariant(), Address = x.Address, Reason = x.Reason, DateTime = date });
-
-            var db = _dbContextFactory.Create();
-            db.Bans.AddRange(bans);
-            db.SaveChanges();
         }
 
         private bool ExecuteProcess(string filename, string arguments)
@@ -208,7 +196,7 @@ namespace FactorioWebInterface.Models
         {
             try
             {
-                var db = _dbContextFactory.Create();
+                var db = _dbContextFactory.Create<ApplicationDbContext>();
 
                 var bans = await db.Bans.Select(b => new ServerBan()
                 {
@@ -226,6 +214,45 @@ namespace FactorioWebInterface.Models
             {
                 _logger.LogError(e, nameof(BuildBanList));
             }
+        }
+
+        private void SendToEachRunningServer(string data)
+        {
+            var clients = _factorioProcessHub.Clients;
+            foreach (var server in servers)
+            {
+                if (server.Value.Status == FactorioServerStatus.Running)
+                {
+                    clients.Group(server.Key).SendToFactorio(data);
+                }
+            }
+        }
+
+        private void SendToEachRunningServerExcept(string data, string exceptId)
+        {
+            var clients = _factorioProcessHub.Clients;
+            foreach (var server in servers)
+            {
+                if (server.Key != exceptId && server.Value.Status == FactorioServerStatus.Running)
+                {
+                    clients.Group(server.Key).SendToFactorio(data);
+                }
+            }
+        }
+
+        private async Task PrepareServer(FactorioServerData serverData)
+        {
+            var task = BuildBanList(serverData);
+
+            serverData.TrackingDataSets.Clear();
+            RotateLogs(serverData);
+
+            await task;
+        }
+
+        public bool IsValidServerId(string serverId)
+        {
+            return servers.ContainsKey(serverId);
         }
 
         public async Task<Result> Resume(string serverId, string userName)
@@ -254,8 +281,7 @@ namespace FactorioWebInterface.Models
                             return Result.Failure(Constants.MissingFileErrorKey, "No file to resume server from.");
                         }
 
-                        RotateLogs(serverData);
-                        await BuildBanList(serverData);
+                        await PrepareServer(serverData);
 
                         string basePath = serverData.BaseDirectoryPath;
 
@@ -369,8 +395,7 @@ namespace FactorioWebInterface.Models
                                 return Result.Failure(Constants.UnexpctedErrorKey, $"File {saveFile.FullName}.");
                         }
 
-                        RotateLogs(serverData);
-                        await BuildBanList(serverData);
+                        await PrepareServer(serverData);
 
                         string basePath = serverData.BaseDirectoryPath;
 
@@ -481,8 +506,7 @@ namespace FactorioWebInterface.Models
                 dir.Create();
             }
 
-            RotateLogs(serverData);
-            await BuildBanList(serverData);
+            await PrepareServer(serverData);
 
 
             string fullName;
@@ -1185,9 +1209,404 @@ namespace FactorioWebInterface.Models
                 case Constants.PingTag:
                     DoPing(serverId, content);
                     break;
+                case Constants.DataSetTag:
+                    _ = DoSetData(serverId, content);
+                    break;
+                case Constants.DataGetTag:
+                    _ = DoGetData(serverId, content);
+                    break;
+                case Constants.DataGetAllTag:
+                    _ = DoGetAllData(serverId, content);
+                    break;
+                case Constants.DataTrackedTag:
+                    _ = DoTrackedData(serverId, content);
+                    break;
                 default:
                     break;
             }
+        }
+
+        private async Task DoTrackedData(string serverId, string content)
+        {
+            if (!servers.TryGetValue(serverId, out var serverData))
+            {
+                _logger.LogError("DoTrackedData Unknown serverId: {serverId}", serverId);
+                return;
+            }
+
+            string[] dataSets;
+            try
+            {
+                dataSets = JsonConvert.DeserializeObject<string[]>(content);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, nameof(DoTrackedData) + " deserialization");
+                return;
+            }
+
+            try
+            {
+                await serverData.ServerLock.WaitAsync();
+
+                var td = serverData.TrackingDataSets;
+                td.Clear();
+                foreach (var item in dataSets)
+                {
+                    td.Add(item);
+                }
+            }
+            finally
+            {
+                serverData.ServerLock.Release();
+            }
+        }
+
+        private async Task DoGetData(string serverId, string content)
+        {
+            int space = content.IndexOf(' ');
+            if (space < 0)
+            {
+                return;
+            }
+
+            int rest = content.Length - space - 1;
+            if (rest < 1)
+            {
+                return;
+            }
+
+            string func = content.Substring(0, space);
+            string dataString = content.Substring(space + 1, rest);
+
+            ScenarioDataEntry data;
+            try
+            {
+                data = JsonConvert.DeserializeObject<ScenarioDataEntry>(dataString);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, nameof(DoGetData) + " deserialization");
+                return;
+            }
+
+            if (data.DataSet == null || data.Key == null)
+            {
+                return;
+            }
+
+            try
+            {
+                var db = _dbContextFactory.Create<ScenarioDbContext>();
+                var entry = await db.ScenarioDataEntries.AsNoTracking().FirstOrDefaultAsync(x => x.DataSet == data.DataSet && x.Key == data.Key);
+
+                var cb = FactorioCommandBuilder
+                    .ServerCommand("raise_callback")
+                    .Add(func)
+                    .Add(",")
+                    .Add("{data_set=").AddQuotedString(data.DataSet)
+                    .Add(",key=").AddQuotedString(data.Key);
+
+                if (entry != null)
+                {
+                    cb.Add(",value=").Add(entry.Value);
+                }
+
+                var command = cb.Add("}").Build();
+
+                await SendToFactorioProcess(serverId, command);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, nameof(DoGetData));
+            }
+        }
+
+        private async Task DoGetAllData(string serverId, string content)
+        {
+            int space = content.IndexOf(' ');
+            if (space < 0)
+            {
+                return;
+            }
+
+            int rest = content.Length - space - 1;
+            if (rest < 1)
+            {
+                return;
+            }
+
+            string func = content.Substring(0, space);
+            string dataString = content.Substring(space + 1, rest);
+
+            ScenarioDataEntry data;
+            try
+            {
+                data = JsonConvert.DeserializeObject<ScenarioDataEntry>(dataString);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, nameof(DoGetAllData) + " deserialization");
+                return;
+            }
+
+            if (data.DataSet == null)
+            {
+                return;
+            }
+
+            try
+            {
+                var db = _dbContextFactory.Create<ScenarioDbContext>();
+                var entries = await db.ScenarioDataEntries.AsNoTracking().Where(x => x.DataSet == data.DataSet).ToArrayAsync();
+
+                var cb = FactorioCommandBuilder
+                        .ServerCommand("raise_callback")
+                        .Add(func)
+                        .Add(",")
+                        .Add("{data_set=").AddQuotedString(data.DataSet);
+                if (entries.Length == 0)
+                {
+                    cb.Add("}");
+                }
+                else
+                {
+                    cb.Add(",entries={");
+                    for (int i = 0; i < entries.Length; i++)
+                    {
+                        var entry = entries[i];
+                        cb.Add("[").AddQuotedString(entry.Key).Add("]=").Add(entry.Value).Add(",");
+                    }
+                    cb.RemoveLast(1);
+                    cb.Add("}}");
+                }
+
+                var command = cb.Build();
+
+                await SendToFactorioProcess(serverId, command);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, nameof(DoGetAllData));
+            }
+        }
+
+        private async Task SendDataToTrackingServers(string sourceId, ScenarioDataEntry data)
+        {
+            var dataSet = data.DataSet;
+
+            var cb = FactorioCommandBuilder
+                .ServerCommand("raise_data_set")
+                .Add("{data_set=")
+                .AddQuotedString(data.DataSet)
+                .Add(",key=")
+                .AddQuotedString(data.Key);
+
+            if (data.Value != null)
+            {
+                cb.Add(",value=").Add(data.Value);
+            }
+
+            var command = cb.Add("}").Build();
+
+            var clients = _factorioProcessHub.Clients;
+            foreach (var entry in servers)
+            {
+                var id = entry.Key;
+                var server = entry.Value;
+                if (id != sourceId && server.Status == FactorioServerStatus.Running)
+                {
+                    try
+                    {
+                        await server.ServerLock.WaitAsync();
+                        if (server.TrackingDataSets.Contains(dataSet))
+                        {
+                            _ = clients.Group(id).SendToFactorio(command);
+                        }
+                    }
+                    finally
+                    {
+                        server.ServerLock.Release();
+                    }
+                }
+            }
+        }
+
+        private async Task UpdateDataSetDb(ScenarioDataEntry data)
+        {
+            var db = _dbContextFactory.Create<ScenarioDbContext>();
+
+            int retryCount = 10;
+            while (retryCount >= 0)
+            {
+                var old = await db.ScenarioDataEntries.FirstOrDefaultAsync(x => x.DataSet == data.DataSet && x.Key == data.Key);
+
+                try
+                {
+                    if (data.Value == null)
+                    {
+                        if (old != null)
+                        {
+                            db.Remove(old);
+                            await db.SaveChangesAsync();
+                        }
+                    }
+                    else
+                    {
+                        if (old != null)
+                        {
+                            db.Entry(old).Property(x => x.Value).CurrentValue = data.Value;
+                        }
+                        else
+                        {
+                            db.Add(data);
+                        }
+                        await db.SaveChangesAsync();
+                    }
+
+                    return;
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    // This exception is thrown if the old entry no longer exists in the database 
+                    // when trying to update it. The solution is to remove the old cached entry
+                    // and try again.
+                    if (old != null)
+                    {
+                        db.Entry(old).State = EntityState.Detached;
+                    }
+                    retryCount--;
+                }
+                catch (DbUpdateException)
+                {
+                    // This exception is thrown if the UNQIUE constraint fails, meaning the DataSet
+                    // Key pair already exists, when adding a new entry. The solution is to remove
+                    // the cached new entry so that the old entry is fetched from the database not
+                    // from the cache. Then the new entry can be properly compared and updated.
+                    db.Entry(data).State = EntityState.Detached;
+                    retryCount--;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, nameof(UpdateDataSetDb));
+                    return;
+                }
+            }
+
+            _logger.LogWarning("UpdateDataSetDb failed to update data. DataSet: {DataSet}, Key: {Key}, Value: {Value}", data.DataSet, data.Key, data.Value);
+        }
+
+        private Task SendDataToWeb(ScenarioDataEntry data)
+        {
+            return _scenariolHub.Clients.Group(data.DataSet).SendEntry(data);
+        }
+
+        public async Task DoSetData(string serverId, string content)
+        {
+            ScenarioDataEntry data;
+            try
+            {
+                data = JsonConvert.DeserializeObject<ScenarioDataEntry>(content);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, nameof(DoSetData) + " deserialization");
+                return;
+            }
+
+            var t1 = SendDataToTrackingServers(serverId, data);
+            var t2 = UpdateDataSetDb(data);
+
+            await t1;
+            await t2;
+
+            await SendDataToWeb(data);
+        }
+
+        public async Task<ScenarioDataEntry> GetScenarioData(string dataSet, string key)
+        {
+            if (dataSet == null || key == null)
+            {
+                return null;
+            }
+
+            try
+            {
+                var db = _dbContextFactory.Create<ScenarioDbContext>();
+                return await db.ScenarioDataEntries.AsNoTracking().FirstOrDefaultAsync(x => x.DataSet == dataSet && x.Key == key);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, nameof(GetScenarioData));
+            }
+
+            return null;
+        }
+
+        public async Task<ScenarioDataEntry[]> GetScenarioData(string dataSet)
+        {
+            if (dataSet == null)
+            {
+                return new ScenarioDataEntry[0];
+            }
+
+            try
+            {
+                var db = _dbContextFactory.Create<ScenarioDbContext>();
+                return await db.ScenarioDataEntries.AsNoTracking().Where(x => x.DataSet == dataSet).ToArrayAsync();
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, nameof(GetScenarioData));
+            }
+
+            return new ScenarioDataEntry[0];
+        }
+
+        public async Task<ScenarioDataEntry[]> GetAllScenarioData()
+        {
+            try
+            {
+                var db = _dbContextFactory.Create<ScenarioDbContext>();
+                return await db.ScenarioDataEntries.AsNoTracking().ToArrayAsync();
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, nameof(GetAllScenarioData));
+            }
+
+            return new ScenarioDataEntry[0];
+        }
+
+        public async Task<string[]> GetAllScenarioDataSets()
+        {
+            try
+            {
+                var db = _dbContextFactory.Create<ScenarioDbContext>();
+                return await db.ScenarioDataEntries.Select(x => x.DataSet).Distinct().ToArrayAsync();
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, nameof(GetAllScenarioData));
+            }
+
+            return new string[0];
+        }
+
+        public async Task UpdateScenarioDataFromWeb(ScenarioDataEntry data)
+        {
+            if (data.DataSet == null || data.Key == null)
+            {
+                return;
+            }
+
+            var t1 = SendDataToTrackingServers("", data);
+            var t2 = UpdateDataSetDb(data);
+
+            await t1;
+            await t2;
+
+            await SendDataToWeb(data);
         }
 
         public void DoPing(string serverId, string content)
@@ -1301,13 +1720,7 @@ namespace FactorioWebInterface.Models
             var command = $"/ban {ban.Username} {ban.Reason}";
             command.Substring(0, command.Length - 1);
 
-            foreach (var server in servers)
-            {
-                if (server.Value.Status == FactorioServerStatus.Running)
-                {
-                    _ = SendToFactorioProcess(server.Key, command);
-                }
-            }
+            SendToEachRunningServer(command);
 
             await AddBanToDatabase(ban);
         }
@@ -1316,13 +1729,7 @@ namespace FactorioWebInterface.Models
         {
             var command = $"/unban {username}";
 
-            foreach (var server in servers)
-            {
-                if (server.Value.Status == FactorioServerStatus.Running)
-                {
-                    _ = SendToFactorioProcess(server.Key, command);
-                }
-            }
+            SendToEachRunningServer(command);
 
             await RemoveBanFromDatabase(username);
         }
@@ -1333,7 +1740,7 @@ namespace FactorioWebInterface.Models
 
             try
             {
-                var db = _dbContextFactory.Create();
+                var db = _dbContextFactory.Create<ApplicationDbContext>();
 
                 var old = await db.Bans.SingleOrDefaultAsync(b => b.Username == ban.Username);
                 if (old == null)
@@ -1390,13 +1797,7 @@ namespace FactorioWebInterface.Models
             var command = $"/ban {player} {reason}";
             command.Substring(0, command.Length - 1);
 
-            foreach (var server in servers)
-            {
-                if (server.Key != serverId && server.Value.Status == FactorioServerStatus.Running)
-                {
-                    _ = SendToFactorioProcess(server.Key, command);
-                }
-            }
+            SendToEachRunningServerExcept(command, serverId);
 
             var ban = new Ban()
             {
@@ -1413,7 +1814,7 @@ namespace FactorioWebInterface.Models
         {
             try
             {
-                var db = _dbContextFactory.Create();
+                var db = _dbContextFactory.Create<ApplicationDbContext>();
 
                 var old = await db.Bans.SingleOrDefaultAsync(b => b.Username == username);
                 if (old == null)
@@ -1448,13 +1849,7 @@ namespace FactorioWebInterface.Models
 
             var command = $"/unban {player}";
 
-            foreach (var server in servers)
-            {
-                if (server.Key != serverId && server.Value.Status == FactorioServerStatus.Running)
-                {
-                    _ = SendToFactorioProcess(server.Key, command);
-                }
-            }
+            SendToEachRunningServerExcept(command, serverId);
 
             await RemoveBanFromDatabase(player);
         }
@@ -1468,7 +1863,7 @@ namespace FactorioWebInterface.Models
             string target = parms[0];
             string promoter = parms.Length > 1 ? parms[1] : "<server>";
 
-            var db = _dbContextFactory.Create();
+            var db = _dbContextFactory.Create<ApplicationDbContext>();
 
             var regular = new Regular() { Name = target, Date = DateTimeOffset.Now, PromotedBy = promoter };
 
@@ -1510,7 +1905,7 @@ namespace FactorioWebInterface.Models
         {
             content = content.Trim();
 
-            var db = _dbContextFactory.Create();
+            var db = _dbContextFactory.Create<ApplicationDbContext>();
 
             var regular = new Regular() { Name = content };
 
@@ -1561,34 +1956,25 @@ namespace FactorioWebInterface.Models
 
         private async Task ServerStarted(string serverId)
         {
+            var command = FactorioCommandBuilder.ServerCommand("server_started").Build();
+            var t1 = SendToFactorioProcess(serverId, command);
+
             var embed = new DiscordEmbedBuilder()
             {
                 Description = "Server has started",
                 Color = DiscordBot.successColor
             };
-            var t1 = _discordBot.SendEmbedToFactorioChannel(serverId, embed);
+            var t2 = _discordBot.SendEmbedToFactorioChannel(serverId, embed);
 
-            var regulars = await _dbContextFactory.Create().Regulars.Select(r => r.Name).ToArrayAsync();
-
-            var cb = FactorioCommandBuilder.ServerCommand("regular_sync");
-            if (regulars.Length == 0)
-            {
-                cb.Add("{}");
-            }
-            else
-            {
-                cb.Add("{");
-                foreach (var r in regulars)
-                {
-                    cb.AddQuotedString(r);
-                    cb.Add(",");
-                }
-                cb.RemoveLast(1);
-                cb.Add("}");
-            }
-
-            await SendToFactorioProcess(serverId, cb.Build());
             await t1;
+            await ServerConnected(serverId);
+            await t2;
+        }
+
+        private async Task ServerConnected(string serverId)
+        {
+            var command = FactorioCommandBuilder.ServerCommand("get_tracked_data_sets").Build();
+            await SendToFactorioProcess(serverId, command);
         }
 
         private async Task DoStoppedCallback(FactorioServerData serverData)
@@ -1622,13 +2008,17 @@ namespace FactorioWebInterface.Models
             }
 
             Task discordTask = null;
-            if (newStatus == oldStatus || oldStatus == FactorioServerStatus.Unknown)
+            if (newStatus == oldStatus)
             {
                 // Do nothing.
             }
             else if (oldStatus == FactorioServerStatus.Starting && newStatus == FactorioServerStatus.Running)
             {
                 discordTask = ServerStarted(serverId);
+            }
+            else if (newStatus == FactorioServerStatus.Running)
+            {
+                discordTask = ServerConnected(serverId);
             }
             else if (oldStatus == FactorioServerStatus.Stopping && newStatus == FactorioServerStatus.Stopped
                 || oldStatus == FactorioServerStatus.Killing && newStatus == FactorioServerStatus.Killed)
@@ -1695,25 +2085,25 @@ namespace FactorioWebInterface.Models
 
         public async Task<List<Regular>> GetRegularsAsync()
         {
-            var db = _dbContextFactory.Create();
+            var db = _dbContextFactory.Create<ApplicationDbContext>();
             return await db.Regulars.ToListAsync();
         }
 
         public async Task<List<Ban>> GetBansAsync()
         {
-            var db = _dbContextFactory.Create();
+            var db = _dbContextFactory.Create<ApplicationDbContext>();
             return await db.Bans.ToListAsync();
         }
 
         public async Task<List<Admin>> GetAdminsAsync()
         {
-            var db = _dbContextFactory.Create();
+            var db = _dbContextFactory.Create<ApplicationDbContext>();
             return await db.Admins.ToListAsync();
         }
 
         public async Task AddRegularsFromStringAsync(string data)
         {
-            var db = _dbContextFactory.Create();
+            var db = _dbContextFactory.Create<ApplicationDbContext>();
             var regulars = db.Regulars;
 
             var names = data.Split(',').Select(x => x.Trim());
@@ -1735,7 +2125,7 @@ namespace FactorioWebInterface.Models
         {
             try
             {
-                var db = _dbContextFactory.Create();
+                var db = _dbContextFactory.Create<ApplicationDbContext>();
                 var admins = db.Admins;
 
                 var names = data.Split(',').Select(x => x.Trim());
@@ -1761,7 +2151,7 @@ namespace FactorioWebInterface.Models
         {
             try
             {
-                var db = _dbContextFactory.Create();
+                var db = _dbContextFactory.Create<ApplicationDbContext>();
                 var admins = db.Admins;
 
                 var admin = await admins.SingleOrDefaultAsync(a => a.Name == name);

@@ -26,7 +26,7 @@ namespace FactorioWebInterface.Models
         public bool Success { get; }
         public IReadOnlyList<Error> Errors { get; }
 
-        private Result(bool success, IReadOnlyList<Error> errors)
+        protected Result(bool success, IReadOnlyList<Error> errors)
         {
             Success = success;
             Errors = errors;
@@ -48,5 +48,24 @@ namespace FactorioWebInterface.Models
                 return sb.ToString();
             }
         }
+    }
+
+    public class Result<T> : Result
+    {
+        public static new Result<T> OK(T value) => new Result<T>(value);
+        public static new Result<T> Failure(Error error) => new Result<T>(new Error[] { error });
+        public static new Result<T> Failure(IReadOnlyList<Error> errors) => new Result<T>(errors);
+        public static new Result<T> Failure(string key, string description = "") => Failure(new Error(key, description));
+
+        private Result(IReadOnlyList<Error> errors) : base(false, errors)
+        {
+        }
+
+        private Result(T value) : base(true, new Error[0])
+        {
+            Value = value;
+        }
+
+        public T Value { get; set; }
     }
 }

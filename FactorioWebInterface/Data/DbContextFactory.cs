@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 
 namespace FactorioWebInterface.Data
@@ -15,9 +16,9 @@ namespace FactorioWebInterface.Data
             _serviceProvider = serviceProvider;
         }
 
-        public ApplicationDbContext Create()
+        public T Create<T>() where T : DbContext
         {
-            return _serviceProvider.CreateScope().ServiceProvider.GetService<ApplicationDbContext>();
+            return _serviceProvider.CreateScope().ServiceProvider.GetService<T>();
         }
     }
 }

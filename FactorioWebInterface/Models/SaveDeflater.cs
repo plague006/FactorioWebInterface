@@ -17,14 +17,11 @@ namespace FactorioWebInterface.Models
         private Dictionary<string, string[]> luaFileRequirePaths;
         private Dictionary<string, bool> requiredFiles;
 
-
         public SaveDeflater()
         {
             luaFileRequirePaths = new Dictionary<string, string[]>();
             requiredFiles = new Dictionary<string, bool>();
         }
-
-
 
         public void Deflate(string path)
         {

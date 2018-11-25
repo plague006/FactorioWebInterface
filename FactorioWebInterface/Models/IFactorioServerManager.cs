@@ -9,6 +9,7 @@ namespace FactorioWebInterface.Models
 {
     public interface IFactorioServerManager
     {
+        bool IsValidServerId(string serverId);
         Task<Result> Resume(string serverId, string userName);
         Task<Result> Load(string serverId, string directoryName, string fileName, string userName);
         Task<Result> StartScenario(string serverId, string scenarioName, string userName);
@@ -49,5 +50,10 @@ namespace FactorioWebInterface.Models
         Task<Result> Install(string id, string userName, string version);
         Task<Result> Save(string id, string userName, string saveName);
         Result DeflateSave(string connectionId, string directoryPath, string fileName, string newFileName);
+        Task<ScenarioDataEntry> GetScenarioData(string dataSet, string key);
+        Task<ScenarioDataEntry[]> GetScenarioData(string dataSet);
+        Task<ScenarioDataEntry[]> GetAllScenarioData();
+        Task<string[]> GetAllScenarioDataSets();
+        Task UpdateScenarioDataFromWeb(ScenarioDataEntry data);
     }
 }

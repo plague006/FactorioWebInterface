@@ -1,6 +1,7 @@
 ﻿using DSharpPlus;
 using DSharpPlus.Entities;
 using FactorioWebInterface.Utils;
+using System;
 using System.Threading.Tasks;
 
 namespace FactorioWebInterface.Models
@@ -8,6 +9,7 @@ namespace FactorioWebInterface.Models
     public interface IDiscordBot
     {
         DiscordClient DiscordClient { get; }
+        Func<string, bool> ServerValidator { get; set; }
         Task<bool> IsAdminRoleAsync(string userId);
         Task<bool> IsAdminRoleAsync(ulong userId);
         Task SendToFactorioChannel(string serverId, string data);

@@ -69,7 +69,7 @@ namespace FactorioWebInterface.Models
             {
                 var embed = new DiscordEmbedBuilder()
                 {
-                    Description = $"Facotrio server {serverId} has been connected to this channel",
+                    Description = $"Factorio server {serverId} has been connected to this channel",
                     Color = DiscordBot.successColor
                 }
                 .Build();
@@ -80,7 +80,7 @@ namespace FactorioWebInterface.Models
             {
                 var embed = new DiscordEmbedBuilder()
                 {
-                    Description = $"Error connecting the facotrio server {serverId} to this channel",
+                    Description = $"Error connecting the factorio server {serverId} to this channel",
                     Color = DiscordBot.failureColor
                 }
                 .Build();
@@ -99,7 +99,7 @@ namespace FactorioWebInterface.Models
             {
                 string description = serverId == Constants.AdminChannelID
                     ? $"Admin has been disconnected from this channel"
-                    : $"Facotrio server {serverId} has been disconnected from this channel";
+                    : $"Factorio server {serverId} has been disconnected from this channel";
 
                 var embed = new DiscordEmbedBuilder()
                 {
@@ -114,7 +114,7 @@ namespace FactorioWebInterface.Models
             {
                 var embed = new DiscordEmbedBuilder()
                 {
-                    Description = $"Error disconnecting the facotrio server from this channel",
+                    Description = $"Error disconnecting the factorio server from this channel",
                     Color = DiscordBot.failureColor
                 }
                 .Build();

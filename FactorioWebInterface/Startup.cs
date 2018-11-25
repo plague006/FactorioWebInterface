@@ -37,8 +37,9 @@ namespace FactorioWebInterface
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlite("Data Source=FactorioWebInterface.db"));
+            services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite("Data Source=FactorioWebInterface.db"));
+
+            services.AddDbContext<ScenarioDbContext>(options => options.UseSqlite("Data Source=Scenario.db"));
 
             services.AddSingleton<DbContextFactory, DbContextFactory>();
 
@@ -166,6 +167,7 @@ namespace FactorioWebInterface
             {
                 routes.MapHub<FactorioControlHub>("/factorioControlHub");
                 routes.MapHub<FactorioProcessHub>("/factorioProcessHub");
+                routes.MapHub<ScenarioDataHub>("/scenarioDataHub");
             });
 
             app.UseMvc();

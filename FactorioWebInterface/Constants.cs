@@ -55,6 +55,10 @@
         public const string BanTag = "[BAN]";
         public const string UnBannedTag = "[UNBANNED]";
         public const string PingTag = "[PING]";
+        public const string DataSetTag = "[DATA-SET]";
+        public const string DataGetTag = "[DATA-GET]";
+        public const string DataGetAllTag = "[DATA-GET-ALL]";
+        public const string DataTrackedTag = "[DATA-TRACKED]";
 
         public const string UnexpctedErrorKey = "unexpectedError";
         public const string ServerIdErrorKey = "serverId";
