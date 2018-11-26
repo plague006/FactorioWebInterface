@@ -47,10 +47,7 @@
         public const string DiscordEmbedTag = "[DISCORD-EMBED]";
         public const string DiscordEmbedRawTag = "[DISCORD-EMBED-RAW]";
         public const string DiscordAdminEmbedTag = "[DISCORD-ADMIN-EMBED]";
-        public const string DiscordAdminEmbedRawTag = "[DISCORD-ADMIN-EMBED-RAW]";
-        public const string RegularPromoteTag = "[REGULAR-PROMOTE]";
-        public const string RegularDemoteTag = "[REGULAR-DEOMOTE]";
-        public const string DonatorSetTag = "[DONATOR-SET]";
+        public const string DiscordAdminEmbedRawTag = "[DISCORD-ADMIN-EMBED-RAW]";        
         public const string StartScenarioTag = "[START-SCENARIO]";
         public const string BanTag = "[BAN]";
         public const string UnBannedTag = "[UNBANNED]";
