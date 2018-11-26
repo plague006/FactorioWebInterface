@@ -11,8 +11,8 @@
         <p>Select data set from dropdown.</p>
         <p>If you are viewing a dataset you will see updates happen live. Changes made here will be sent to running servers.</p>
         <p>You will need to refresh the data sets list to see new data sets if they are made.</p>
-        <p>Click on a row to have the values filled into the form</p>
-        <p>If the new value is omitted the key is removed</p>
+        <p>Click on a row to have the values filled into the form.</p>
+        <p>If the new value is omitted the key is removed.</p>
         <hr />
     </div>
 
@@ -34,11 +34,11 @@
     </div>
 
     <div class="row">
-        <div class="col-md-6">
+        <div class="col-md-10">
 
             <div class="form-horizontal">
                 <hr />
-                <h4>Update Data</h4>
+                <h3 class="col-md-offset-4">Update Data</h3>
 
                 <div class="form-group">
                     <label class="control-label col-md-2" for="dataSetInput">Data Set</label>
@@ -55,11 +55,11 @@
                 <div class="form-group">
                     <label class="control-label col-md-2" for="valueInput">Value</label>
                     <div class="col-sm-10">
-                        <input id="valueInput" class="form-control col-md-10" type="text" />
+                        <textarea id="valueInput" class="form-control col-md-10"></textarea>
                     </div>
                 </div>
 
-                <button id="updateButton" class="btn btn-default">Update</button>
+                <button id="updateButton" class="btn btn-default col-md-offset-2">Update</button>
                 <hr />
             </div>
 

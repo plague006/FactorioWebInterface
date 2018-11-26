@@ -50,6 +50,15 @@ namespace FactorioWebInterface.Models
             return this;
         }
 
+        public FactorioCommandBuilder AddDoubleQuotedString(string s)
+        {
+            sb.Append('"');
+            sb.Append(s);
+            sb.Append('"');
+
+            return this;
+        }
+
         public FactorioCommandBuilder RemoveLast(int characters)
         {
             int start = sb.Length - characters;

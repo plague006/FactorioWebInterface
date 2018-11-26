@@ -14,7 +14,7 @@ import * as $ from "jquery";
     const dataSetsDropdownList = document.getElementById('dataSetsDropdownList') as HTMLUListElement;
     const dataSetInput = document.getElementById('dataSetInput') as HTMLInputElement;
     const keyInput = document.getElementById('keyInput') as HTMLInputElement;
-    const valueInput = document.getElementById('valueInput') as HTMLInputElement;
+    const valueInput = document.getElementById('valueInput') as HTMLTextAreaElement;
     const updateButton = document.getElementById('updateButton') as HTMLButtonElement;
     const refreshDataSets = document.getElementById('refreshDataSets') as HTMLButtonElement;
 
