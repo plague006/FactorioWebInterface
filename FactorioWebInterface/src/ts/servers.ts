@@ -224,7 +224,7 @@ resumeButton.onclick = () => {
     connection.invoke("Resume")
         .then((result: Result) => {
             if (!result.success) {
-                alert(JSON.stringify(result.errors));                
+                alert(JSON.stringify(result.errors));
             }
         });
 }
@@ -640,6 +640,8 @@ fileUploadInput.onchange = function (this: HTMLInputElement, ev: Event) {
     }
 
     xhr.send(formData);
+
+    fileUploadInput.value = "";
 };
 
 fileDeleteButton.onclick = async () => {

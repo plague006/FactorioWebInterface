@@ -3200,6 +3200,7 @@ fileUploadInput.onchange = function (ev) {
         }
     };
     xhr.send(formData);
+    fileUploadInput.value = "";
 };
 fileDeleteButton.onclick = () => __awaiter(undefined, void 0, void 0, function* () {
     let checkboxes = document.querySelectorAll('input[name="fileCheckbox"]:checked');
