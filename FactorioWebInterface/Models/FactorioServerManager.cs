@@ -1141,7 +1141,13 @@ namespace FactorioWebInterface.Models
 
                         _ = _discordBot.SendEmbedToFactorioAdminChannel(embed);
                         break;
-                    }                
+                    }
+                case Constants.RegularPromoteTag:
+                    _ = PromoteRegular(serverId, content);
+                    break;
+                case Constants.RegularDemoteTag:
+                    _ = DemoteRegular(serverId, content);
+                    break;
                 case Constants.StartScenarioTag:
                     var result = await ForceStartScenario(serverId, content, "<server>");
 
@@ -1253,9 +1259,10 @@ namespace FactorioWebInterface.Models
 
                 var cb = FactorioCommandBuilder
                     .ServerCommand("raise_callback")
-                    .Add(func)                    
-                    .Add(",{data_set=").AddDoubleQuotedString(data.DataSet)
-                    .Add(",key=").AddDoubleQuotedString(data.Key);
+                    .Add(func)
+                    .Add(",")
+                    .Add("{data_set=").AddQuotedString(data.DataSet)
+                    .Add(",key=").AddQuotedString(data.Key);
 
                 if (entry != null)
                 {
@@ -1312,8 +1319,9 @@ namespace FactorioWebInterface.Models
 
                 var cb = FactorioCommandBuilder
                         .ServerCommand("raise_callback")
-                        .Add(func)                        
-                        .Add(",{data_set=").AddDoubleQuotedString(data.DataSet);
+                        .Add(func)
+                        .Add(",")
+                        .Add("{data_set=").AddQuotedString(data.DataSet);
                 if (entries.Length == 0)
                 {
                     cb.Add("}");
@@ -1324,7 +1332,7 @@ namespace FactorioWebInterface.Models
                     for (int i = 0; i < entries.Length; i++)
                     {
                         var entry = entries[i];
-                        cb.Add("[").AddDoubleQuotedString(entry.Key).Add("]=").Add(entry.Value).Add(",");
+                        cb.Add("[").AddQuotedString(entry.Key).Add("]=").Add(entry.Value).Add(",");
                     }
                     cb.RemoveLast(1);
                     cb.Add("}}");
@@ -1347,9 +1355,9 @@ namespace FactorioWebInterface.Models
             var cb = FactorioCommandBuilder
                 .ServerCommand("raise_data_set")
                 .Add("{data_set=")
-                .AddDoubleQuotedString(data.DataSet)
+                .AddQuotedString(data.DataSet)
                 .Add(",key=")
-                .AddDoubleQuotedString(data.Key);
+                .AddQuotedString(data.Key);
 
             if (data.Value != null)
             {
@@ -1656,7 +1664,7 @@ namespace FactorioWebInterface.Models
                     }
                 }
 
-                await RemoveBanFromDatabase(player);
+                await RemoveBanFromDatabase(player, userName);
             }
             else
             {
@@ -1674,13 +1682,13 @@ namespace FactorioWebInterface.Models
             await AddBanToDatabase(ban);
         }
 
-        public async Task UnBanPlayer(string username)
+        public async Task UnBanPlayer(string username, string admin)
         {
             var command = $"/unban {username}";
 
             SendToEachRunningServer(command);
 
-            await RemoveBanFromDatabase(username);
+            await RemoveBanFromDatabase(username, admin);
         }
 
         private async Task AddBanToDatabase(Ban ban)
@@ -1705,6 +1713,7 @@ namespace FactorioWebInterface.Models
                 }
 
                 await db.SaveChangesAsync();
+                _logger.LogInformation("[BAN] {username} was banned by: {admin}. Reason: {reason}", ban.Username, ban.Admin, ban.Reason);
             }
             catch (Exception e)
             {
@@ -1759,7 +1768,7 @@ namespace FactorioWebInterface.Models
             await AddBanToDatabase(ban);
         }
 
-        private async Task RemoveBanFromDatabase(string username)
+        private async Task RemoveBanFromDatabase(string username, string admin)
         {
             try
             {
@@ -1773,6 +1782,7 @@ namespace FactorioWebInterface.Models
 
                 db.Bans.Remove(old);
                 await db.SaveChangesAsync();
+                _logger.LogInformation("[UNBAN] {username} was unbanned by: {admin}", username, admin);
             }
             catch (Exception e)
             {
@@ -1800,8 +1810,97 @@ namespace FactorioWebInterface.Models
 
             SendToEachRunningServerExcept(command, serverId);
 
-            await RemoveBanFromDatabase(player);
-        }       
+            await RemoveBanFromDatabase(player, admin);
+        }
+
+        private async Task PromoteRegular(string serverId, string content)
+        {
+            if (string.IsNullOrWhiteSpace(content))
+                return;
+
+            var parms = content.Trim().Split(' ');
+            string target = parms[0];
+            string promoter = parms.Length > 1 ? parms[1] : "<server>";
+
+            var db = _dbContextFactory.Create<ApplicationDbContext>();
+
+            var regular = new Regular() { Name = target, Date = DateTimeOffset.Now, PromotedBy = promoter };
+
+            db.Add(regular);
+            await db.SaveChangesAsync();
+
+            var command = FactorioCommandBuilder
+                .ServerCommand("regular_promote")
+                .AddQuotedString(target)
+                .Build();
+
+            foreach (var server in servers.Values)
+            {
+                var serverLock = server.ServerLock;
+
+                try
+                {
+                    await serverLock.WaitAsync();
+
+                    if (server.ServerId == serverId)
+                    {
+                        continue;
+                    }
+
+                    // todo what do if server is in starting status?
+                    if (server.Status == FactorioServerStatus.Running)
+                    {
+                        _ = SendToFactorioProcess(server.ServerId, command);
+                    }
+                }
+                finally
+                {
+                    serverLock.Release();
+                }
+            }
+        }
+
+        private async Task DemoteRegular(string serverId, string content)
+        {
+            content = content.Trim();
+
+            var db = _dbContextFactory.Create<ApplicationDbContext>();
+
+            var regular = new Regular() { Name = content };
+
+            db.Remove(regular);
+            await db.SaveChangesAsync();
+
+            var command = FactorioCommandBuilder
+                .ServerCommand("regular_demote")
+                .AddQuotedString(content)
+                .Build();
+
+            foreach (var server in servers.Values)
+            {
+                var serverLock = server.ServerLock;
+
+                try
+                {
+                    await serverLock.WaitAsync();
+
+                    if (server.ServerId == serverId)
+                    {
+                        continue;
+                    }
+
+                    // todo what do if server is in starting status?
+                    if (server.Status == FactorioServerStatus.Running)
+                    {
+                        _ = SendToFactorioProcess(server.ServerId, command);
+                    }
+                }
+                finally
+                {
+                    serverLock.Release();
+                }
+            }
+        }
 
         public void FactorioWrapperDataReceived(string serverId, string data)
         {
@@ -1941,7 +2040,13 @@ namespace FactorioWebInterface.Models
                 await contorlTask1;
             if (controlTask2 != null)
                 await controlTask2;
-        }        
+        }
+
+        public async Task<List<Regular>> GetRegularsAsync()
+        {
+            var db = _dbContextFactory.Create<ApplicationDbContext>();
+            return await db.Regulars.ToListAsync();
+        }
 
         public async Task<List<Ban>> GetBansAsync()
         {
@@ -1953,6 +2058,26 @@ namespace FactorioWebInterface.Models
         {
             var db = _dbContextFactory.Create<ApplicationDbContext>();
             return await db.Admins.ToListAsync();
+        }
+
+        public async Task AddRegularsFromStringAsync(string data)
+        {
+            var db = _dbContextFactory.Create<ApplicationDbContext>();
+            var regulars = db.Regulars;
+
+            var names = data.Split(',').Select(x => x.Trim());
+            foreach (var name in names)
+            {
+                var regular = new Regular()
+                {
+                    Name = name,
+                    Date = DateTimeOffset.Now,
+                    PromotedBy = "<From old list>"
+                };
+                regulars.Add(regular);
+            }
+
+            await db.SaveChangesAsync();
         }
 
         public async Task AddAdminsFromStringAsync(string data)

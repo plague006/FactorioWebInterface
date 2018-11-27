@@ -23,11 +23,13 @@ namespace FactorioWebInterface.Models
         Task FactorioControlDataReceived(string serverId, string data, string userName);
         void FactorioWrapperDataReceived(string serverId, string data);
         Task OnProcessRegistered(string serverId);
-        Task StatusChanged(string serverId, FactorioServerStatus newStatus, FactorioServerStatus oldStatus);        
+        Task StatusChanged(string serverId, FactorioServerStatus newStatus, FactorioServerStatus oldStatus);
+        Task<List<Regular>> GetRegularsAsync();
         Task<List<Ban>> GetBansAsync();
         Task BanPlayer(Ban ban);
-        Task UnBanPlayer(string username);
-        Task<List<Admin>> GetAdminsAsync();        
+        Task UnBanPlayer(string username, string admin);
+        Task<List<Admin>> GetAdminsAsync();
+        Task AddRegularsFromStringAsync(string data);
         Task AddAdminsFromStringAsync(string data);
         Task RemoveAdmin(string name);
         FileMetaData[] GetLocalSaveFiles(string serverId);
