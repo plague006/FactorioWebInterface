@@ -1141,13 +1141,7 @@ namespace FactorioWebInterface.Models
 
                         _ = _discordBot.SendEmbedToFactorioAdminChannel(embed);
                         break;
-                    }
-                case Constants.RegularPromoteTag:
-                    _ = PromoteRegular(serverId, content);
-                    break;
-                case Constants.RegularDemoteTag:
-                    _ = DemoteRegular(serverId, content);
-                    break;
+                    }                                
                 case Constants.StartScenarioTag:
                     var result = await ForceStartScenario(serverId, content, "<server>");
 
@@ -2042,12 +2036,6 @@ namespace FactorioWebInterface.Models
                 await controlTask2;
         }
 
-        public async Task<List<Regular>> GetRegularsAsync()
-        {
-            var db = _dbContextFactory.Create<ApplicationDbContext>();
-            return await db.Regulars.ToListAsync();
-        }
-
         public async Task<List<Ban>> GetBansAsync()
         {
             var db = _dbContextFactory.Create<ApplicationDbContext>();
@@ -2058,26 +2046,6 @@ namespace FactorioWebInterface.Models
         {
             var db = _dbContextFactory.Create<ApplicationDbContext>();
             return await db.Admins.ToListAsync();
-        }
-
-        public async Task AddRegularsFromStringAsync(string data)
-        {
-            var db = _dbContextFactory.Create<ApplicationDbContext>();
-            var regulars = db.Regulars;
-
-            var names = data.Split(',').Select(x => x.Trim());
-            foreach (var name in names)
-            {
-                var regular = new Regular()
-                {
-                    Name = name,
-                    Date = DateTimeOffset.Now,
-                    PromotedBy = "<From old list>"
-                };
-                regulars.Add(regular);
-            }
-
-            await db.SaveChangesAsync();
         }
 
         public async Task AddAdminsFromStringAsync(string data)
