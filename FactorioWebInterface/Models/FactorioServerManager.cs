@@ -287,7 +287,13 @@ namespace FactorioWebInterface.Models
 
                         string fullName;
                         string arguments;
-
+#if WINDOWS
+                        fullName = "C:/Program Files/dotnet/dotnet.exe",
+                        arguments = $"C:/Projects/FactorioWebInterface/FactorioWrapper/bin/Windows/netcoreapp2.1/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio.exe --start-server-load-latest --server-settings {basePath}/server-settings.json --port {serverData.Port}",
+#elif WSL
+                        fullName = "/usr/bin/dotnet",
+                        arguments = $"/mnt/c/Projects/FactorioWebInterface/FactorioWrapper/bin/Wsl/netcoreapp2.1/publish/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-latest --server-settings {basePath}/server-settings.json --port {serverData.Port}",
+#else
                         if (serverData.IsRemote)
                         {
                             fullName = "ssh";
@@ -298,19 +304,12 @@ namespace FactorioWebInterface.Models
                             fullName = "/usr/bin/dotnet";
                             arguments = $"/factorio/factorioWrapper/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-latest --server-settings {basePath}/server-settings.json --port {serverData.Port}";
                         }
-
+#endif
                         var startInfo = new ProcessStartInfo
                         {
-#if WINDOWS
-                            FileName = "C:/Program Files/dotnet/dotnet.exe",
-                            Arguments = $"C:/Projects/FactorioWebInterface/FactorioWrapper/bin/Windows/netcoreapp2.1/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio.exe --start-server-load-latest --server-settings {basePath}/server-settings.json --port {serverData.Port}",
-#elif WSL
-                            FileName = "/usr/bin/dotnet",
-                            Arguments = $"/mnt/c/Projects/FactorioWebInterface/FactorioWrapper/bin/Wsl/netcoreapp2.1/publish/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-latest --server-settings {basePath}/server-settings.json --port {serverData.Port}",
-#else
                             FileName = fullName,
                             Arguments = arguments,
-#endif
+
                             UseShellExecute = false,
                             CreateNoWindow = true
                         };
@@ -401,7 +400,13 @@ namespace FactorioWebInterface.Models
 
                         string fullName;
                         string arguments;
-
+#if WINDOWS
+                        fullName = "C:/Program Files/dotnet/dotnet.exe",
+                        arguments = $"C:/Projects/FactorioWebInterface/FactorioWrapper/bin/Windows/netcoreapp2.1/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio.exe --start-server {saveFile.FullName} --server-settings {basePath}/server-settings.json --port {serverData.Port}",
+#elif WSL
+                        fullName = "/usr/bin/dotnet",
+                        arguments = $"/mnt/c/Projects/FactorioWebInterface/FactorioWrapper/bin/Wsl/netcoreapp2.1/publish/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server {saveFile.FullName} --server-settings {basePath}/server-settings.json --port {serverData.Port}",
+#else
                         if (serverData.IsRemote)
                         {
                             fullName = "ssh";
@@ -412,19 +417,12 @@ namespace FactorioWebInterface.Models
                             fullName = "/usr/bin/dotnet";
                             arguments = $"/factorio/factorioWrapper/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server {saveFile.FullName} --server-settings {basePath}/server-settings.json --port {serverData.Port}";
                         }
-
+#endif
                         var startInfo = new ProcessStartInfo
                         {
-#if WINDOWS
-                            FileName = "C:/Program Files/dotnet/dotnet.exe",
-                            Arguments = $"C:/Projects/FactorioWebInterface/FactorioWrapper/bin/Windows/netcoreapp2.1/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio.exe --start-server {saveFile.FullName} --server-settings {basePath}/server-settings.json --port {serverData.Port}",
-#elif WSL
-                            FileName = "/usr/bin/dotnet",
-                            Arguments = $"/mnt/c/Projects/FactorioWebInterface/FactorioWrapper/bin/Wsl/netcoreapp2.1/publish/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server {saveFile.FullName} --server-settings {basePath}/server-settings.json --port {serverData.Port}",
-#else
                             FileName = fullName,
                             Arguments = arguments,
-#endif
+
                             UseShellExecute = false,
                             CreateNoWindow = true
                         };
@@ -508,10 +506,15 @@ namespace FactorioWebInterface.Models
 
             await PrepareServer(serverData);
 
-
             string fullName;
             string arguments;
-
+#if WINDOWS
+            fullName = "C:/Program Files/dotnet/dotnet.exe",
+            arguments = $"C:/Projects/FactorioWebInterface/FactorioWrapper/bin/Windows/netcoreapp2.1/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio.exe --start-server-load-scenario {scenarioPathFromShared} --server-settings {basePath}/server-settings.json --port {serverData.Port}",
+#elif WSL
+            fullName = "/usr/bin/dotnet",
+            arguments = $"/mnt/c/Projects/FactorioWebInterface/FactorioWrapper/bin/Wsl/netcoreapp2.1/publish/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-scenario {scenarioPathFromShared} --server-settings {basePath}/server-settings.json --port {serverData.Port}",
+#else
             if (serverData.IsRemote)
             {
                 fullName = "ssh";
@@ -522,19 +525,12 @@ namespace FactorioWebInterface.Models
                 fullName = "/usr/bin/dotnet";
                 arguments = $"/factorio/factorioWrapper/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-scenario {scenarioPathFromShared} --server-settings {basePath}/server-settings.json --port {serverData.Port}";
             }
-
+#endif
             var startInfo = new ProcessStartInfo
             {
-#if WINDOWS
-                FileName = "C:/Program Files/dotnet/dotnet.exe",
-                Arguments = $"C:/Projects/FactorioWebInterface/FactorioWrapper/bin/Windows/netcoreapp2.1/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio.exe --start-server-load-scenario {scenarioPathFromShared} --server-settings {basePath}/server-settings.json --port {serverData.Port}",
-#elif WSL
-                FileName = "/usr/bin/dotnet",
-                Arguments = $"/mnt/c/Projects/FactorioWebInterface/FactorioWrapper/bin/Wsl/netcoreapp2.1/publish/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-scenario {scenarioPathFromShared} --server-settings {basePath}/server-settings.json --port {serverData.Port}",
-#else
                 FileName = fullName,
                 Arguments = arguments,
-#endif
+
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
