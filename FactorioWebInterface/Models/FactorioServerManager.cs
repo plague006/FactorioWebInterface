@@ -1713,7 +1713,7 @@ namespace FactorioWebInterface.Models
                 }
 
                 await db.SaveChangesAsync();
-                _logger.LogInformation("[BAN]" + " " + ban.Username + " was banned by: " + ban.Admin + ". Reason: " + ban.Reason);
+                _logger.LogInformation("[BAN] {username} was banned by: {admin}. Reason: {reason}", ban.Username, ban.Admin, ban.Reason);
             }
             catch (Exception e)
             {
@@ -1782,7 +1782,7 @@ namespace FactorioWebInterface.Models
 
                 db.Bans.Remove(old);
                 await db.SaveChangesAsync();
-                _logger.LogInformation("[UNBAN]" + " " + username + " was unbanned by: " + admin);
+                _logger.LogInformation("[UNBAN] {username} was unbanned by: {admin}", username, admin);
             }
             catch (Exception e)
             {
