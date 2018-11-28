@@ -56,6 +56,11 @@ interface FactorioServerSettings {
     public_visible: boolean;
 }
 
+interface FactorioServerBonusSettings {
+    syncBans: boolean;
+    buildBansFromDatabaseOnStart: boolean
+}
+
 const maxMessageCount = 100;
 
 const divMessages: HTMLDivElement = document.querySelector("#divMessages");
@@ -106,6 +111,9 @@ const configSaveButton = document.getElementById('configSaveButton') as HTMLButt
 const configAutoSaveIntervalInput = document.getElementById('configAutoSaveIntervalInput') as HTMLInputElement;
 const configAutoSaveSlotsInput = document.getElementById('configAutoSaveSlotsInput') as HTMLInputElement;
 const configPublicVisibleInput = document.getElementById('configPublicVisibleInput') as HTMLInputElement;
+const configSyncBans = document.getElementById('configSyncBans') as HTMLInputElement;
+const configBuildBansFromDb = document.getElementById('configBuildBansFromDb') as HTMLInputElement;
+const configBonusSaveButton = document.getElementById('configBonusSaveButton') as HTMLButtonElement;
 
 let messageCount = 0;
 
@@ -188,6 +196,13 @@ async function getSettings() {
     serverName.innerText = settings.name;
 }
 
+async function getBonusSettings() {
+    let settings = await connection.invoke('GetServerBonusSettings') as FactorioServerBonusSettings;
+
+    configSyncBans.checked = settings.syncBans;
+    configBuildBansFromDb.checked = settings.buildBansFromDatabaseOnStart;
+}
+
 async function init() {
     try {
         await connection.start();
@@ -197,6 +212,7 @@ async function init() {
         getScenarios();
         getLogs();
         getSettings();
+        getBonusSettings();
 
         statusText.value = data.status;
 
@@ -858,7 +874,22 @@ configSaveButton.onclick = async () => {
     }
 
     await getSettings();
-}
+};
+
+configBonusSaveButton.onclick = async () => {
+    let settings: FactorioServerBonusSettings = {
+        syncBans: configSyncBans.checked,
+        buildBansFromDatabaseOnStart: configBuildBansFromDb.checked
+    }
+
+    let result: Result = await connection.invoke('SaveServerBonusSettings', settings);
+
+    if (!result.success) {
+        alert(JSON.stringify(result.errors));
+    }
+
+    await getBonusSettings();
+};
 
 function toggleSelectTable(input: HTMLInputElement, table: HTMLTableElement) {
     let checkboxes = table.querySelectorAll('input[type="checkbox"]') as NodeListOf<HTMLInputElement>;

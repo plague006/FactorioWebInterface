@@ -2768,6 +2768,9 @@ const configSaveButton = document.getElementById('configSaveButton');
 const configAutoSaveIntervalInput = document.getElementById('configAutoSaveIntervalInput');
 const configAutoSaveSlotsInput = document.getElementById('configAutoSaveSlotsInput');
 const configPublicVisibleInput = document.getElementById('configPublicVisibleInput');
+const configSyncBans = document.getElementById('configSyncBans');
+const configBuildBansFromDb = document.getElementById('configBuildBansFromDb');
+const configBonusSaveButton = document.getElementById('configBonusSaveButton');
 let messageCount = 0;
 const connection = new _aspnet_signalr__WEBPACK_IMPORTED_MODULE_0__["HubConnectionBuilder"]()
     .withUrl("/factorioControlHub")
@@ -2839,6 +2842,13 @@ function getSettings() {
         serverName.innerText = settings.name;
     });
 }
+function getBonusSettings() {
+    return __awaiter(this, void 0, void 0, function* () {
+        let settings = yield connection.invoke('GetServerBonusSettings');
+        configSyncBans.checked = settings.syncBans;
+        configBuildBansFromDb.checked = settings.buildBansFromDatabaseOnStart;
+    });
+}
 function init() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -2848,6 +2858,7 @@ function init() {
             getScenarios();
             getLogs();
             getSettings();
+            getBonusSettings();
             statusText.value = data.status;
             for (let message of data.messages) {
                 writeMessage(message);
@@ -3358,6 +3369,17 @@ configSaveButton.onclick = () => __awaiter(undefined, void 0, void 0, function* 
         alert(JSON.stringify(result.errors));
     }
     yield getSettings();
+});
+configBonusSaveButton.onclick = () => __awaiter(undefined, void 0, void 0, function* () {
+    let settings = {
+        syncBans: configSyncBans.checked,
+        buildBansFromDatabaseOnStart: configBuildBansFromDb.checked
+    };
+    let result = yield connection.invoke('SaveServerBonusSettings', settings);
+    if (!result.success) {
+        alert(JSON.stringify(result.errors));
+    }
+    yield getBonusSettings();
 });
 function toggleSelectTable(input, table) {
     let checkboxes = table.querySelectorAll('input[type="checkbox"]');

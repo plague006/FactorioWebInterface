@@ -194,6 +194,13 @@ namespace FactorioWebInterface.Models
 
         private async Task BuildBanList(FactorioServerData serverData)
         {
+            if (!serverData.BuildBansFromDatabaseOnStart)
+            {
+                // If we don't want the database bans, the assumption is we should leave the
+                // server banlist alone with whatever bans are in there.
+                return;
+            }
+
             try
             {
                 var db = _dbContextFactory.Create<ApplicationDbContext>();
@@ -222,6 +229,32 @@ namespace FactorioWebInterface.Models
             foreach (var server in servers)
             {
                 if (server.Value.Status == FactorioServerStatus.Running)
+                {
+                    clients.Group(server.Key).SendToFactorio(data);
+                }
+            }
+        }
+
+        private void SendBanCommandToEachRunningServer(string data)
+        {
+            var clients = _factorioProcessHub.Clients;
+            foreach (var server in servers)
+            {
+                var serverData = server.Value;
+                if (serverData.Status == FactorioServerStatus.Running && serverData.SyncBans)
+                {
+                    clients.Group(server.Key).SendToFactorio(data);
+                }
+            }
+        }
+
+        private void SendBanCommandToEachRunningServerExcept(string data, string exceptId)
+        {
+            var clients = _factorioProcessHub.Clients;
+            foreach (var server in servers)
+            {
+                var serverData = server.Value;
+                if (server.Key != exceptId && serverData.Status == FactorioServerStatus.Running && serverData.SyncBans)
                 {
                     clients.Group(server.Key).SendToFactorio(data);
                 }
@@ -1674,15 +1707,23 @@ namespace FactorioWebInterface.Models
                 var command = $"/ban {player} {reason}";
                 command.Substring(0, command.Length - 1);
 
-                foreach (var server in servers)
+                _ = SendToFactorioProcess(serverId, command);
+
+                if (!servers.TryGetValue(serverId, out var sourceServerData))
                 {
-                    if (server.Key != serverId && server.Value.Status == FactorioServerStatus.Running)
-                    {
-                        _ = SendToFactorioProcess(server.Key, command);
-                    }
+                    _logger.LogError("Unknown serverId: {serverId}", serverId);
+                    return;
                 }
 
+                if (!sourceServerData.SyncBans)
+                {
+                    return;
+                }
+
+                SendBanCommandToEachRunningServerExcept(command, serverId);
+
                 await AddBanToDatabase(ban);
+
             }
             else if (data.StartsWith("/unban"))
             {
@@ -1697,13 +1738,20 @@ namespace FactorioWebInterface.Models
 
                 var command = $"/unban {player}";
 
-                foreach (var server in servers)
+                _ = SendToFactorioProcess(serverId, command);
+
+                if (!servers.TryGetValue(serverId, out var sourceServerData))
                 {
-                    if (server.Key != serverId && server.Value.Status == FactorioServerStatus.Running)
-                    {
-                        _ = SendToFactorioProcess(server.Key, command);
-                    }
+                    _logger.LogError("Unknown serverId: {serverId}", serverId);
+                    return;
                 }
+
+                if (!sourceServerData.SyncBans)
+                {
+                    return;
+                }
+
+                SendBanCommandToEachRunningServerExcept(command, serverId);
 
                 await RemoveBanFromDatabase(player, userName);
             }
@@ -1718,7 +1766,7 @@ namespace FactorioWebInterface.Models
             var command = $"/ban {ban.Username} {ban.Reason}";
             command.Substring(0, command.Length - 1);
 
-            SendToEachRunningServer(command);
+            SendBanCommandToEachRunningServer(command);
 
             await AddBanToDatabase(ban);
         }
@@ -1727,7 +1775,7 @@ namespace FactorioWebInterface.Models
         {
             var command = $"/unban {username}";
 
-            SendToEachRunningServer(command);
+            SendBanCommandToEachRunningServer(command);
 
             await RemoveBanFromDatabase(username, admin);
         }
@@ -1764,6 +1812,17 @@ namespace FactorioWebInterface.Models
 
         private async Task DoBan(string serverId, string content)
         {
+            if (!servers.TryGetValue(serverId, out var serverData))
+            {
+                _logger.LogError("Unknown serverId: {serverId}", serverId);
+                return;
+            }
+
+            if (!serverData.SyncBans)
+            {
+                return;
+            }
+
             string[] words = content.Split(' ');
 
             if (words.Length < 7)
@@ -1796,7 +1855,7 @@ namespace FactorioWebInterface.Models
             var command = $"/ban {player} {reason}";
             command.Substring(0, command.Length - 1);
 
-            SendToEachRunningServerExcept(command, serverId);
+            SendBanCommandToEachRunningServerExcept(command, serverId);
 
             var ban = new Ban()
             {
@@ -1811,6 +1870,17 @@ namespace FactorioWebInterface.Models
 
         private async Task DoSyncBan(string serverId, string content)
         {
+            if (!servers.TryGetValue(serverId, out var serverData))
+            {
+                _logger.LogError("Unknown serverId: {serverId}", serverId);
+                return;
+            }
+
+            if (!serverData.SyncBans)
+            {
+                return;
+            }
+
             Ban ban;
             try
             {
@@ -1837,7 +1907,7 @@ namespace FactorioWebInterface.Models
             var command = $"/ban {ban.Username} {ban.Reason}";
             command.Substring(0, command.Length - 1);
 
-            SendToEachRunningServerExcept(command, serverId);
+            SendBanCommandToEachRunningServerExcept(command, serverId);
 
             await AddBanToDatabase(ban);
         }
@@ -1866,6 +1936,17 @@ namespace FactorioWebInterface.Models
 
         private async Task DoUnBan(string serverId, string content)
         {
+            if (!servers.TryGetValue(serverId, out var serverData))
+            {
+                _logger.LogError("Unknown serverId: {serverId}", serverId);
+                return;
+            }
+
+            if (!serverData.SyncBans)
+            {
+                return;
+            }
+
             string[] words = content.Split(' ');
             if (words.Length < 5)
             {
@@ -1882,13 +1963,24 @@ namespace FactorioWebInterface.Models
 
             var command = $"/unban {player}";
 
-            SendToEachRunningServerExcept(command, serverId);
+            SendBanCommandToEachRunningServerExcept(command, serverId);
 
             await RemoveBanFromDatabase(player, admin);
         }
 
         private async Task DoUnBannedSync(string serverId, string content)
         {
+            if (!servers.TryGetValue(serverId, out var serverData))
+            {
+                _logger.LogError("Unknown serverId: {serverId}", serverId);
+                return;
+            }
+
+            if (!serverData.SyncBans)
+            {
+                return;
+            }
+
             Ban ban;
             try
             {
@@ -1911,7 +2003,7 @@ namespace FactorioWebInterface.Models
             }
 
             var command = $"/unban {ban.Username}";
-            SendToEachRunningServerExcept(command, serverId);
+            SendBanCommandToEachRunningServerExcept(command, serverId);
 
             await RemoveBanFromDatabase(ban.Username, ban.Admin);
         }
@@ -2940,6 +3032,58 @@ namespace FactorioWebInterface.Models
             }
         }
 
+        public async Task<FactorioServerBonusSettings> GetBonusServerSettings(string serverId)
+        {
+            if (!servers.TryGetValue(serverId, out var serverData))
+            {
+                _logger.LogError("Unknown serverId: {serverId}", serverId);
+                return null;
+            }
+
+            try
+            {
+                await serverData.ServerLock.WaitAsync();
+
+                return new FactorioServerBonusSettings()
+                {
+                    SyncBans = serverData.SyncBans,
+                    BuildBansFromDatabaseOnStart = serverData.BuildBansFromDatabaseOnStart
+                };
+            }
+            finally
+            {
+                serverData.ServerLock.Release();
+            }
+        }
+
+        public async Task<Result> SaveBonusServerSettings(string serverId, FactorioServerBonusSettings settings)
+        {
+            if (!servers.TryGetValue(serverId, out var serverData))
+            {
+                _logger.LogError("Unknown serverId: {serverId}", serverId);
+                return null;
+            }
+
+            try
+            {
+                await serverData.ServerLock.WaitAsync();
+
+                serverData.SyncBans = settings.SyncBans;
+                serverData.BuildBansFromDatabaseOnStart = settings.BuildBansFromDatabaseOnStart;
+
+                return Result.OK;
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Exception saving server bonus settings.");
+                return Result.Failure(Constants.UnexpctedErrorKey);
+            }
+            finally
+            {
+                serverData.ServerLock.Release();
+            }
+        }
+
         public Result DeflateSave(string connectionId, string directoryPath, string fileName, string newFileName = "")
         {
             var directory = GetSaveDirectory(directoryPath);
@@ -3022,5 +3166,7 @@ namespace FactorioWebInterface.Models
                 return Result.Failure(Constants.FileErrorKey, $"Error deflating files");
             }
         }
+
+
     }
 }

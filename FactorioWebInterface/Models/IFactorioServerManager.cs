@@ -23,11 +23,11 @@ namespace FactorioWebInterface.Models
         Task FactorioControlDataReceived(string serverId, string data, string userName);
         void FactorioWrapperDataReceived(string serverId, string data);
         Task OnProcessRegistered(string serverId);
-        Task StatusChanged(string serverId, FactorioServerStatus newStatus, FactorioServerStatus oldStatus);        
+        Task StatusChanged(string serverId, FactorioServerStatus newStatus, FactorioServerStatus oldStatus);
         Task<List<Ban>> GetBansAsync();
         Task BanPlayer(Ban ban);
         Task UnBanPlayer(string username, string admin);
-        Task<List<Admin>> GetAdminsAsync();        
+        Task<List<Admin>> GetAdminsAsync();
         Task AddAdminsFromStringAsync(string data);
         Task RemoveAdmin(string name);
         FileMetaData[] GetLocalSaveFiles(string serverId);
@@ -45,6 +45,8 @@ namespace FactorioWebInterface.Models
         //Task ReloadServerSettings(string serverId);
         Task<FactorioServerSettingsWebEditable> GetEditableServerSettings(string serverId);
         Task<Result> SaveEditableServerSettings(string serverId, FactorioServerSettingsWebEditable settings);
+        Task<FactorioServerBonusSettings> GetBonusServerSettings(string serverId);
+        Task<Result> SaveBonusServerSettings(string serverId, FactorioServerBonusSettings settings);
         Task<Result> Install(string id, string userName, string version);
         Task<Result> Save(string id, string userName, string saveName);
         Result DeflateSave(string connectionId, string directoryPath, string fileName, string newFileName);

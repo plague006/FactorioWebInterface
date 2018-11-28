@@ -38,6 +38,8 @@ namespace FactorioWebInterface.Models
         public SemaphoreSlim ServerLock { get; set; }
         public RingBuffer<MessageData> ControlMessageBuffer { get; set; }
         public FactorioServerSettings ServerSettings { get; set; }
+        public bool SyncBans { get; set; }
+        public bool BuildBansFromDatabaseOnStart { get; set; }
 
         public Func<Task> StopCallback { get; set; }
         public HashSet<string> TrackingDataSets { get; set; } = new HashSet<string>();
@@ -77,7 +79,9 @@ namespace FactorioWebInterface.Models
                     Port = port,
                     ServerLock = new SemaphoreSlim(1, 1),
                     ControlMessageBuffer = new RingBuffer<MessageData>(bufferSize),
-                    IsRemote = false
+                    IsRemote = false,
+                    SyncBans = true,
+                    BuildBansFromDatabaseOnStart = true
                 };
 
                 ValidSaveDirectories.Add($"{serverId}/{Constants.TempSavesDirectoryName}");
