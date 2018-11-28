@@ -2765,6 +2765,9 @@ const configPasswordInput = document.getElementById('configPasswordInput');
 const configPauseInput = document.getElementById('configPauseInput');
 const configAdminInput = document.getElementById('configAdminInput');
 const configSaveButton = document.getElementById('configSaveButton');
+const configAutoSaveIntervalInput = document.getElementById('configAutoSaveIntervalInput');
+const configAutoSaveSlotsInput = document.getElementById('configAutoSaveSlotsInput');
+const configPublicVisibleInput = document.getElementById('configPublicVisibleInput');
 let messageCount = 0;
 const connection = new _aspnet_signalr__WEBPACK_IMPORTED_MODULE_0__["HubConnectionBuilder"]()
     .withUrl("/factorioControlHub")
@@ -2809,6 +2812,7 @@ function getLogs() {
 function MakeTagInput(value) {
     let listItem = document.createElement('li');
     let input = document.createElement('input');
+    input.setAttribute('style', 'width:100%;');
     listItem.appendChild(input);
     input.value = value;
     return listItem;
@@ -2829,6 +2833,9 @@ function getSettings() {
         configPasswordInput.value = settings.game_password;
         configPauseInput.checked = settings.auto_pause;
         configAdminInput.value = settings.admins.join(', ');
+        configAutoSaveIntervalInput.value = settings.autosave_interval + "";
+        configAutoSaveSlotsInput.value = settings.autosave_slots + "";
+        configPublicVisibleInput.checked = settings.public_visible;
         serverName.innerText = settings.name;
     });
 }
@@ -3326,6 +3333,14 @@ configSaveButton.onclick = () => __awaiter(undefined, void 0, void 0, function* 
     if (isNaN(max_players)) {
         max_players = 0;
     }
+    let interval = parseInt(configAutoSaveIntervalInput.value);
+    if (isNaN(interval)) {
+        interval = 5;
+    }
+    let slots = parseInt(configAutoSaveSlotsInput.value);
+    if (isNaN(slots)) {
+        slots = 20;
+    }
     let settings = {
         name: configNameInput.value,
         description: configDescriptionInput.value,
@@ -3333,7 +3348,10 @@ configSaveButton.onclick = () => __awaiter(undefined, void 0, void 0, function* 
         max_players: max_players,
         game_password: configPasswordInput.value,
         auto_pause: configPauseInput.checked,
-        admins: configAdminInput.value.split(',')
+        admins: configAdminInput.value.split(','),
+        autosave_interval: interval,
+        autosave_slots: slots,
+        public_visible: configPublicVisibleInput.checked
     };
     let result = yield connection.invoke('SaveServerSettings', settings);
     if (!result.success) {

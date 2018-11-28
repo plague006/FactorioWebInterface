@@ -51,6 +51,9 @@ interface FactorioServerSettings {
     game_password: string;
     auto_pause: boolean;
     admins: string[];
+    autosave_interval: number;
+    autosave_slots: number;
+    public_visible: boolean;
 }
 
 const maxMessageCount = 100;
@@ -100,6 +103,9 @@ const configPasswordInput = document.getElementById('configPasswordInput') as HT
 const configPauseInput = document.getElementById('configPauseInput') as HTMLInputElement;
 const configAdminInput = document.getElementById('configAdminInput') as HTMLTextAreaElement;
 const configSaveButton = document.getElementById('configSaveButton') as HTMLButtonElement;
+const configAutoSaveIntervalInput = document.getElementById('configAutoSaveIntervalInput') as HTMLInputElement;
+const configAutoSaveSlotsInput = document.getElementById('configAutoSaveSlotsInput') as HTMLInputElement;
+const configPublicVisibleInput = document.getElementById('configPublicVisibleInput') as HTMLInputElement;
 
 let messageCount = 0;
 
@@ -147,6 +153,7 @@ async function getLogs() {
 function MakeTagInput(value: string) {
     let listItem = document.createElement('li');
     let input = document.createElement('input');
+    input.setAttribute('style', 'width:100%;');
     listItem.appendChild(input);
 
     input.value = value;
@@ -174,6 +181,9 @@ async function getSettings() {
     configPasswordInput.value = settings.game_password;
     configPauseInput.checked = settings.auto_pause;
     configAdminInput.value = settings.admins.join(', ');
+    configAutoSaveIntervalInput.value = settings.autosave_interval + "";
+    configAutoSaveSlotsInput.value = settings.autosave_slots + "";
+    configPublicVisibleInput.checked = settings.public_visible;
 
     serverName.innerText = settings.name;
 }
@@ -818,6 +828,16 @@ configSaveButton.onclick = async () => {
         max_players = 0;
     }
 
+    let interval = parseInt(configAutoSaveIntervalInput.value);
+    if (isNaN(interval)) {
+        interval = 5;
+    }
+
+    let slots = parseInt(configAutoSaveSlotsInput.value);
+    if (isNaN(slots)) {
+        slots = 20;
+    }
+
     let settings: FactorioServerSettings = {
         name: configNameInput.value,
         description: configDescriptionInput.value,
@@ -825,7 +845,10 @@ configSaveButton.onclick = async () => {
         max_players: max_players,
         game_password: configPasswordInput.value,
         auto_pause: configPauseInput.checked,
-        admins: configAdminInput.value.split(',')
+        admins: configAdminInput.value.split(','),
+        autosave_interval: interval,
+        autosave_slots: slots,
+        public_visible: configPublicVisibleInput.checked
     };
 
     let result: Result = await connection.invoke('SaveServerSettings', settings);

@@ -28,5 +28,14 @@ namespace FactorioWebInterface.Models
 
         [JsonProperty(PropertyName = "admins")]
         public List<string> Admins { get; set; }
+
+        [JsonProperty(PropertyName = "autosave_interval")]
+        public int AutosaveInterval { get; set; }
+
+        [JsonProperty(PropertyName = "autosave_slots")]
+        public int AutosaveSlots { get; set; }
+
+        [JsonProperty(PropertyName = "public_visible")]
+        public bool PublicVisible { get; set; }
     }
 }

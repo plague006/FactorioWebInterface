@@ -1180,7 +1180,7 @@ namespace FactorioWebInterface.Models
 
                         _ = _discordBot.SendEmbedToFactorioAdminChannel(embed);
                         break;
-                    }                                
+                    }
                 case Constants.StartScenarioTag:
                     var result = await ForceStartScenario(serverId, content, "<server>");
 
@@ -2796,7 +2796,10 @@ namespace FactorioWebInterface.Models
                     MaxPlayers = serverSettigns.MaxPlayers,
                     GamePassword = serverSettigns.GamePassword,
                     AutoPause = serverSettigns.AutoPause,
-                    Admins = serverSettigns.Admins
+                    Admins = serverSettigns.Admins,
+                    AutosaveInterval = serverSettigns.AutosaveInterval,
+                    AutosaveSlots = serverSettigns.AutosaveSlots,
+                    PublicVisible = serverSettigns.Visibility.Public
                 };
 
                 return editableSettings;
@@ -2828,6 +2831,9 @@ namespace FactorioWebInterface.Models
                 serverSettigns.MaxPlayers = settings.MaxPlayers < 0 ? 0 : settings.MaxPlayers;
                 serverSettigns.GamePassword = settings.GamePassword;
                 serverSettigns.AutoPause = settings.AutoPause;
+                serverSettigns.AutosaveSlots = settings.AutosaveSlots < 0 ? 0 : settings.AutosaveSlots;
+                serverSettigns.AutosaveInterval = settings.AutosaveInterval < 1 ? 1 : settings.AutosaveInterval;
+                serverSettigns.Visibility.Public = settings.PublicVisible;
 
                 List<string> admins;
 
