@@ -42,7 +42,7 @@ namespace FactorioWebInterface.Models
                 {
                     foreach (ZipArchiveEntry entry in archive.Entries)
                     {
-                        var luaPath = Regex.Match(entry.FullName, @"(?<=.*/)(.*)").ToString().Trim();
+                        var luaPath = luaPathRegex.Match(entry.FullName).ToString().Trim();
                         if (luaPath.EndsWith(".lua"))
                         {
                             var paths = getExecutablePaths(entry);
