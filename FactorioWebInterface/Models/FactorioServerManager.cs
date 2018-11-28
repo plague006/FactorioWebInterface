@@ -1196,6 +1196,12 @@ namespace FactorioWebInterface.Models
                 case Constants.UnBannedTag:
                     await DoUnBan(serverId, content);
                     break;
+                case Constants.BanSyncTag:
+                    await DoSyncBan(serverId, content);
+                    break;
+                case Constants.UnBannedSyncTag:
+                    await DoUnBannedSync(serverId, content);
+                    break;
                 case Constants.PingTag:
                     DoPing(serverId, content);
                     break;
@@ -1215,6 +1221,8 @@ namespace FactorioWebInterface.Models
                     break;
             }
         }
+
+
 
         private async Task DoTrackedData(string serverId, string content)
         {
@@ -1801,6 +1809,39 @@ namespace FactorioWebInterface.Models
             await AddBanToDatabase(ban);
         }
 
+        private async Task DoSyncBan(string serverId, string content)
+        {
+            Ban ban;
+            try
+            {
+                ban = JsonConvert.DeserializeObject<Ban>(content);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, nameof(DoSyncBan) + " deserialization");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(ban.Username))
+            {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(ban.Admin))
+            {
+                ban.Admin = "<script>";
+            }
+
+            ban.DateTime = DateTime.UtcNow;
+
+            var command = $"/ban {ban.Username} {ban.Reason}";
+            command.Substring(0, command.Length - 1);
+
+            SendToEachRunningServerExcept(command, serverId);
+
+            await AddBanToDatabase(ban);
+        }
+
         private async Task RemoveBanFromDatabase(string username, string admin)
         {
             try
@@ -1844,6 +1885,35 @@ namespace FactorioWebInterface.Models
             SendToEachRunningServerExcept(command, serverId);
 
             await RemoveBanFromDatabase(player, admin);
+        }
+
+        private async Task DoUnBannedSync(string serverId, string content)
+        {
+            Ban ban;
+            try
+            {
+                ban = JsonConvert.DeserializeObject<Ban>(content);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, nameof(DoUnBannedSync) + " deserialization");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(ban.Username))
+            {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(ban.Admin))
+            {
+                ban.Admin = "<script>";
+            }
+
+            var command = $"/unban {ban.Username}";
+            SendToEachRunningServerExcept(command, serverId);
+
+            await RemoveBanFromDatabase(ban.Username, ban.Admin);
         }
 
         private async Task PromoteRegular(string serverId, string content)
