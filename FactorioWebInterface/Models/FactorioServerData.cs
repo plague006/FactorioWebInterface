@@ -1,5 +1,6 @@
 ﻿using DSharpPlus;
 using FactorioWrapperInterface;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -31,6 +32,7 @@ namespace FactorioWebInterface.Models
         public string LogsDirectoryPath { get; set; }
         public string CurrentLogPath { get; set; }
         public string ServerSettingsPath { get; set; }
+        public string serverExtraSettingsPath { get; set; }
         public string ServerBanListPath { get; set; }
         public string Port { get; set; }
         public bool IsRemote { get; set; }
@@ -64,7 +66,7 @@ namespace FactorioWebInterface.Models
                 string serverId = i.ToString();
 
                 string basePath = Path.Combine(baseDirectoryPath, serverId);
-                Servers[serverId] = new FactorioServerData()
+                var serverData = new FactorioServerData()
                 {
                     ServerId = serverId,
                     Status = FactorioServerStatus.Unknown,
@@ -72,6 +74,7 @@ namespace FactorioWebInterface.Models
                     TempSavesDirectoryPath = Path.Combine(basePath, Constants.TempSavesDirectoryName),
                     LocalSavesDirectoroyPath = Path.Combine(basePath, Constants.LocalSavesDirectoryName),
                     ServerSettingsPath = Path.Combine(basePath, Constants.ServerSettingsFileName),
+                    serverExtraSettingsPath = Path.Combine(basePath, Constants.ServerExtraSettingsFileName),
                     LocalScenarioDirectoryPath = Path.Combine(basePath, Constants.ScenarioDirectoryName),
                     LogsDirectoryPath = Path.Combine(basePath, Constants.LogDirectoryName),
                     CurrentLogPath = Path.Combine(basePath, Constants.CurrentLogFileName),
@@ -83,6 +86,27 @@ namespace FactorioWebInterface.Models
                     SyncBans = true,
                     BuildBansFromDatabaseOnStart = true
                 };
+                Servers[serverId] = serverData;
+
+                try
+                {
+                    var fi = new FileInfo(serverData.serverExtraSettingsPath);
+                    if (fi.Exists)
+                    {
+                        var data = File.ReadAllText(fi.FullName);
+                        var extraSettings = JsonConvert.DeserializeObject<FactorioServerExtraSettings>(data);
+                        if (extraSettings == null)
+                        {
+                            continue;
+                        }
+
+                        serverData.SyncBans = extraSettings.SyncBans;
+                        serverData.BuildBansFromDatabaseOnStart = extraSettings.BuildBansFromDatabaseOnStart;
+                    }
+                }
+                catch (Exception)
+                {
+                }
 
                 ValidSaveDirectories.Add($"{serverId}/{Constants.TempSavesDirectoryName}");
                 ValidSaveDirectories.Add($"{serverId}/{Constants.LocalSavesDirectoryName}");

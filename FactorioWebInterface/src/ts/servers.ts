@@ -56,7 +56,7 @@ interface FactorioServerSettings {
     public_visible: boolean;
 }
 
-interface FactorioServerBonusSettings {
+interface FactorioServerExtraSettings {
     syncBans: boolean;
     buildBansFromDatabaseOnStart: boolean
 }
@@ -113,7 +113,7 @@ const configAutoSaveSlotsInput = document.getElementById('configAutoSaveSlotsInp
 const configPublicVisibleInput = document.getElementById('configPublicVisibleInput') as HTMLInputElement;
 const configSyncBans = document.getElementById('configSyncBans') as HTMLInputElement;
 const configBuildBansFromDb = document.getElementById('configBuildBansFromDb') as HTMLInputElement;
-const configBonusSaveButton = document.getElementById('configBonusSaveButton') as HTMLButtonElement;
+const configExtraSaveButton = document.getElementById('configExtraSaveButton') as HTMLButtonElement;
 
 let messageCount = 0;
 
@@ -196,8 +196,8 @@ async function getSettings() {
     serverName.innerText = settings.name;
 }
 
-async function getBonusSettings() {
-    let settings = await connection.invoke('GetServerBonusSettings') as FactorioServerBonusSettings;
+async function getExtraSettings() {
+    let settings = await connection.invoke('GetServerExtraSettings') as FactorioServerExtraSettings;
 
     configSyncBans.checked = settings.syncBans;
     configBuildBansFromDb.checked = settings.buildBansFromDatabaseOnStart;
@@ -212,7 +212,7 @@ async function init() {
         getScenarios();
         getLogs();
         getSettings();
-        getBonusSettings();
+        getExtraSettings();
 
         statusText.value = data.status;
 
@@ -876,19 +876,19 @@ configSaveButton.onclick = async () => {
     await getSettings();
 };
 
-configBonusSaveButton.onclick = async () => {
-    let settings: FactorioServerBonusSettings = {
+configExtraSaveButton.onclick = async () => {
+    let settings: FactorioServerExtraSettings = {
         syncBans: configSyncBans.checked,
         buildBansFromDatabaseOnStart: configBuildBansFromDb.checked
     }
 
-    let result: Result = await connection.invoke('SaveServerBonusSettings', settings);
+    let result: Result = await connection.invoke('SaveServerExtraSettings', settings);
 
     if (!result.success) {
         alert(JSON.stringify(result.errors));
     }
 
-    await getBonusSettings();
+    await getExtraSettings();
 };
 
 function toggleSelectTable(input: HTMLInputElement, table: HTMLTableElement) {

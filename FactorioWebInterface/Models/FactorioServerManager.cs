@@ -2007,7 +2007,7 @@ namespace FactorioWebInterface.Models
 
             await RemoveBanFromDatabase(ban.Username, ban.Admin);
         }
-       
+
         public void FactorioWrapperDataReceived(string serverId, string data)
         {
             var messageData = new MessageData()
@@ -2943,7 +2943,7 @@ namespace FactorioWebInterface.Models
             }
         }
 
-        public async Task<FactorioServerBonusSettings> GetBonusServerSettings(string serverId)
+        public async Task<FactorioServerExtraSettings> GetExtraServerSettings(string serverId)
         {
             if (!servers.TryGetValue(serverId, out var serverData))
             {
@@ -2955,7 +2955,7 @@ namespace FactorioWebInterface.Models
             {
                 await serverData.ServerLock.WaitAsync();
 
-                return new FactorioServerBonusSettings()
+                return new FactorioServerExtraSettings()
                 {
                     SyncBans = serverData.SyncBans,
                     BuildBansFromDatabaseOnStart = serverData.BuildBansFromDatabaseOnStart
@@ -2967,7 +2967,7 @@ namespace FactorioWebInterface.Models
             }
         }
 
-        public async Task<Result> SaveBonusServerSettings(string serverId, FactorioServerBonusSettings settings)
+        public async Task<Result> SaveExtraServerSettings(string serverId, FactorioServerExtraSettings settings)
         {
             if (!servers.TryGetValue(serverId, out var serverData))
             {
@@ -2982,11 +2982,14 @@ namespace FactorioWebInterface.Models
                 serverData.SyncBans = settings.SyncBans;
                 serverData.BuildBansFromDatabaseOnStart = settings.BuildBansFromDatabaseOnStart;
 
+                string data = JsonConvert.SerializeObject(settings, Formatting.Indented);
+                await File.WriteAllTextAsync(serverData.serverExtraSettingsPath, data);
+
                 return Result.OK;
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Exception saving server bonus settings.");
+                _logger.LogError(e, "Exception saving server extra settings.");
                 return Result.Failure(Constants.UnexpctedErrorKey);
             }
             finally

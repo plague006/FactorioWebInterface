@@ -32,6 +32,7 @@
 
         //public const string DefaultFileName = "current_map.zip";
         public const string ServerSettingsFileName = "server-settings.json";
+        public const string ServerExtraSettingsFileName = "server-extra-settings.json";
         public const string ServerBanListFileName = "server-banlist.json";
 
         public const string ChatTag = "[CHAT]";
@@ -51,7 +52,7 @@
         public const string StartScenarioTag = "[START-SCENARIO]";
         public const string BanTag = "[BAN]";
         public const string UnBannedTag = "[UNBANNED]";
-        public const string BanSyncTag = "[BAN-SYNC]";        
+        public const string BanSyncTag = "[BAN-SYNC]";
         public const string UnBannedSyncTag = "[UNBANNED-SYNC]";
         public const string PingTag = "[PING]";
         public const string DataSetTag = "[DATA-SET]";

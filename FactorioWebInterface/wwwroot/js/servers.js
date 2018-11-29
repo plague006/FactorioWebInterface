@@ -2770,7 +2770,7 @@ const configAutoSaveSlotsInput = document.getElementById('configAutoSaveSlotsInp
 const configPublicVisibleInput = document.getElementById('configPublicVisibleInput');
 const configSyncBans = document.getElementById('configSyncBans');
 const configBuildBansFromDb = document.getElementById('configBuildBansFromDb');
-const configBonusSaveButton = document.getElementById('configBonusSaveButton');
+const configExtraSaveButton = document.getElementById('configExtraSaveButton');
 let messageCount = 0;
 const connection = new _aspnet_signalr__WEBPACK_IMPORTED_MODULE_0__["HubConnectionBuilder"]()
     .withUrl("/factorioControlHub")
@@ -2842,9 +2842,9 @@ function getSettings() {
         serverName.innerText = settings.name;
     });
 }
-function getBonusSettings() {
+function getExtraSettings() {
     return __awaiter(this, void 0, void 0, function* () {
-        let settings = yield connection.invoke('GetServerBonusSettings');
+        let settings = yield connection.invoke('GetServerExtraSettings');
         configSyncBans.checked = settings.syncBans;
         configBuildBansFromDb.checked = settings.buildBansFromDatabaseOnStart;
     });
@@ -2858,7 +2858,7 @@ function init() {
             getScenarios();
             getLogs();
             getSettings();
-            getBonusSettings();
+            getExtraSettings();
             statusText.value = data.status;
             for (let message of data.messages) {
                 writeMessage(message);
@@ -3370,16 +3370,16 @@ configSaveButton.onclick = () => __awaiter(undefined, void 0, void 0, function* 
     }
     yield getSettings();
 });
-configBonusSaveButton.onclick = () => __awaiter(undefined, void 0, void 0, function* () {
+configExtraSaveButton.onclick = () => __awaiter(undefined, void 0, void 0, function* () {
     let settings = {
         syncBans: configSyncBans.checked,
         buildBansFromDatabaseOnStart: configBuildBansFromDb.checked
     };
-    let result = yield connection.invoke('SaveServerBonusSettings', settings);
+    let result = yield connection.invoke('SaveServerExtraSettings', settings);
     if (!result.success) {
         alert(JSON.stringify(result.errors));
     }
-    yield getBonusSettings();
+    yield getExtraSettings();
 });
 function toggleSelectTable(input, table) {
     let checkboxes = table.querySelectorAll('input[type="checkbox"]');

@@ -272,26 +272,26 @@ namespace FactorioWebInterface.Hubs
             return error;
         }
 
-        public Task<FactorioServerBonusSettings> GetServerBonusSettings()
+        public Task<FactorioServerExtraSettings> GetServerExtraSettings()
         {
             string connectionId = Context.ConnectionId;
             if (Context.Items.TryGetValue(connectionId, out object serverId))
             {
                 string id = (string)serverId;
-                return _factorioServerManager.GetBonusServerSettings(id);
+                return _factorioServerManager.GetExtraServerSettings(id);
             }
 
-            return Task.FromResult(new FactorioServerBonusSettings());
+            return Task.FromResult(new FactorioServerExtraSettings());
         }
 
-        public async Task<Result> SaveServerBonusSettings(FactorioServerBonusSettings settings)
+        public async Task<Result> SaveServerExtraSettings(FactorioServerExtraSettings settings)
         {
             string connectionId = Context.ConnectionId;
             if (Context.Items.TryGetValue(connectionId, out object serverId))
             {
 
                 string id = (string)serverId;
-                return await _factorioServerManager.SaveBonusServerSettings(id, settings);
+                return await _factorioServerManager.SaveExtraServerSettings(id, settings);
             }
 
             var error = Result.Failure(Constants.ServerIdErrorKey, $"The server id for the connection is invalid.");
