@@ -14,6 +14,7 @@
         public const string FactorioWrapperClaim = "FactorioWrapper";
         public const string ServerSettingsUsernameKey = "serverSettingsUsername";
         public const string ServerSettingsTokenKey = "serverSettingsToken";
+        public const string FactorioWrapperNameKey = "FactorioWrapperNameKey";
 
         public const string TempSavesDirectoryName = "saves";
         public const string LocalSavesDirectoryName = "local_saves";

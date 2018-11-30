@@ -45,6 +45,8 @@ namespace FactorioWebInterface.Models
         //private SemaphoreSlim serverLock = new SemaphoreSlim(1, 1);
         private Dictionary<string, FactorioServerData> servers = FactorioServerData.Servers;
 
+        private string factorioWrapperName;
+
         public FactorioServerManager
         (
             IConfiguration configuration,
@@ -65,6 +67,16 @@ namespace FactorioWebInterface.Models
             _dbContextFactory = dbContextFactory;
             _logger = logger;
             _httpClientFactory = httpClientFactory;
+
+            string name = _configuration[Constants.FactorioWrapperNameKey];
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                factorioWrapperName = "factorioWrapper";
+            }
+            else
+            {
+                factorioWrapperName = name;
+            }
 
             _discordBot.ServerValidator = IsValidServerId;
             _discordBot.FactorioDiscordDataReceived += FactorioDiscordDataReceived;
@@ -330,12 +342,12 @@ namespace FactorioWebInterface.Models
                         if (serverData.IsRemote)
                         {
                             fullName = "ssh";
-                            arguments = $"{serverData.SshIdentity} '/factorio/factorioWrapper/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-latest --server-settings {basePath}/server-settings.json --port {serverData.Port}'";
+                            arguments = $"{serverData.SshIdentity} '/factorio/{factorioWrapperName}/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-latest --server-settings {basePath}/server-settings.json --port {serverData.Port}'";
                         }
                         else
                         {
                             fullName = "/usr/bin/dotnet";
-                            arguments = $"/factorio/factorioWrapper/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-latest --server-settings {basePath}/server-settings.json --port {serverData.Port}";
+                            arguments = $"/factorio/{factorioWrapperName}/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-latest --server-settings {basePath}/server-settings.json --port {serverData.Port}";
                         }
 #endif
                         var startInfo = new ProcessStartInfo
@@ -443,12 +455,12 @@ namespace FactorioWebInterface.Models
                         if (serverData.IsRemote)
                         {
                             fullName = "ssh";
-                            arguments = $"{serverData.SshIdentity} '/factorio/factorioWrapper/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server {saveFile.Name} --server-settings {basePath}/server-settings.json --port {serverData.Port}'";
+                            arguments = $"{serverData.SshIdentity} '/factorio/{factorioWrapperName}/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server {saveFile.Name} --server-settings {basePath}/server-settings.json --port {serverData.Port}'";
                         }
                         else
                         {
                             fullName = "/usr/bin/dotnet";
-                            arguments = $"/factorio/factorioWrapper/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server {saveFile.Name} --server-settings {basePath}/server-settings.json --port {serverData.Port}";
+                            arguments = $"/factorio/{factorioWrapperName}/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server {saveFile.Name} --server-settings {basePath}/server-settings.json --port {serverData.Port}";
                         }
 #endif
                         var startInfo = new ProcessStartInfo
@@ -551,12 +563,12 @@ namespace FactorioWebInterface.Models
             if (serverData.IsRemote)
             {
                 fullName = "ssh";
-                arguments = $"{serverData.SshIdentity} '/factorio/factorioWrapper/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-scenario {scenarioPathFromShared} --server-settings {basePath}/server-settings.json --port {serverData.Port}'";
+                arguments = $"{serverData.SshIdentity} '/factorio/{factorioWrapperName}/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-scenario {scenarioPathFromShared} --server-settings {basePath}/server-settings.json --port {serverData.Port}'";
             }
             else
             {
                 fullName = "/usr/bin/dotnet";
-                arguments = $"/factorio/factorioWrapper/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-scenario {scenarioPathFromShared} --server-settings {basePath}/server-settings.json --port {serverData.Port}";
+                arguments = $"/factorio/{factorioWrapperName}/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-scenario {scenarioPathFromShared} --server-settings {basePath}/server-settings.json --port {serverData.Port}";
             }
 #endif
             var startInfo = new ProcessStartInfo
