@@ -24,12 +24,16 @@ namespace FactorioWrapper
         private static readonly string url = "http://localhost/factorioProcessHub";
 #endif
 
+        private static TimeSpan updateTimeInterval = TimeSpan.FromMinutes(1);
+        private static DateTime unixEpoch = new DateTime(1970, 1, 1);
+
         // This is to stop multiple threads writing to the factorio process concurrently.
         private static SemaphoreSlim factorioProcessLock = new SemaphoreSlim(1, 1);
 
         public static Regex outputRegex = new Regex(@"\d+\.\d+ (.+)", RegexOptions.Compiled);
 
         private static volatile bool exit = false;
+        private static DateTime lastUpdateTime;
         private static volatile HubConnection connection;
         private static volatile bool connected = false;
         private static volatile Process factorioProcess;
@@ -148,7 +152,39 @@ namespace FactorioWrapper
                     exit = true;
                     return;
                 }
+
+                var now = DateTime.UtcNow;
+                var diff = now - lastUpdateTime;
+                if (diff >= updateTimeInterval)
+                {
+                    lastUpdateTime = now;
+                    var command = BuildCurentTimeCommand(now);
+                    _ = SendToFactorio(command);
+                }
+
                 await Task.Delay(1000);
+            }
+        }
+
+        private static async Task SendToFactorio(string data)
+        {
+            try
+            {
+                await factorioProcessLock.WaitAsync();
+
+                var p = factorioProcess;
+                if (p != null && !p.HasExited)
+                {
+                    await p.StandardInput.WriteLineAsync(data);
+                }
+            }
+            catch (Exception e)
+            {
+                Log.Error(e, "Error sending data to factorio process");
+            }
+            finally
+            {
+                factorioProcessLock.Release();
             }
         }
 
@@ -178,24 +214,7 @@ namespace FactorioWrapper
 
             connection.On<string>(nameof(IFactorioProcessClientMethods.SendToFactorio), async data =>
             {
-                try
-                {
-                    await factorioProcessLock.WaitAsync();
-
-                    var p = factorioProcess;
-                    if (p != null && !p.HasExited)
-                    {
-                        await p.StandardInput.WriteLineAsync(data);
-                    }
-                }
-                catch (Exception e)
-                {
-                    Log.Error(e, "Error sending data to factorio process");
-                }
-                finally
-                {
-                    factorioProcessLock.Release();
-                }
+                await SendToFactorio(data);
             });
 
             connection.On(nameof(IFactorioProcessClientMethods.Stop), async () =>
@@ -352,6 +371,10 @@ namespace FactorioWrapper
 
                     if (line.StartsWith("Factorio initialised"))
                     {
+                        lastUpdateTime = DateTime.UtcNow;
+                        string command = BuildCurentTimeCommand(lastUpdateTime);
+                        _ = SendToFactorio(command);
+
                         await ChangeStatus(FactorioServerStatus.Running);
                     }
                 }
@@ -475,6 +498,12 @@ namespace FactorioWrapper
             }
 
             Log.Information("Connected");
+        }
+
+        private static string BuildCurentTimeCommand(DateTime now)
+        {
+            var timeStamp = (now - unixEpoch).Seconds;
+            return $"/silent-command local s = ServerCommands s = s and s.set_time({timeStamp})";
         }
     }
 }
