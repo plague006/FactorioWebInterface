@@ -153,13 +153,16 @@ namespace FactorioWrapper
                     return;
                 }
 
-                var now = DateTime.UtcNow;
-                var diff = now - lastUpdateTime;
-                if (diff >= updateTimeInterval)
+                if (status == FactorioServerStatus.Running)
                 {
-                    lastUpdateTime = now;
-                    var command = BuildCurentTimeCommand(now);
-                    _ = SendToFactorio(command);
+                    var now = DateTime.UtcNow;
+                    var diff = now - lastUpdateTime;
+                    if (diff >= updateTimeInterval)
+                    {
+                        lastUpdateTime = now;
+                        var command = BuildCurentTimeCommand(now);
+                        _ = SendToFactorio(command);
+                    }
                 }
 
                 await Task.Delay(1000);
@@ -502,7 +505,7 @@ namespace FactorioWrapper
 
         private static string BuildCurentTimeCommand(DateTime now)
         {
-            var timeStamp = (now - unixEpoch).Seconds;
+            var timeStamp = (int)(now - unixEpoch).TotalSeconds;
             return $"/silent-command local s = ServerCommands s = s and s.set_time({timeStamp})";
         }
     }
