@@ -4,6 +4,13 @@ namespace FactorioWebInterface.Models
 {
     public class FactorioCommandBuilder
     {
+        public class Static
+        {
+            public static readonly string get_tracked_data_sets = ServerCommand("get_tracked_data_sets").Build();
+            public static readonly string query_online_players = ServerCommand("query_online_players").Build();
+            public static readonly string server_started = ServerCommand("server_started").Build();
+        }
+
         private StringBuilder sb = new StringBuilder();
         private bool appendBracket;
 

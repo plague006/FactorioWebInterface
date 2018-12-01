@@ -319,5 +319,25 @@ namespace FactorioWebInterface.Models
         {
             return SendEmbedToFactorioChannel(Constants.AdminChannelID, embed);
         }
+
+        public async Task SetChannelNameAndTopic(string serverId, string name = null, string topic = null)
+        {
+            ulong channelId;
+            try
+            {
+                await discordLock.WaitAsync();
+                if (!serverdToDiscord.TryGetValue(serverId, out channelId))
+                {
+                    return;
+                }
+            }
+            finally
+            {
+                discordLock.Release();
+            }
+
+            var channel = await DiscordClient.GetChannelAsync(channelId);
+            await channel.ModifyAsync(name: name, topic: topic);
+        }
     }
 }

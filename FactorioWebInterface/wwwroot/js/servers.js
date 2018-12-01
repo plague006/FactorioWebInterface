@@ -2770,6 +2770,7 @@ const configAutoSaveSlotsInput = document.getElementById('configAutoSaveSlotsInp
 const configPublicVisibleInput = document.getElementById('configPublicVisibleInput');
 const configSyncBans = document.getElementById('configSyncBans');
 const configBuildBansFromDb = document.getElementById('configBuildBansFromDb');
+const configSetDiscordChannelName = document.getElementById('configSetDiscordChannelName');
 const configExtraSaveButton = document.getElementById('configExtraSaveButton');
 let messageCount = 0;
 const connection = new _aspnet_signalr__WEBPACK_IMPORTED_MODULE_0__["HubConnectionBuilder"]()
@@ -2847,6 +2848,7 @@ function getExtraSettings() {
         let settings = yield connection.invoke('GetServerExtraSettings');
         configSyncBans.checked = settings.syncBans;
         configBuildBansFromDb.checked = settings.buildBansFromDatabaseOnStart;
+        configSetDiscordChannelName.checked = settings.setDiscordChannelName;
     });
 }
 function init() {
@@ -3373,7 +3375,8 @@ configSaveButton.onclick = () => __awaiter(undefined, void 0, void 0, function* 
 configExtraSaveButton.onclick = () => __awaiter(undefined, void 0, void 0, function* () {
     let settings = {
         syncBans: configSyncBans.checked,
-        buildBansFromDatabaseOnStart: configBuildBansFromDb.checked
+        buildBansFromDatabaseOnStart: configBuildBansFromDb.checked,
+        setDiscordChannelName: configSetDiscordChannelName.checked
     };
     let result = yield connection.invoke('SaveServerExtraSettings', settings);
     if (!result.success) {

@@ -40,8 +40,12 @@ namespace FactorioWebInterface.Models
         public SemaphoreSlim ServerLock { get; set; }
         public RingBuffer<MessageData> ControlMessageBuffer { get; set; }
         public FactorioServerSettings ServerSettings { get; set; }
-        public bool SyncBans { get; set; }
-        public bool BuildBansFromDatabaseOnStart { get; set; }
+        public FactorioServerExtraSettings ExtraServerSettings { get; set; }
+        //public bool SyncBans { get; set; }
+        //public bool BuildBansFromDatabaseOnStart { get; set; }
+
+        public SortedList<string, int> OnlinePlayers { get; set; }
+        public int OnlinePlayerCount { get; set; }
 
         public Func<Task> StopCallback { get; set; }
         public HashSet<string> TrackingDataSets { get; set; } = new HashSet<string>();
@@ -83,8 +87,9 @@ namespace FactorioWebInterface.Models
                     ServerLock = new SemaphoreSlim(1, 1),
                     ControlMessageBuffer = new RingBuffer<MessageData>(bufferSize),
                     IsRemote = false,
-                    SyncBans = true,
-                    BuildBansFromDatabaseOnStart = true
+                    ExtraServerSettings = FactorioServerExtraSettings.Default(),
+                    OnlinePlayers = new SortedList<string, int>(),
+                    OnlinePlayerCount = 0
                 };
                 Servers[serverId] = serverData;
 
@@ -99,9 +104,7 @@ namespace FactorioWebInterface.Models
                         {
                             continue;
                         }
-
-                        serverData.SyncBans = extraSettings.SyncBans;
-                        serverData.BuildBansFromDatabaseOnStart = extraSettings.BuildBansFromDatabaseOnStart;
+                        serverData.ExtraServerSettings = extraSettings;
                     }
                 }
                 catch (Exception)

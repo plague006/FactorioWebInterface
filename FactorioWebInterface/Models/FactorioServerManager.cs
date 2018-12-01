@@ -206,7 +206,7 @@ namespace FactorioWebInterface.Models
 
         private async Task BuildBanList(FactorioServerData serverData)
         {
-            if (!serverData.BuildBansFromDatabaseOnStart)
+            if (!serverData.ExtraServerSettings.BuildBansFromDatabaseOnStart)
             {
                 // If we don't want the database bans, the assumption is we should leave the
                 // server banlist alone with whatever bans are in there.
@@ -253,7 +253,7 @@ namespace FactorioWebInterface.Models
             foreach (var server in servers)
             {
                 var serverData = server.Value;
-                if (serverData.Status == FactorioServerStatus.Running && serverData.SyncBans)
+                if (serverData.Status == FactorioServerStatus.Running && serverData.ExtraServerSettings.SyncBans)
                 {
                     clients.Group(server.Key).SendToFactorio(data);
                 }
@@ -266,7 +266,7 @@ namespace FactorioWebInterface.Models
             foreach (var server in servers)
             {
                 var serverData = server.Value;
-                if (server.Key != exceptId && serverData.Status == FactorioServerStatus.Running && serverData.SyncBans)
+                if (server.Key != exceptId && serverData.Status == FactorioServerStatus.Running && serverData.ExtraServerSettings.SyncBans)
                 {
                     clients.Group(server.Key).SendToFactorio(data);
                 }
@@ -290,6 +290,10 @@ namespace FactorioWebInterface.Models
             var task = BuildBanList(serverData);
 
             serverData.TrackingDataSets.Clear();
+
+            serverData.OnlinePlayers.Clear();
+            serverData.OnlinePlayerCount = 0;
+
             RotateLogs(serverData);
 
             await task;
@@ -1164,12 +1168,13 @@ namespace FactorioWebInterface.Models
                     _ = _discordBot.SendToFactorioAdminChannel(content);
                     break;
                 case Constants.JoinTag:
-                    content = Formatter.Sanitize(content);
-                    _ = _discordBot.SendToFactorioChannel(serverId, "**" + content + "**");
+                    _ = DoPlayerJoined(serverId, content);
                     break;
                 case Constants.LeaveTag:
-                    content = Formatter.Sanitize(content);
-                    _ = _discordBot.SendToFactorioChannel(serverId, "**" + content + "**");
+                    _ = DoPlayerLeft(serverId, content);
+                    break;
+                case Constants.QueryPlayersTag:
+                    _ = DoPlayerQuery(serverId, content);
                     break;
                 case Constants.DiscordEmbedTag:
                     {
@@ -1267,7 +1272,180 @@ namespace FactorioWebInterface.Models
             }
         }
 
+        private static string BuildServerTopicFromOnlinePlayers(SortedList<string, int> onlinePlayers, int count)
+        {
+            var sb = new StringBuilder();
 
+            if (count == 0)
+            {
+                sb.Append("Players online 0");
+                return sb.ToString();
+            }
+            else
+            {
+                sb.Append("Players online ").Append(count);
+            }
+
+            sb.Append(" - ");
+            foreach (var item in onlinePlayers)
+            {
+                for (int i = 0; i < item.Value; i++)
+                {
+                    sb.Append(item.Key).Append(", ");
+                }
+
+            }
+            sb.Remove(sb.Length - 2, 2);
+
+            return sb.ToString();
+        }
+
+        private async Task DoPlayerJoined(string serverId, string content)
+        {
+            if (!servers.TryGetValue(serverId, out var serverData))
+            {
+                _logger.LogError("Unknow serverId: {serverId}", serverId);
+                return;
+            }
+
+            string name = content.Split(' ').FirstOrDefault();
+            if (name == null)
+            {
+                return;
+            }
+
+            content = Formatter.Sanitize(content);
+            var t1 = _discordBot.SendToFactorioChannel(serverId, "**" + content + "**");
+
+            string topic;
+
+            try
+            {
+                await serverData.ServerLock.WaitAsync();
+
+                var op = serverData.OnlinePlayers;
+                if (op.TryGetValue(name, out int count))
+                {
+                    op[name] = count + 1;
+                }
+                else
+                {
+                    op.Add(name, 1);
+                }
+
+                int totalCount = serverData.OnlinePlayerCount + 1;
+                serverData.OnlinePlayerCount = totalCount;
+                topic = BuildServerTopicFromOnlinePlayers(op, totalCount);
+            }
+            finally
+            {
+                serverData.ServerLock.Release();
+            }
+
+            await _discordBot.SetChannelNameAndTopic(serverId, topic: topic);
+            await t1;
+        }
+
+        private async Task DoPlayerLeft(string serverId, string content)
+        {
+            if (!servers.TryGetValue(serverId, out var serverData))
+            {
+                _logger.LogError("Unknow serverId: {serverId}", serverId);
+                return;
+            }
+
+            string name = content.Split(' ').FirstOrDefault();
+            if (name == null)
+            {
+                return;
+            }
+
+            content = Formatter.Sanitize(content);
+            var t1 = _discordBot.SendToFactorioChannel(serverId, "**" + content + "**");
+
+            string topic;
+
+            try
+            {
+                await serverData.ServerLock.WaitAsync();
+
+                var op = serverData.OnlinePlayers;
+                if (op.TryGetValue(name, out int count))
+                {
+                    if (count == 1)
+                    {
+                        op.Remove(name);
+                    }
+                    op[name] = count - 1;
+                }
+                //else
+                //{
+                //    _ = SendToFactorioProcess(serverId, FactorioCommandBuilder.Static.query_online_players);
+                //    return;
+                //}
+
+                int totalCount = serverData.OnlinePlayerCount - 1;
+                serverData.OnlinePlayerCount = totalCount;
+                topic = BuildServerTopicFromOnlinePlayers(op, totalCount);
+            }
+            finally
+            {
+                serverData.ServerLock.Release();
+            }
+
+            await _discordBot.SetChannelNameAndTopic(serverId, topic: topic);
+            await t1;
+        }
+
+        private async Task DoPlayerQuery(string serverId, string content)
+        {
+            if (!servers.TryGetValue(serverId, out var serverData))
+            {
+                _logger.LogError("Unknow serverId: {serverId}", serverId);
+                return;
+            }
+
+            string[] players;
+            try
+            {
+                players = JsonConvert.DeserializeObject<string[]>(content);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, nameof(DoPlayerQuery) + " deserialization");
+                return;
+            }
+
+            string topic;
+            try
+            {
+                await serverData.ServerLock.WaitAsync();
+
+                var op = serverData.OnlinePlayers;
+                op.Clear();
+
+                foreach (var player in players)
+                {
+                    if (op.TryGetValue(player, out int count))
+                    {
+                        op[player] = count + 1;
+                    }
+                    else
+                    {
+                        op[player] = 1;
+                    }
+                }
+
+                serverData.OnlinePlayerCount = players.Length;
+                topic = BuildServerTopicFromOnlinePlayers(op, players.Length);
+            }
+            finally
+            {
+                serverData.ServerLock.Release();
+            }
+
+            await _discordBot.SetChannelNameAndTopic(serverId, topic: topic);
+        }
 
         private async Task DoTrackedData(string serverId, string content)
         {
@@ -1727,7 +1905,7 @@ namespace FactorioWebInterface.Models
                     return;
                 }
 
-                if (!sourceServerData.SyncBans)
+                if (!sourceServerData.ExtraServerSettings.SyncBans)
                 {
                     return;
                 }
@@ -1758,7 +1936,7 @@ namespace FactorioWebInterface.Models
                     return;
                 }
 
-                if (!sourceServerData.SyncBans)
+                if (!sourceServerData.ExtraServerSettings.SyncBans)
                 {
                     return;
                 }
@@ -1830,7 +2008,7 @@ namespace FactorioWebInterface.Models
                 return;
             }
 
-            if (!serverData.SyncBans)
+            if (!serverData.ExtraServerSettings.SyncBans)
             {
                 return;
             }
@@ -1888,7 +2066,7 @@ namespace FactorioWebInterface.Models
                 return;
             }
 
-            if (!serverData.SyncBans)
+            if (!serverData.ExtraServerSettings.SyncBans)
             {
                 return;
             }
@@ -1954,7 +2132,7 @@ namespace FactorioWebInterface.Models
                 return;
             }
 
-            if (!serverData.SyncBans)
+            if (!serverData.ExtraServerSettings.SyncBans)
             {
                 return;
             }
@@ -1988,7 +2166,7 @@ namespace FactorioWebInterface.Models
                 return;
             }
 
-            if (!serverData.SyncBans)
+            if (!serverData.ExtraServerSettings.SyncBans)
             {
                 return;
             }
@@ -2031,10 +2209,11 @@ namespace FactorioWebInterface.Models
             _ = SendToFactorioControl(serverId, messageData);
         }
 
-        private async Task ServerStarted(string serverId)
+        private async Task ServerStarted(FactorioServerData serverData)
         {
-            var command = FactorioCommandBuilder.ServerCommand("server_started").Build();
-            var t1 = SendToFactorioProcess(serverId, command);
+            var serverId = serverData.ServerId;
+
+            var t1 = SendToFactorioProcess(serverId, FactorioCommandBuilder.Static.server_started);
 
             var embed = new DiscordEmbedBuilder()
             {
@@ -2043,15 +2222,26 @@ namespace FactorioWebInterface.Models
             };
             var t2 = _discordBot.SendEmbedToFactorioChannel(serverId, embed);
 
+            string name = null;
+            if (serverData.ExtraServerSettings.SetDiscordChannelName)
+            {
+                name = $"s{serverId}-{serverData.ServerSettings.Name}";
+            }
+            var t3 = _discordBot.SetChannelNameAndTopic(serverData.ServerId, name: name, topic: "Players online 0");
+
             await t1;
-            await ServerConnected(serverId);
+            await ServerConnected(serverData);
             await t2;
+            await t3;
         }
 
-        private async Task ServerConnected(string serverId)
+        private async Task ServerConnected(FactorioServerData serverData)
         {
-            var command = FactorioCommandBuilder.ServerCommand("get_tracked_data_sets").Build();
-            await SendToFactorioProcess(serverId, command);
+            var serverId = serverData.ServerId;
+            var client = _factorioProcessHub.Clients.Group(serverId);
+
+            await client.SendToFactorio(FactorioCommandBuilder.Static.get_tracked_data_sets);
+            await client.SendToFactorio(FactorioCommandBuilder.Static.query_online_players);
         }
 
         private async Task DoStoppedCallback(FactorioServerData serverData)
@@ -2076,6 +2266,19 @@ namespace FactorioWebInterface.Models
             }
         }
 
+        private async Task MarkChannelOffline(FactorioServerData serverData)
+        {
+            string serverId = serverData.ServerId;
+
+            string name = null;
+            if (serverData.ExtraServerSettings.SetDiscordChannelName)
+            {
+                name = $"s{serverId}-offline";
+            }
+
+            await _discordBot.SetChannelNameAndTopic(serverId, name: name, topic: "Server offline");
+        }
+
         public async Task StatusChanged(string serverId, FactorioServerStatus newStatus, FactorioServerStatus oldStatus)
         {
             if (!servers.TryGetValue(serverId, out var serverData))
@@ -2091,11 +2294,11 @@ namespace FactorioWebInterface.Models
             }
             else if (oldStatus == FactorioServerStatus.Starting && newStatus == FactorioServerStatus.Running)
             {
-                discordTask = ServerStarted(serverId);
+                discordTask = ServerStarted(serverData);
             }
             else if (newStatus == FactorioServerStatus.Running)
             {
-                discordTask = ServerConnected(serverId);
+                discordTask = ServerConnected(serverData);
             }
             else if (oldStatus == FactorioServerStatus.Stopping && newStatus == FactorioServerStatus.Stopped
                 || oldStatus == FactorioServerStatus.Killing && newStatus == FactorioServerStatus.Killed)
@@ -2107,6 +2310,7 @@ namespace FactorioWebInterface.Models
                 };
                 discordTask = _discordBot.SendEmbedToFactorioChannel(serverId, embed);
 
+                _ = MarkChannelOffline(serverData);
                 await DoStoppedCallback(serverData);
             }
             else if (newStatus == FactorioServerStatus.Crashed)
@@ -2117,6 +2321,7 @@ namespace FactorioWebInterface.Models
                     Color = DiscordBot.failureColor
                 };
                 discordTask = _discordBot.SendEmbedToFactorioChannel(serverId, embed);
+                _ = MarkChannelOffline(serverData);
             }
 
             var groups = _factorioControlHub.Clients.Group(serverId);
@@ -2967,11 +3172,7 @@ namespace FactorioWebInterface.Models
             {
                 await serverData.ServerLock.WaitAsync();
 
-                return new FactorioServerExtraSettings()
-                {
-                    SyncBans = serverData.SyncBans,
-                    BuildBansFromDatabaseOnStart = serverData.BuildBansFromDatabaseOnStart
-                };
+                return serverData.ExtraServerSettings.Copy();
             }
             finally
             {
@@ -2990,9 +3191,7 @@ namespace FactorioWebInterface.Models
             try
             {
                 await serverData.ServerLock.WaitAsync();
-
-                serverData.SyncBans = settings.SyncBans;
-                serverData.BuildBansFromDatabaseOnStart = settings.BuildBansFromDatabaseOnStart;
+                serverData.ExtraServerSettings = settings;
 
                 string data = JsonConvert.SerializeObject(settings, Formatting.Indented);
                 await File.WriteAllTextAsync(serverData.serverExtraSettingsPath, data);

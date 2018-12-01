@@ -61,8 +61,8 @@ namespace FactorioWebInterface.Models
         [JsonProperty(PropertyName = "only_admins_can_pause_the_game")]
         public bool OnlyAdminsCanPauseTheGame { get; set; }
 
-        [JsonProperty(PropertyName = "autosave_only_on_server")]
-        [DefaultValue(true)]
+        [JsonProperty(PropertyName = "autosave_only_on_server", DefaultValueHandling = DefaultValueHandling.Populate)]
+        [DefaultValue(true)]        
         public bool AutosaveOnlyOnServer { get; set; }
 
         [JsonProperty(PropertyName = "non_blocking_saving")]

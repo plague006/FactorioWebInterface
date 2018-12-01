@@ -59,6 +59,7 @@ interface FactorioServerSettings {
 interface FactorioServerExtraSettings {
     syncBans: boolean;
     buildBansFromDatabaseOnStart: boolean
+    setDiscordChannelName: boolean
 }
 
 const maxMessageCount = 100;
@@ -113,6 +114,7 @@ const configAutoSaveSlotsInput = document.getElementById('configAutoSaveSlotsInp
 const configPublicVisibleInput = document.getElementById('configPublicVisibleInput') as HTMLInputElement;
 const configSyncBans = document.getElementById('configSyncBans') as HTMLInputElement;
 const configBuildBansFromDb = document.getElementById('configBuildBansFromDb') as HTMLInputElement;
+const configSetDiscordChannelName = document.getElementById('configSetDiscordChannelName') as HTMLInputElement;
 const configExtraSaveButton = document.getElementById('configExtraSaveButton') as HTMLButtonElement;
 
 let messageCount = 0;
@@ -201,6 +203,7 @@ async function getExtraSettings() {
 
     configSyncBans.checked = settings.syncBans;
     configBuildBansFromDb.checked = settings.buildBansFromDatabaseOnStart;
+    configSetDiscordChannelName.checked = settings.setDiscordChannelName;
 }
 
 async function init() {
@@ -879,7 +882,8 @@ configSaveButton.onclick = async () => {
 configExtraSaveButton.onclick = async () => {
     let settings: FactorioServerExtraSettings = {
         syncBans: configSyncBans.checked,
-        buildBansFromDatabaseOnStart: configBuildBansFromDb.checked
+        buildBansFromDatabaseOnStart: configBuildBansFromDb.checked,
+        setDiscordChannelName: configSetDiscordChannelName.checked
     }
 
     let result: Result = await connection.invoke('SaveServerExtraSettings', settings);

@@ -16,6 +16,7 @@ namespace FactorioWebInterface.Models
         Task SendEmbedToFactorioChannel(string serverId, DiscordEmbed embed);
         Task SendToFactorioAdminChannel(string data);
         Task SendEmbedToFactorioAdminChannel(DiscordEmbed embed);
+        Task SetChannelNameAndTopic(string serverId, string name = null, string topic = null);
 
         event EventHandler<IDiscordBot, ServerMessageEventArgs> FactorioDiscordDataReceived;
     }

@@ -60,6 +60,7 @@
         public const string DataGetTag = "[DATA-GET]";
         public const string DataGetAllTag = "[DATA-GET-ALL]";
         public const string DataTrackedTag = "[DATA-TRACKED]";
+        public const string QueryPlayersTag = "[QUERY-PLAYERS]";
 
         public const string UnexpctedErrorKey = "unexpectedError";
         public const string ServerIdErrorKey = "serverId";
