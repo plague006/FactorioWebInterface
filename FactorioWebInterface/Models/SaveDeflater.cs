@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
+using System.Reflection;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace FactorioWebInterface.Models
 {
@@ -10,55 +13,96 @@ namespace FactorioWebInterface.Models
     {
         private static readonly string FILE_MISSING_MESSAGE = "error('File was removed to decrease save file size. Please visit https://github.com/Refactorio/RedMew if you wish to download this scenario.')";
         private static readonly Regex luaPathRegex = new Regex(@"(?<=.*/)(.*)", RegexOptions.Compiled);
-        private static readonly Regex lineRegex = new Regex(@"(^.*?(?=(--)))|^((?!--).)*", RegexOptions.Compiled);
-        private static readonly Regex pathRegex = new Regex(@"(?<=require\s*\(?\s*('|""))((\w|/|\.|_)+)", RegexOptions.Compiled);
-        private static readonly Regex dirRegex = new Regex(@"(.*/)(?<=\w*)", RegexOptions.Compiled);
+
+        private static readonly string scanScript = "global={} serpent={} local zero_function=function() return 0 end table_size=function(tbl) local count=0 for _,_ in pairs(tbl or{} ) do count=count + 1 end return count end script=setmetatable({} ,{__index=function() return zero_function end} ) defines={events=setmetatable({} ,{__index=zero_function} ) , } commands={add_command=function() end} FILES={} local _print=print print=function() end require 'control' for _,s in pairs(FILES) do _print(s) end";
 
         private Dictionary<string, string[]> luaFileRequirePaths;
-        private Dictionary<string, bool> requiredFiles;
 
         public SaveDeflater()
         {
-            luaFileRequirePaths = new Dictionary<string, string[]>();
-            requiredFiles = new Dictionary<string, bool>();
         }
 
         public void Deflate(string path)
         {
-            var success = readRequirePaths(path);
-
-            if (success)
-            {
-                traverse("control");
-                removeNotRequiredFiles(path);
-            }
-        }
-
-        private bool readRequirePaths(string path)
-        {
+            var saveDir = path.Substring(0, path.Length - 4);
             try
             {
-                using (ZipArchive archive = ZipFile.OpenRead(path))
+                if (Directory.Exists(saveDir))
+                    Directory.Delete(saveDir, true);
+                ZipFile.ExtractToDirectory(path, saveDir);
+                var files = Directory.GetFileSystemEntries(saveDir, "*", SearchOption.TopDirectoryOnly);
+                if (files.Length == 1 && Directory.Exists(files[0].ToString()))
                 {
-                    foreach (ZipArchiveEntry entry in archive.Entries)
-                    {
-                        var luaPath = luaPathRegex.Match(entry.FullName).ToString().Trim();
-                        if (luaPath.EndsWith(".lua"))
-                        {
-                            var paths = getExecutablePaths(entry);
-                            luaFileRequirePaths.Add(luaPath.Remove(luaPath.Length - 4), paths);
-                        }
-                    }
+                    var root = files[0].ToString();
+                    copyScriptFiles(root);
+                    injectPayload(root);
+                    var requiredFiles = scanRequiredFiles(root);
+                    removeNotRequiredFiles(path, requiredFiles);
+                } else
+                {
+                    Console.WriteLine("There was an error while reading Archive: Corrupted save. Number of files in top level of archive: " + files.Length);
+
                 }
             }
             catch (Exception e)
             {
                 Console.WriteLine("There was an error while reading Archive: " + e);
-                return false;
             }
-            return true;
+            finally
+            {
+                if (Directory.Exists(saveDir))
+                    Directory.Delete(saveDir, true);
+            }
         }
-        private void removeNotRequiredFiles(string path)
+        
+        private void injectPayload(string path) {
+            var files = Directory.GetFileSystemEntries(path, "*.lua", SearchOption.AllDirectories);
+            List<Task> tasks = new List<Task>();
+            foreach (var file in files)
+            {
+                var t = new Task(() => {
+                    var relativePath = Path.GetFullPath(file).Substring(Path.GetFullPath(path).Length);
+                    if (Path.GetDirectoryName(file) == path && (relativePath.Contains("scanner.lua") || relativePath.Contains("util.lua") || relativePath.Contains("inject.lua")))
+                        return;
+                    string content = File.ReadAllText(file);
+                    content = String.Format("table.insert(FILES, .'{0}')\n{1}", relativePath.Replace('\\', '/'), content);
+                    File.WriteAllText(file, content);
+                });
+                t.Start();
+                tasks.Add(t);
+            }
+
+            Task.WaitAll(tasks.ToArray());
+        }
+        private string[] scanRequiredFiles(string path)
+        {
+            var proc = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "cd " + path + "; lua scanner.lua; cd ~",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    CreateNoWindow = true
+                }
+            };
+            //proc.Start();
+            while (!proc.StandardOutput.EndOfStream)
+            {
+                string line = proc.StandardOutput.ReadLine();
+                Console.WriteLine(line);
+            }
+            return new string[] { "/control.lua", "/config.lua", "/utils/utils.lua" };
+        }
+
+        private void copyScriptFiles(string path)
+        {
+            File.Copy("/factorio/1/data/core/lualib/util.lua", path + "/util.lua");
+            File.Copy("/factorio/1/data/core/lualib/inspect.lua", path + "/inspect.lua");
+            File.WriteAllText(path + "/scanner.lua", scanScript);
+        }
+
+        private void removeNotRequiredFiles(string path, string[] requiredFiles)
         {
             try
             {
@@ -69,8 +113,7 @@ namespace FactorioWebInterface.Models
                         var luaPath = luaPathRegex.Match(entry.FullName).ToString().Trim();
                         if (!luaPath.EndsWith(".cfg") && !luaPath.EndsWith(".dat") && !luaPath.Equals("LICENSE") && !luaPath.Equals("preview.png") && !luaPath.EndsWith(".json"))
                         {
-                            var luaDir = getDir(luaPath);
-                            if (!requiredFiles.ContainsKey(luaDir) && !requiredFiles.ContainsKey(luaPath.Remove(luaPath.Length - 4)))
+                            if (true) // TODO: CHECK IF luaPath in requiredFiles
                             {
                                 using (Stream stream = entry.Open())
                                 {
@@ -96,63 +139,6 @@ namespace FactorioWebInterface.Models
             {
                 Console.WriteLine("Could not open archive: " + path);
             }
-        }
-        private void traverse(string file)
-        {
-            if (requiredFiles.ContainsKey(file))
-                return;
-            requiredFiles.Add(file, true);
-            string[] RequirePaths;
-            if (luaFileRequirePaths.TryGetValue(file, out RequirePaths))
-            {
-                foreach (string requiredPath in RequirePaths)
-                {
-                    if (requiredPath.EndsWith("/"))
-                    {
-                        foreach (string path in luaFileRequirePaths.Keys)
-                        {
-                            var dir = getDir(path);
-                            if (dir.Equals(requiredPath))
-                            {
-                                traverse(path);
-                            }
-
-                        }
-                    }
-                    else
-                        traverse(requiredPath);
-                }
-
-            }
-        }
-
-        /// <exception cref="IOException">This exception is thrown if there was an error reading entry</exception>
-        /// <exception cref="OutOfMemoryException">This exception if you ran out of memory reading entry</exception>
-        private string[] getExecutablePaths(ZipArchiveEntry entry)
-        {
-            var lines = new List<string>();
-            using (Stream stream = entry.Open())
-            {
-                using (StreamReader reader = new StreamReader(stream))
-                {
-                    string line;
-                    while ((line = reader.ReadLine()) != null) // Do not catch IO error. We want to handl
-                    {
-                        var lineMatch = lineRegex.Match(line).ToString().Trim(); //match everything upto -- or lines not containing --
-                        var pathMatch = pathRegex.Match(lineMatch).ToString().Trim();
-                        if (!"".Equals(pathMatch))
-                        {
-                            lines.Add(pathMatch.Replace(".", "/"));
-                        }
-                    }
-                }
-            }
-            return lines.ToArray();
-        }
-
-        private string getDir(string file)
-        {
-            return dirRegex.Match(file).ToString().Trim();
         }
     }
 }
