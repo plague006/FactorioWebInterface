@@ -3272,7 +3272,7 @@ namespace FactorioWebInterface.Models
                     {
                         fileInfo.CopyTo(newFilePath);
 
-                        var deflater = new SaveDeflater();
+                        var deflater = new SaveDeflater(_logger);
                         deflater.Deflate(newFilePath);
 
                         _factorioControlHub.Clients.Clients(connectionId).DeflateFinished(Result.OK);
