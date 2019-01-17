@@ -1167,10 +1167,10 @@ namespace FactorioWebInterface.Models
                     content = content.Replace("\\n", "\n");
                     _ = _discordBot.SendToFactorioAdminChannel(content);
                     break;
-                case Constants.JoinTag:
+                case Constants.PlayerJoinTag:
                     _ = DoPlayerJoined(serverId, content);
                     break;
-                case Constants.LeaveTag:
+                case Constants.PlayerLeaveTag:
                     _ = DoPlayerLeft(serverId, content);
                     break;
                 case Constants.QueryPlayersTag:
@@ -1300,22 +1300,21 @@ namespace FactorioWebInterface.Models
             return sb.ToString();
         }
 
-        private async Task DoPlayerJoined(string serverId, string content)
+        private async Task DoPlayerJoined(string serverId, string name)
         {
+            if (name == null)
+            {
+                return;
+            }
+
             if (!servers.TryGetValue(serverId, out var serverData))
             {
                 _logger.LogError("Unknow serverId: {serverId}", serverId);
                 return;
             }
 
-            string name = content.Split(' ').FirstOrDefault();
-            if (name == null)
-            {
-                return;
-            }
-
-            content = Formatter.Sanitize(content);
-            var t1 = _discordBot.SendToFactorioChannel(serverId, "**" + content + "**");
+            string safeName = Formatter.Sanitize(name);
+            var t1 = _discordBot.SendToFactorioChannel(serverId, $"**{safeName} has joined the game**");
 
             string topic;
 
@@ -1346,22 +1345,21 @@ namespace FactorioWebInterface.Models
             await t1;
         }
 
-        private async Task DoPlayerLeft(string serverId, string content)
+        private async Task DoPlayerLeft(string serverId, string name)
         {
+            if (name == null)
+            {
+                return;
+            }
+
             if (!servers.TryGetValue(serverId, out var serverData))
             {
                 _logger.LogError("Unknow serverId: {serverId}", serverId);
                 return;
             }
 
-            string name = content.Split(' ').FirstOrDefault();
-            if (name == null)
-            {
-                return;
-            }
-
-            content = Formatter.Sanitize(content);
-            var t1 = _discordBot.SendToFactorioChannel(serverId, "**" + content + "**");
+            string safeName = Formatter.Sanitize(name);
+            var t1 = _discordBot.SendToFactorioChannel(serverId, $"**{safeName} has left the game**");
 
             string topic;
 

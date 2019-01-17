@@ -46,6 +46,8 @@
         public const string DiscordAdminRawTag = "[DISCORD-ADMIN-RAW]";
         public const string JoinTag = "[JOIN]";
         public const string LeaveTag = "[LEAVE]";
+        public const string PlayerJoinTag = "[PLAYER-JOIN]";
+        public const string PlayerLeaveTag = "[PLAYER-LEAVE]";
         public const string DiscordEmbedTag = "[DISCORD-EMBED]";
         public const string DiscordEmbedRawTag = "[DISCORD-EMBED-RAW]";
         public const string DiscordAdminEmbedTag = "[DISCORD-ADMIN-EMBED]";
