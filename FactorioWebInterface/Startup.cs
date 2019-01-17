@@ -147,7 +147,7 @@ namespace FactorioWebInterface
             {
                 app.UseDeveloperExceptionPage();
                 app.UseDatabaseErrorPage();
-                app.UseBrowserLink();
+                //app.UseBrowserLink(); This prevented the application from running on linux.
             }
             else
             {
