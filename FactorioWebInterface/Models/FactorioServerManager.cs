@@ -1376,13 +1376,16 @@ namespace FactorioWebInterface.Models
                     {
                         op.Remove(name);
                     }
-                    op[name] = count - 1;
+                    else
+                    {
+                        op[name] = count - 1;
+                    }
                 }
-                //else
-                //{
-                //    _ = SendToFactorioProcess(serverId, FactorioCommandBuilder.Static.query_online_players);
-                //    return;
-                //}
+                else
+                {
+                    _ = SendToFactorioProcess(serverId, FactorioCommandBuilder.Static.query_online_players);
+                    return;
+                }
 
                 int totalCount = serverData.OnlinePlayerCount - 1;
                 serverData.OnlinePlayerCount = totalCount;
