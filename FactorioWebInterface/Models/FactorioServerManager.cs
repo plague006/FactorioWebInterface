@@ -1247,10 +1247,10 @@ namespace FactorioWebInterface.Models
                     await DoUnBan(serverId, content);
                     break;
                 case Constants.BanSyncTag:
-                    await DoSyncBan(serverId, content);
+                    //await DoSyncBan(serverId, content);
                     break;
                 case Constants.UnBannedSyncTag:
-                    await DoUnBannedSync(serverId, content);
+                    //await DoUnBannedSync(serverId, content);
                     break;
                 case Constants.PingTag:
                     DoPing(serverId, content);
@@ -1952,21 +1952,27 @@ namespace FactorioWebInterface.Models
             }
         }
 
-        public async Task BanPlayer(Ban ban)
+        public async Task BanPlayer(Ban ban, bool synchronizeWithServers)
         {
-            var command = $"/ban {ban.Username} {ban.Reason}";
-            command.Substring(0, command.Length - 1);
+            if (synchronizeWithServers)
+            {
+                var command = $"/ban {ban.Username} {ban.Reason}";
+                command.Substring(0, command.Length - 1);
 
-            SendBanCommandToEachRunningServer(command);
+                SendBanCommandToEachRunningServer(command);
+            }
 
             await AddBanToDatabase(ban);
         }
 
-        public async Task UnBanPlayer(string username, string admin)
+        public async Task UnBanPlayer(string username, string admin, bool synchronizeWithServers)
         {
-            var command = $"/unban {username}";
+            if (synchronizeWithServers)
+            {
+                var command = $"/unban {username}";
 
-            SendBanCommandToEachRunningServer(command);
+                SendBanCommandToEachRunningServer(command);
+            }
 
             await RemoveBanFromDatabase(username, admin);
         }
@@ -2040,7 +2046,24 @@ namespace FactorioWebInterface.Models
                 return;
             }
 
-            index += 2;
+            index++;
+
+            // If the admin has a tag, that will appear after their name.
+            if (words[index] == "Reason:")
+            {
+                // case no tag, remove '.' at end of name.
+                admin = admin.Substring(0, admin.Length - 1);
+            }
+            else
+            {
+                // case tag, keep going utill we find 'Reason:'
+                do
+                {
+                    index++;
+                } while (words[index] != "Reason:");
+            }
+
+            index += 1;
             string reason = string.Join(' ', words, index, words.Length - index);
 
             var command = $"/ban {player} {reason}";

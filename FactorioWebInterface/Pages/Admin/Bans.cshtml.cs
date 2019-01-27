@@ -33,8 +33,10 @@ namespace FactorioWebInterface.Pages.Admin
             [Required]
             public string Admin { get; set; }
             [Required]
-            [Display(Name ="Date Time")]
+            [Display(Name = "Date Time")]
             public DateTime DateTime { get; set; }
+
+            public bool SynchronizeWithServers { get; set; } = true;
         }
 
         [BindProperty]
@@ -85,13 +87,13 @@ namespace FactorioWebInterface.Pages.Admin
                 DateTime = Input.DateTime
             };
 
-            await _factorioServerManager.BanPlayer(ban);
+            await _factorioServerManager.BanPlayer(ban, Input.SynchronizeWithServers);
             Bans = await _factorioServerManager.GetBansAsync();
 
             return Page();
         }
 
-        public async Task<IActionResult> OnPostRemoveBanAsync(string username, string reason)
+        public async Task<IActionResult> OnPostRemoveBanAsync(string username, string reason, bool synchronizeWithServers = true)
         {
             var user = await _userManger.GetUserAsync(User);
 
@@ -101,7 +103,7 @@ namespace FactorioWebInterface.Pages.Admin
                 return RedirectToPage("signIn");
             }
 
-            await _factorioServerManager.UnBanPlayer(username, user.UserName);
+            await _factorioServerManager.UnBanPlayer(username, user.UserName, synchronizeWithServers);
             Bans = await _factorioServerManager.GetBansAsync();
 
             Input = new InputModel
@@ -109,7 +111,8 @@ namespace FactorioWebInterface.Pages.Admin
                 Username = username,
                 Reason = reason,
                 Admin = user.UserName,
-                DateTime = DateTime.UtcNow
+                DateTime = DateTime.UtcNow,
+                SynchronizeWithServers = synchronizeWithServers
             };
             ModelState.Clear();
 
