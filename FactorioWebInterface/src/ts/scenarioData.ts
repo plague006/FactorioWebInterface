@@ -65,7 +65,7 @@ import * as $ from "jquery";
         .withUrl("/scenarioDataHub")
         .build();
 
-    async function init() {
+    async function start() {
         try {
             await connection.start();
 
@@ -75,8 +75,13 @@ import * as $ from "jquery";
 
         } catch (ex) {
             console.log(ex.message);
+            setTimeout(() => start(), 2000);
         }
     }
+
+    connection.onclose(async () => {
+        await start();
+    });
 
     function onRowClicked(this: HTMLTableRowElement) {
         let cells = this.children;
@@ -237,5 +242,5 @@ import * as $ from "jquery";
         }
     }
 
-    init();
+    start();
 }();

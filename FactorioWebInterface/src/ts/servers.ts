@@ -206,7 +206,7 @@ async function getExtraSettings() {
     configSetDiscordChannelName.checked = settings.setDiscordChannelName;
 }
 
-async function init() {
+async function start() {
     try {
         await connection.start();
         let data = await connection.invoke('SetServerId', serverIdInput.value) as FactorioContorlClientData;
@@ -224,10 +224,13 @@ async function init() {
         }
     } catch (ex) {
         console.log(ex.message);
+        setTimeout(() => start(), 2000);
     }
 }
 
-init();
+connection.onclose(async () => {
+    await start();
+});
 
 connection.on("SendMessage", writeMessage)
 
@@ -955,4 +958,6 @@ function sortTable(table: HTMLTableElement, property: string) {
     }
 }
 
+
+start();
 
