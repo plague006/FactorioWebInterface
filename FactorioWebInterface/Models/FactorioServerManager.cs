@@ -38,6 +38,7 @@ namespace FactorioWebInterface.Models
         private readonly IHubContext<FactorioProcessHub, IFactorioProcessClientMethods> _factorioProcessHub;
         private readonly IHubContext<FactorioControlHub, IFactorioControlClientMethods> _factorioControlHub;
         private readonly IHubContext<ScenarioDataHub, IScenarioDataClientMethods> _scenariolHub;
+        private readonly IHubContext<FactorioBanHub, IFactorioBanClientMethods> _factorioBanHub;
         private readonly DbContextFactory _dbContextFactory;
         private readonly ILogger<FactorioServerManager> _logger;
         private readonly IHttpClientFactory _httpClientFactory;
@@ -54,6 +55,7 @@ namespace FactorioWebInterface.Models
             IHubContext<FactorioProcessHub, IFactorioProcessClientMethods> factorioProcessHub,
             IHubContext<FactorioControlHub, IFactorioControlClientMethods> factorioControlHub,
             IHubContext<ScenarioDataHub, IScenarioDataClientMethods> scenariolHub,
+            IHubContext<FactorioBanHub, IFactorioBanClientMethods> factorioBanHub,
             DbContextFactory dbContextFactory,
             ILogger<FactorioServerManager> logger,
             IHttpClientFactory httpClientFactory
@@ -64,6 +66,7 @@ namespace FactorioWebInterface.Models
             _factorioProcessHub = factorioProcessHub;
             _factorioControlHub = factorioControlHub;
             _scenariolHub = scenariolHub;
+            _factorioBanHub = factorioBanHub;
             _dbContextFactory = dbContextFactory;
             _logger = logger;
             _httpClientFactory = httpClientFactory;
@@ -338,10 +341,10 @@ namespace FactorioWebInterface.Models
                         string arguments;
 #if WINDOWS
                         fullName = "C:/Program Files/dotnet/dotnet.exe";
-                        arguments = $"C:/Projects/FactorioWebInterface/FactorioWrapper/bin/Windows/netcoreapp2.1/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio.exe --start-server-load-latest --server-settings {basePath}/server-settings.json --port {serverData.Port}";
+                        arguments = $"C:/Projects/FactorioWebInterface/FactorioWrapper/bin/Windows/netcoreapp2.2/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio.exe --start-server-load-latest --server-settings {basePath}/server-settings.json --port {serverData.Port}";
 #elif WSL
                         fullName = "/usr/bin/dotnet";
-                        arguments = $"/mnt/c/Projects/FactorioWebInterface/FactorioWrapper/bin/Wsl/netcoreapp2.1/publish/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-latest --server-settings {basePath}/server-settings.json --port {serverData.Port}";
+                        arguments = $"/mnt/c/Projects/FactorioWebInterface/FactorioWrapper/bin/Wsl/netcoreapp2.2/publish/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-latest --server-settings {basePath}/server-settings.json --port {serverData.Port}";
 #else
                         if (serverData.IsRemote)
                         {
@@ -451,10 +454,10 @@ namespace FactorioWebInterface.Models
                         string arguments;
 #if WINDOWS
                         fullName = "C:/Program Files/dotnet/dotnet.exe";
-                        arguments = $"C:/Projects/FactorioWebInterface/FactorioWrapper/bin/Windows/netcoreapp2.1/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio.exe --start-server {saveFile.Name} --server-settings {basePath}/server-settings.json --port {serverData.Port}";
+                        arguments = $"C:/Projects/FactorioWebInterface/FactorioWrapper/bin/Windows/netcoreapp2.2/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio.exe --start-server {saveFile.Name} --server-settings {basePath}/server-settings.json --port {serverData.Port}";
 #elif WSL
                         fullName = "/usr/bin/dotnet";
-                        arguments = $"/mnt/c/Projects/FactorioWebInterface/FactorioWrapper/bin/Wsl/netcoreapp2.1/publish/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server {saveFile.Name} --server-settings {basePath}/server-settings.json --port {serverData.Port}";
+                        arguments = $"/mnt/c/Projects/FactorioWebInterface/FactorioWrapper/bin/Wsl/netcoreapp2.2/publish/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server {saveFile.Name} --server-settings {basePath}/server-settings.json --port {serverData.Port}";
 #else
                         if (serverData.IsRemote)
                         {
@@ -559,10 +562,10 @@ namespace FactorioWebInterface.Models
             string arguments;
 #if WINDOWS
             fullName = "C:/Program Files/dotnet/dotnet.exe";
-            arguments = $"C:/Projects/FactorioWebInterface/FactorioWrapper/bin/Windows/netcoreapp2.1/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio.exe --start-server-load-scenario {scenarioPathFromShared} --server-settings {basePath}/server-settings.json --port {serverData.Port}";
+            arguments = $"C:/Projects/FactorioWebInterface/FactorioWrapper/bin/Windows/netcoreapp2.2/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio.exe --start-server-load-scenario {scenarioPathFromShared} --server-settings {basePath}/server-settings.json --port {serverData.Port}";
 #elif WSL
             fullName = "/usr/bin/dotnet";
-            arguments = $"/mnt/c/Projects/FactorioWebInterface/FactorioWrapper/bin/Wsl/netcoreapp2.1/publish/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-scenario {scenarioPathFromShared} --server-settings {basePath}/server-settings.json --port {serverData.Port}";
+            arguments = $"/mnt/c/Projects/FactorioWebInterface/FactorioWrapper/bin/Wsl/netcoreapp2.2/publish/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-scenario {scenarioPathFromShared} --server-settings {basePath}/server-settings.json --port {serverData.Port}";
 #else
             if (serverData.IsRemote)
             {
@@ -1952,8 +1955,32 @@ namespace FactorioWebInterface.Models
             }
         }
 
-        public async Task BanPlayer(Ban ban, bool synchronizeWithServers)
+        public async Task<Result> BanPlayer(Ban ban, bool synchronizeWithServers)
         {
+            List<Error> errors = new List<Error>();
+
+            if (string.IsNullOrWhiteSpace(ban.Username))
+            {
+                errors.Add(new Error(Constants.RequiredFieldErrorKey, nameof(ban.Username)));
+            }
+            if (string.IsNullOrWhiteSpace(ban.Reason))
+            {
+                errors.Add(new Error(Constants.RequiredFieldErrorKey, nameof(ban.Reason)));
+            }
+            if (string.IsNullOrWhiteSpace(ban.Admin))
+            {
+                errors.Add(new Error(Constants.RequiredFieldErrorKey, nameof(ban.Admin)));
+            }
+            if (ban.DateTime == default)
+            {
+                errors.Add(new Error(Constants.RequiredFieldErrorKey, nameof(ban.DateTime)));
+            }
+
+            if (errors.Count != 0)
+            {
+                return Result.Failure(errors);
+            }
+
             if (synchronizeWithServers)
             {
                 var command = $"/ban {ban.Username} {ban.Reason}";
@@ -1962,11 +1989,35 @@ namespace FactorioWebInterface.Models
                 SendBanCommandToEachRunningServer(command);
             }
 
-            await AddBanToDatabase(ban);
+            bool added = await AddBanToDatabase(ban);
+            if (added)
+            {                
+                return Result.OK;
+            }
+            else
+            {
+                return Result.Failure(Constants.FailedToAddBanToDatabaseErrorKey);
+            }
         }
 
-        public async Task UnBanPlayer(string username, string admin, bool synchronizeWithServers)
+        public async Task<Result> UnBanPlayer(string username, string admin, bool synchronizeWithServers)
         {
+            List<Error> errors = new List<Error>();
+
+            if (string.IsNullOrWhiteSpace(username))
+            {
+                errors.Add(new Error(Constants.RequiredFieldErrorKey, nameof(username)));
+            }
+            if (string.IsNullOrWhiteSpace(admin))
+            {
+                errors.Add(new Error(Constants.RequiredFieldErrorKey, nameof(admin)));
+            }
+
+            if (errors.Count != 0)
+            {
+                return Result.Failure(errors);
+            }
+
             if (synchronizeWithServers)
             {
                 var command = $"/unban {username}";
@@ -1974,37 +2025,74 @@ namespace FactorioWebInterface.Models
                 SendBanCommandToEachRunningServer(command);
             }
 
-            await RemoveBanFromDatabase(username, admin);
+            await RemoveBanFromDatabase(username, admin);            
+
+            return Result.OK;
         }
 
-        private async Task AddBanToDatabase(Ban ban)
+        private async Task<bool> AddBanToDatabase(Ban ban)
         {
             ban.Username = ban.Username.ToLowerInvariant();
 
-            try
-            {
-                var db = _dbContextFactory.Create<ApplicationDbContext>();
+            var db = _dbContextFactory.Create<ApplicationDbContext>();
 
-                var old = await db.Bans.SingleOrDefaultAsync(b => b.Username == ban.Username);
-                if (old == null)
-                {
-                    db.Add(ban);
-                }
-                else
-                {
-                    old.Admin = ban.Admin;
-                    old.DateTime = DateTime.UtcNow;
-                    old.Reason = ban.Reason;
-                    db.Update(old);
-                }
-
-                await db.SaveChangesAsync();
-                _logger.LogInformation("[BAN] {username} was banned by: {admin}. Reason: {reason}", ban.Username, ban.Admin, ban.Reason);
-            }
-            catch (Exception e)
+            int retryCount = 10;
+            while (retryCount >= 0)
             {
-                _logger.LogError(e, nameof(DoBan));
+                var old = await db.Bans.FirstOrDefaultAsync(b => b.Username == ban.Username);
+
+                try
+                {
+                    if (old == null)
+                    {
+                        db.Add(ban);
+                    }
+                    else
+                    {
+                        old.Admin = ban.Admin;
+                        old.DateTime = ban.DateTime;
+                        old.Reason = ban.Reason;
+                        db.Update(old);
+                    }
+
+
+                    await db.SaveChangesAsync();
+
+                    _ = _factorioBanHub.Clients.All.SendAddBan(ban);
+
+                    _logger.LogInformation("[BAN] {username} was banned by: {admin}. Reason: {reason}", ban.Username, ban.Admin, ban.Reason);
+
+                    return true;
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    // This exception is thrown if the old entry no longer exists in the database 
+                    // when trying to update it. The solution is to remove the old cached entry
+                    // and try again.
+                    if (old != null)
+                    {
+                        db.Entry(old).State = EntityState.Detached;
+                    }
+                    retryCount--;
+                }
+                catch (DbUpdateException)
+                {
+                    // This exception is thrown if the UNQIUE constraint fails, meaning the DataSet
+                    // Key pair already exists, when adding a new entry. The solution is to remove
+                    // the cached new entry so that the old entry is fetched from the database not
+                    // from the cache. Then the new entry can be properly compared and updated.
+                    db.Entry(ban).State = EntityState.Detached;
+                    retryCount--;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, nameof(AddBanToDatabase));
+                    return false;
+                }
             }
+
+            _logger.LogWarning("AddBanToDatabase failed to add ban: {@Ban}", ban);
+            return false;
         }
 
         private async Task DoBan(string serverId, string content)
@@ -2140,6 +2228,9 @@ namespace FactorioWebInterface.Models
 
                 db.Bans.Remove(old);
                 await db.SaveChangesAsync();
+
+                _ = _factorioBanHub.Clients.All.SendRemoveBan(username);
+
                 _logger.LogInformation("[UNBAN] {username} was unbanned by: {admin}", username, admin);
             }
             catch (Exception e)

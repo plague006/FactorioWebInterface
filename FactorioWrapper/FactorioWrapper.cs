@@ -15,7 +15,7 @@ namespace FactorioWrapper
 #if WINDOWS
         private static readonly string url = "https://localhost:44303/factorioProcessHub";
 #elif WSL
-        private static readonly string url = "http://localhost/factorioProcessHub";
+        private static readonly string url = "http://localhost:5000/factorioProcessHub";
 #else    
         // This only works if connecting from a differnt ip.
         //private static readonly string url = "http://88.99.214.198/factorioProcessHub";

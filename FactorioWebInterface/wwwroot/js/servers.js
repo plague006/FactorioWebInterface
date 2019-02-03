@@ -2851,7 +2851,7 @@ function getExtraSettings() {
         configSetDiscordChannelName.checked = settings.setDiscordChannelName;
     });
 }
-function init() {
+function start() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             yield connection.start();
@@ -2868,10 +2868,13 @@ function init() {
         }
         catch (ex) {
             console.log(ex.message);
+            setTimeout(() => start(), 2000);
         }
     });
 }
-init();
+connection.onclose(() => __awaiter(undefined, void 0, void 0, function* () {
+    yield start();
+}));
 connection.on("SendMessage", writeMessage);
 connection.on('FactorioStatusChanged', (newStatus, oldStatus) => {
     console.log(`new: ${newStatus}, old: ${oldStatus}`);
@@ -3441,6 +3444,7 @@ function sortTable(table, property) {
         body.appendChild(r);
     }
 }
+start();
 
 
 /***/ }),

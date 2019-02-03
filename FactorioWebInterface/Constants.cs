@@ -76,5 +76,7 @@
         public const string InvalidDirectoryErrorKey = "invalidDirectory";
         public const string UpdateErrorKey = "updateError";
         public const string NotSupportedErrorKey = "notSupportedError";
+        public const string RequiredFieldErrorKey = "requiredField";
+        public const string FailedToAddBanToDatabaseErrorKey = "failedToAddBanToDatabase";
     }
 }

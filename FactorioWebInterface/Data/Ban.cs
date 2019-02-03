@@ -18,6 +18,7 @@ namespace FactorioWebInterface.Data
         [JsonProperty(PropertyName = "admin")]
         public string Admin { get; set; }
 
+        [JsonProperty(PropertyName = "dateTime")]
         public DateTime DateTime { get; set; }
     }
 }

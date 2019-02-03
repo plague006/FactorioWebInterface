@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 
 namespace FactorioWebInterface.Pages.Admin
@@ -26,16 +25,9 @@ namespace FactorioWebInterface.Pages.Admin
 
         public class InputModel
         {
-            [Required]
-            public string Username { get; set; }
-            [Required]
-            public string Reason { get; set; }
-            [Required]
             public string Admin { get; set; }
-            [Required]
-            [Display(Name = "Date Time")]
-            public DateTime DateTime { get; set; }
-
+            public string Date { get; set; }
+            public string Time { get; set; }
             public bool SynchronizeWithServers { get; set; } = true;
         }
 
@@ -52,69 +44,16 @@ namespace FactorioWebInterface.Pages.Admin
                 return RedirectToPage("signIn");
             }
 
-            Input = new InputModel
-            {
-                Admin = user.UserName,
-                DateTime = DateTime.UtcNow
-            };
-
-            Bans = await _factorioServerManager.GetBansAsync();
-
-            return Page();
-        }
-
-        public async Task<IActionResult> OnPostAddBanAsync()
-        {
-            var user = await _userManger.GetUserAsync(User);
-
-            if (user == null || user.Suspended)
-            {
-                HttpContext.Session.SetString("returnUrl", "bans");
-                return RedirectToPage("signIn");
-            }
-
-            if (!ModelState.IsValid)
-            {
-                Bans = await _factorioServerManager.GetBansAsync();
-                return Page();
-            }
-
-            Ban ban = new Ban()
-            {
-                Username = Input.Username,
-                Reason = Input.Reason,
-                Admin = Input.Admin,
-                DateTime = Input.DateTime
-            };
-
-            await _factorioServerManager.BanPlayer(ban, Input.SynchronizeWithServers);
-            Bans = await _factorioServerManager.GetBansAsync();
-
-            return Page();
-        }
-
-        public async Task<IActionResult> OnPostRemoveBanAsync(string username, string reason, bool synchronizeWithServers = true)
-        {
-            var user = await _userManger.GetUserAsync(User);
-
-            if (user == null || user.Suspended)
-            {
-                HttpContext.Session.SetString("returnUrl", "bans");
-                return RedirectToPage("signIn");
-            }
-
-            await _factorioServerManager.UnBanPlayer(username, user.UserName, synchronizeWithServers);
-            Bans = await _factorioServerManager.GetBansAsync();
+            var now = DateTime.UtcNow;
 
             Input = new InputModel
             {
-                Username = username,
-                Reason = reason,
                 Admin = user.UserName,
-                DateTime = DateTime.UtcNow,
-                SynchronizeWithServers = synchronizeWithServers
+                Date = now.ToString("yyyy-MM-dd"),
+                Time = now.ToString("HH:mm:ss"),
             };
-            ModelState.Clear();
+
+            Bans = await _factorioServerManager.GetBansAsync();
 
             return Page();
         }

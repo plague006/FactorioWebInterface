@@ -25,8 +25,8 @@ namespace FactorioWebInterface.Models
         Task OnProcessRegistered(string serverId);
         Task StatusChanged(string serverId, FactorioServerStatus newStatus, FactorioServerStatus oldStatus);
         Task<List<Ban>> GetBansAsync();
-        Task BanPlayer(Ban ban, bool synchronizeWithServers);
-        Task UnBanPlayer(string username, string admin,  bool synchronizeWithServers);
+        Task<Result> BanPlayer(Ban ban, bool synchronizeWithServers);
+        Task<Result> UnBanPlayer(string username, string admin, bool synchronizeWithServers);
         Task<List<Admin>> GetAdminsAsync();
         Task AddAdminsFromStringAsync(string data);
         Task RemoveAdmin(string name);

@@ -168,6 +168,7 @@ namespace FactorioWebInterface
                 routes.MapHub<FactorioControlHub>("/factorioControlHub");
                 routes.MapHub<FactorioProcessHub>("/factorioProcessHub");
                 routes.MapHub<ScenarioDataHub>("/scenarioDataHub");
+                routes.MapHub<FactorioBanHub>("/factorioBanHub");
             });
 
             app.UseMvc();
