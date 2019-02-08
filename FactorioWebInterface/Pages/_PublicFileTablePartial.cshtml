@@ -2,30 +2,29 @@
 
 @model PublicFileTableModel
 
-<div class="table-responsive">
-    <table id="@Model.Id" class="table table-bordered table-striped table-hover">
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Date Time</th>
-                <th>Size</th>
-            </tr>
-        </thead>
-        <tbody>
-            @{
-                Array.Sort(Model.Saves, (a, b) => -a.LastModifiedTime.CompareTo(b.LastModifiedTime));
+<table id="@Model.Id" class="table is-bordered is-striped is-hoverable is-fullwidth">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Date Time</th>
+            <th>Size</th>
+        </tr>
+    </thead>
+    <tbody>
+        @{
+            Array.Sort(Model.Saves, (a, b) => -a.LastModifiedTime.CompareTo(b.LastModifiedTime));
 
-                foreach (var file in Model.Saves)
-                {
-                    string path = $"/saves?directory={file.Directory}&file={file.Name}";
+            foreach (var file in Model.Saves)
+            {
+                string path = $"/saves?directory={file.Directory}&file={file.Name}";
 
-                    <tr>
-                        <td><a href="@path">@file.Name</a></td>
-                        <td>@file.LastModifiedTime.ToString("yyyy/MM/dd HH:mm:ss")</td>
-                        <td data-size="@file.Size">@file.GetSizeHumanReadable()</td>
-                    </tr>
-                }
+                <tr>
+                    <td><a href="@path">@file.Name</a></td>
+                    <td>@file.LastModifiedTime.ToString("yyyy/MM/dd HH:mm:ss")</td>
+                    <td data-size="@file.Size">@file.GetSizeHumanReadable()</td>
+                </tr>
             }
-        </tbody>
-    </table>
-</div>
+        }
+    </tbody>
+</table>
+

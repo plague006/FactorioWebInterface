@@ -10,16 +10,36 @@ import * as $ from "jquery";
     }
 
     const dataTable = document.getElementById('dataTable') as HTMLTableElement;
-    const dataSetsCurrent = document.getElementById('dataSetsCurrent') as HTMLSpanElement;
-    const dataSetsDropdownList = document.getElementById('dataSetsDropdownList') as HTMLUListElement;
     const dataSetInput = document.getElementById('dataSetInput') as HTMLInputElement;
     const keyInput = document.getElementById('keyInput') as HTMLInputElement;
     const valueInput = document.getElementById('valueInput') as HTMLTextAreaElement;
     const updateButton = document.getElementById('updateButton') as HTMLButtonElement;
     const refreshDataSets = document.getElementById('refreshDataSets') as HTMLButtonElement;
+    const datasetsSelect = document.getElementById('datasetsSelect') as HTMLDivElement;
+
+    let placeholderOption: HTMLOptionElement = null;
 
     let currentDataSet = "";
     let dataMap = new Map<string, HTMLTableRowElement>();
+
+    datasetsSelect.onchange = function (this: HTMLSelectElement) {
+        let selected = this.selectedOptions[0];
+
+        if (selected === placeholderOption) {
+            return;
+        }
+
+        let set = this.value;
+
+        let child = this.children[0] as HTMLOptionElement;
+        if (child === placeholderOption) {
+            this.removeChild(child);
+        }
+
+        currentDataSet = set;
+        connection.send('TrackDataSet', set);
+        connection.send('RequestAllDataForDataSet', set);
+    };
 
     function createCell(row: HTMLTableRowElement, value: string) {
         let cell = document.createElement('td');
@@ -27,27 +47,27 @@ import * as $ from "jquery";
         row.appendChild(cell);
     }
 
-    async function reBuildDataSetsDropDown() {
+    async function reBuildDataSetsSelect() {
+        datasetsSelect.classList.add('is-loading');
+        datasetsSelect.innerHTML = "";
+
+        placeholderOption = document.createElement('option');
+        placeholderOption.textContent = 'Fetching Data sets'
+        datasetsSelect.appendChild(placeholderOption);
+
         let dataSets: string[] = await connection.invoke('GetAllDataSets');
 
-        dataSetsDropdownList.innerHTML = "";
+        datasetsSelect.classList.remove('is-loading');
+        datasetsSelect.innerHTML = "";
+
+        placeholderOption = document.createElement('option');
+        placeholderOption.textContent = 'Select a Data set'
+        datasetsSelect.appendChild(placeholderOption);
+
         for (let set of dataSets) {
-            let item = document.createElement('li');
-
-            let a = document.createElement('a');
-            a.textContent = set;
-            item.appendChild(a);
-
-            a.onclick = () => {
-                dataSetsCurrent.textContent = set;
-                currentDataSet = set;
-                connection.send('TrackDataSet', set);
-                connection.send('RequestAllDataForDataSet', set);
-            }
-
-            item.appendChild(a);
-
-            dataSetsDropdownList.appendChild(item);
+            let option = document.createElement('option');
+            option.textContent = set;
+            datasetsSelect.appendChild(option);
         }
     }
 
@@ -69,8 +89,7 @@ import * as $ from "jquery";
         try {
             await connection.start();
 
-            await reBuildDataSetsDropDown();
-            dataSetsCurrent.textContent = "Select a data set."
+            await reBuildDataSetsSelect();
             buildDataTable();
 
         } catch (ex) {
@@ -187,7 +206,7 @@ import * as $ from "jquery";
     };
 
     refreshDataSets.onclick = async () => {
-        await reBuildDataSetsDropDown();
+        await reBuildDataSetsSelect();
     }
 
     function sortTable(table: HTMLTableElement, property: string) {

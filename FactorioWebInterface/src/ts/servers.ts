@@ -69,6 +69,7 @@ const tbMessage: HTMLInputElement = document.querySelector("#tbMessage");
 const btnSend: HTMLButtonElement = document.querySelector("#btnSend");
 const serverName = document.getElementById('serverName') as HTMLHeadingElement;
 const serverIdInput: HTMLInputElement = document.getElementById('serverIdInput') as HTMLInputElement;
+const serverSelect = document.getElementById('serverSelect') as HTMLSelectElement;
 const resumeButton: HTMLButtonElement = document.getElementById('resumeButton') as HTMLButtonElement;
 const loadButton: HTMLButtonElement = document.getElementById('loadButton') as HTMLButtonElement;
 const startScenarioButton: HTMLButtonElement = document.getElementById('startScenarioButton') as HTMLButtonElement;
@@ -77,7 +78,7 @@ const saveButton: HTMLButtonElement = document.getElementById('saveButton') as H
 const updateButton: HTMLButtonElement = document.getElementById('updateButton') as HTMLButtonElement;
 const forceStopButton: HTMLButtonElement = document.getElementById('forceStopButton') as HTMLButtonElement;
 const getStatusButton: HTMLButtonElement = document.getElementById('getStatusButton') as HTMLButtonElement;
-const statusText: HTMLInputElement = document.getElementById('statusText') as HTMLInputElement;
+const statusText: HTMLLabelElement = document.getElementById('statusText') as HTMLLabelElement;
 
 const tempSaveFilesTable: HTMLTableElement = document.getElementById('tempSaveFilesTable') as HTMLTableElement;
 const localSaveFilesTable: HTMLTableElement = document.getElementById('localSaveFilesTable') as HTMLTableElement;
@@ -122,6 +123,10 @@ let messageCount = 0;
 const connection = new signalR.HubConnectionBuilder()
     .withUrl("/factorioControlHub")
     .build();
+
+serverSelect.onchange = function (this: HTMLSelectElement) {
+    window.location.href = `/admin/servers/${this.value}`;
+};
 
 async function getFiles() {
     let tempFiles = await connection.invoke('GetTempSaveFiles') as FileMetaData[];
@@ -217,7 +222,7 @@ async function start() {
         getSettings();
         getExtraSettings();
 
-        statusText.value = data.status;
+        statusText.innerText = data.status;
 
         for (let message of data.messages) {
             writeMessage(message);
@@ -236,7 +241,7 @@ connection.on("SendMessage", writeMessage)
 
 connection.on('FactorioStatusChanged', (newStatus: string, oldStatus: string) => {
     console.log(`new: ${newStatus}, old: ${oldStatus}`);
-    statusText.value = newStatus;
+    statusText.innerText = newStatus;
 });
 
 tbMessage.addEventListener("keyup", (e: KeyboardEvent) => {
@@ -352,14 +357,14 @@ function writeMessage(message: MessageData): void {
             data = `[Wrapper] ${message.message}`;
             break;
         case MessageType.Control:
-            div.classList.add('bg-warning');
+            div.classList.add('has-background-warning');
             data = `[Control] ${message.message}`;
             break;
         case MessageType.Discord:
             data = message.message;
             break;
         case MessageType.Status:
-            div.classList.add('bg-info', 'text-white');
+            div.classList.add('has-background-info', 'has-text-white');
             data = message.message;
             break;
         default:

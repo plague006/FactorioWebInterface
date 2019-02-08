@@ -4,20 +4,25 @@
     ViewData["Title"] = "Saves";
 }
 
-<h2>Saves</h2>
+<div class="container">
 
-<h3>Start Saves</h3>
-<p>Saves state from <b>before</b> the maps where played.</p>
-@await Html.PartialAsync("_PublicFileTablePartial", Model.StartSaves)
+    <h2 class="title is-2">Saves</h2>
 
-<h3>Final Saves</h3>
-<p>Saves state from <b>after</b> the maps where played.</p>
-@await Html.PartialAsync("_PublicFileTablePartial", Model.FinalSaves)
+    <h3 class="title is-3">Start Saves</h3>
+    <p>Saves state from <b>before</b> the maps where played.</p>
 
-<h3>Old Saves</h3>
-<p>Some older saves.</p>
-@await Html.PartialAsync("_PublicFileTablePartial", Model.OldSaves)
+    @await Html.PartialAsync("_PublicFileTablePartial", Model.StartSaves)
 
-@section Scripts{
-    <script type="text/javascript" src="~/js/saves.js"></script>
-}
+    <h3 class="title is-3">Final Saves</h3>
+    <p>Saves state from <b>after</b> the maps where played.</p>
+    @await Html.PartialAsync("_PublicFileTablePartial", Model.FinalSaves)
+
+    <h3 class="title is-3">Old Saves</h3>
+    <p>Some older saves.</p>
+    @await Html.PartialAsync("_PublicFileTablePartial", Model.OldSaves)
+
+    @section Scripts{
+        <script type="text/javascript" src="~/js/saves.js"></script>
+    }
+
+</div>

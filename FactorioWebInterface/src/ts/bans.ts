@@ -107,7 +107,7 @@ import * as $ from "jquery";
         let cell4 = document.createElement('td');
         let button = document.createElement('button') as HTMLButtonElement
         button.innerText = 'Remove';
-        button.classList.add('btn', 'btn-danger');
+        button.classList.add('button', 'is-danger');
         button.onclick = removeBanClick;
         cell4.appendChild(button);
         row.appendChild(cell4);
