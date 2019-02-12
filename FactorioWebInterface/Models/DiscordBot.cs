@@ -275,6 +275,10 @@ namespace FactorioWebInterface.Models
             }
 
             var channel = await DiscordClient.GetChannelAsync(channelId);
+            if (channel == null)
+            {
+                return;
+            }
 
             var message = new DiscordMessage()
             {
@@ -301,6 +305,10 @@ namespace FactorioWebInterface.Models
             }
 
             var channel = await DiscordClient.GetChannelAsync(channelId);
+            if (channel == null)
+            {
+                return;
+            }
 
             var message = new DiscordMessage()
             {
@@ -337,6 +345,11 @@ namespace FactorioWebInterface.Models
             }
 
             var channel = await DiscordClient.GetChannelAsync(channelId);
+            if (channel == null)
+            {
+                return;
+            }
+
             await channel.ModifyAsync(name: name, topic: topic);
         }
     }
