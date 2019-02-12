@@ -20,6 +20,7 @@ namespace FactorioWebInterface.Models
 
         public static string GlobalSavesDirectoryPath { get; } = Path.GetFullPath(Path.Combine(baseDirectoryPath, Constants.GlobalSavesDirectoryName));
         public static string ScenarioDirectoryPath { get; } = Path.GetFullPath(Path.Combine(baseDirectoryPath, Constants.ScenarioDirectoryName));
+        public static string UpdateCacheDirectoryPath { get; } = Path.GetFullPath(Path.Combine(baseDirectoryPath, Constants.UpdateCacheDirectoryName));
 
         public static HashSet<string> ValidSaveDirectories { get; } = new HashSet<string>();
 

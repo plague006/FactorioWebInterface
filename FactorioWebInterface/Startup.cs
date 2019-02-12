@@ -88,6 +88,7 @@ namespace FactorioWebInterface
             services.AddMemoryCache();
 
             services.AddSingleton<IDiscordBot, DiscordBot>();
+            services.AddSingleton<FactorioUpdater, FactorioUpdater>();
             services.AddSingleton<IFactorioServerManager, FactorioServerManager>();
 
             services.AddRouting(o => o.LowercaseUrls = true);

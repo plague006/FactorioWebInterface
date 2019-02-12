@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -14,7 +15,7 @@ namespace FactorioWebInterface.Models
     public class FactorioUpdater
     {
         private static readonly Regex downloadRegex = new Regex(@"/get-download/(\d+\.\d+\.\d+)/headless/linux64", RegexOptions.Compiled);
-        private static readonly Regex cacheRegex = new Regex(@"factorio_headless_x64_(\d+\.\d+\.\d+)", RegexOptions.Compiled);
+        private static readonly Regex versionRegex = new Regex(@"factorio_headless_x64_(\d+\.\d+\.\d+)", RegexOptions.Compiled);
 
         private readonly SemaphoreSlim downloadLock = new SemaphoreSlim(1);
 
@@ -25,6 +26,20 @@ namespace FactorioWebInterface.Models
         {
             _httpClientFactory = httpClientFactory;
             _logger = logger;
+        }
+
+        private string GetVersionOrFileName(string fileName)
+        {
+            var match = versionRegex.Match(fileName);
+
+            if (match.Success)
+            {
+                return match.Groups[1].Value;
+            }
+            else
+            {
+                return fileName;
+            }
         }
 
         private bool ExecuteProcess(string filename, string arguments)
@@ -45,7 +60,7 @@ namespace FactorioWebInterface.Models
                     return null;
                 }
 
-                string path = Path.Combine(dir.FullName, $"factorio_headless_x64_{version}.tar.xz");
+                string path = Path.Combine(dir.FullName, version);
                 FileInfo file = new FileInfo(path);
 
                 if (!file.Exists || file.Directory.FullName != dir.FullName)
@@ -77,7 +92,7 @@ namespace FactorioWebInterface.Models
                     return false;
                 }
 
-                string path = Path.Combine(dir.FullName, $"factorio_headless_x64_{version}.tar.xz");
+                string path = Path.Combine(dir.FullName, version);
 
                 FileInfo file = new FileInfo(path);
 
@@ -108,18 +123,7 @@ namespace FactorioWebInterface.Models
                     return result;
                 }
 
-                var files = dir.GetFiles("*.tar.xz");
-
-                foreach (var file in files)
-                {
-                    var match = cacheRegex.Match(file.Name);
-
-                    if (match.Success)
-                    {
-                        string version = match.Groups[1].Value;
-                        result.Add(version);
-                    }
-                }
+                return dir.GetFiles().Select(x => x.Name).ToList();
             }
             catch (Exception e)
             {
@@ -191,6 +195,7 @@ namespace FactorioWebInterface.Models
                 }
 
                 var fileName = download.Content.Headers.ContentDisposition.FileName;
+                fileName = GetVersionOrFileName(fileName);
 
                 var binariesPath = Path.Combine(FactorioServerData.UpdateCacheDirectoryPath, fileName);
                 var binaries = new FileInfo(binariesPath);

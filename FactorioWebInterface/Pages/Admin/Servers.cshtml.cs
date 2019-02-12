@@ -25,8 +25,6 @@ namespace FactorioWebInterface.Pages.Admin
             _userManger = userManger;
             _factorioServerManager = factorioServerManager;
             _logger = logger;
-
-            _factorioServerManager.FindVersions();
         }
 
         public class InputModel

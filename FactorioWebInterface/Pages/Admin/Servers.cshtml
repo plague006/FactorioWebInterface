@@ -433,50 +433,95 @@
                 @await Html.PartialAsync("_FileTablePartial", ServersModel.globalSaves)
 
                 <h3 class="title is-3">Scenarios</h3>
-                <div class="table-responsive">
-                    <table id="scenarioTable" class="table is-bordered is-striped is-hoverable is-fullwidth">
-                        <thead>
-                            <tr>
-                                <th><input type="checkbox" /> Select</th>
-                                <th>Name</th>
-                                <th>Created Time</th>
-                                <th>Modified Time</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
+
+                <table id="scenarioTable" class="table is-bordered is-striped is-hoverable is-fullwidth">
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" /> Select</th>
+                            <th>Name</th>
+                            <th>Created Time</th>
+                            <th>Modified Time</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
 
             </section>
 
             <section>
 
                 <h3 class="title is-3">Logs</h3>
-                <div class="table-responsive">
-                    <table id="logsFileTable" class="table is-bordered is-striped is-hoverable is-fullwidth">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Created Time</th>
-                                <th>Modified Time</th>
-                                <th>Size</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
+
+                <table id="logsFileTable" class="table is-bordered is-striped is-hoverable is-fullwidth">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Created Time</th>
+                            <th>Modified Time</th>
+                            <th>Size</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
 
             </section>
 
         </div>
-
-        @section Scripts{
-            <environment include="Development">
-                <script type="text/javascript" src="~/js/servers.js" asp-append-version="true"></script>
-            </environment>
-            <environment exclude="Development">
-                <script type="text/javascript" src="~/js/servers.js"></script>
-            </environment>
-        }
     </div>
+
+    <div id="updateModal" class="modal">
+        <div id="modalBackground" class="modal-background"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title">Update</p>
+                <button id="closeModalButton" class="delete" aria-label="close"></button>
+            </header>
+            <section class="modal-card-body">
+
+                <section class="section">
+                    <div class="field is-grouped is-grouped-centered">
+                        <div class="control">
+                            <div class="select">
+                                <select id="updateSelect">
+                                    <option>latest</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="control">
+                            <button id="downloadAndUpdateButton" class="button is-link">Download and Update</button>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="columns is-centered">
+                    <div class="column" style="flex-grow: 0;">
+                        <div>
+                            <h4 class="title is-4">Cached Updates</h4>
+                            <table class="table is-bordered is-striped is-hoverable">
+                                <thead>
+                                    <tr>
+                                        <th>Version</th>
+                                        <th>Delete</th>
+                                        <th>Update</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="cachedVersionsTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+            <footer class="modal-card-foot"></footer>
+        </div>
+    </div>
+
+    @section Scripts{
+        <environment include="Development">
+            <script type="text/javascript" src="~/js/servers.js" asp-append-version="true"></script>
+        </environment>
+        <environment exclude="Development">
+            <script type="text/javascript" src="~/js/servers.js"></script>
+        </environment>
+    }
 </div>

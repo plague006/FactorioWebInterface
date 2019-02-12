@@ -55,5 +55,8 @@ namespace FactorioWebInterface.Models
         Task<ScenarioDataEntry[]> GetAllScenarioData();
         Task<string[]> GetAllScenarioDataSets();
         Task UpdateScenarioDataFromWeb(ScenarioDataEntry data);
+        Task<List<string>> GetDownloadableVersions();
+        Task<List<string>> GetCachedVersions();
+        bool DeleteCachedVersion(string version);
     }
 }

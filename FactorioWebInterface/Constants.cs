@@ -30,6 +30,11 @@
         public const string PublicStartSavesDirectoryName = "public/start";
         public const string PublicFinalSavesDirectoryName = "public/final";
         public const string PublicOldSavesDirectoryName = "public/old";
+        public const string UpdateCacheDirectoryName = "update_cache";
+
+        public const string DownloadHeadlessURL = @"https://factorio.com/download-headless";
+        public const string DownloadHeadlessExperimentalURL = @"https://factorio.com/download-headless/experimental";
+        public const string GetDownloadURL = @"https://factorio.com/get-download/";
 
         //public const string DefaultFileName = "current_map.zip";
         public const string ServerSettingsFileName = "server-settings.json";

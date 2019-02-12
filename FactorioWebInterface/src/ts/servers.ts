@@ -86,6 +86,13 @@ const globalSaveFilesTable: HTMLTableElement = document.getElementById('globalSa
 const scenarioTable: HTMLTableElement = document.getElementById('scenarioTable') as HTMLTableElement;
 const logsFileTable: HTMLTableElement = document.getElementById('logsFileTable') as HTMLTableElement;
 
+const updateModal = document.getElementById('updateModal') as HTMLDivElement;
+const closeModalButton = document.getElementById('closeModalButton') as HTMLButtonElement;
+const modalBackground = document.getElementById('modalBackground') as HTMLDivElement;
+const updateSelect = document.getElementById('updateSelect') as HTMLSelectElement;
+const downloadAndUpdateButton = document.getElementById('downloadAndUpdateButton') as HTMLButtonElement;
+const cachedVersionsTableBody = document.getElementById('cachedVersionsTableBody') as HTMLBodyElement;
+
 // XSRF/CSRF token, see https://docs.microsoft.com/en-us/aspnet/core/security/anti-request-forgery?view=aspnetcore-2.1
 let requestVerificationToken = (document.querySelector('input[name="__RequestVerificationToken"][type="hidden"]') as HTMLInputElement).value
 
@@ -323,14 +330,96 @@ saveButton.onclick = () => {
         });
 };
 
+async function install(version: string) {
+    let result: Result = await connection.invoke("Update", version);
+
+    if (!result.success) {
+        alert(JSON.stringify(result.errors));
+    }    
+}
+
 updateButton.onclick = () => {
-    connection.invoke("Update")
-        .then((result: Result) => {
-            if (!result.success) {
-                alert(JSON.stringify(result.errors));
-            }
-        });
+    connection.send('RequestGetDownloadableVersions');
+    connection.send('RequestGetCachedVersions');
+
+    updateModal.classList.add('is-active');
+    updateSelect.parentElement.classList.add('is-loading');
 };
+
+function closeModal() {
+    updateModal.classList.remove('is-active');
+}
+
+modalBackground.onclick = closeModal;
+closeModalButton.onclick = closeModal;
+
+downloadAndUpdateButton.onclick = () => {
+    install(updateSelect.value);
+    closeModal();
+};
+
+connection.on('SendDownloadableVersions', (versions: string[]) => {
+    updateSelect.innerHTML = "";
+
+    for (let version of versions) {
+        let option = document.createElement('option');
+        option.innerText = version;
+        updateSelect.appendChild(option);
+    }
+
+    let option = document.createElement('option');
+    option.innerText = 'latest';
+    updateSelect.appendChild(option);
+
+    updateSelect.parentElement.classList.remove('is-loading');
+});
+
+function cachedUpdate(this: HTMLElement) {
+    let row = this.parentElement.parentElement as HTMLTableRowElement;
+    let cell = row.cells[0];
+    let version = cell.textContent;
+
+    install(version);
+    closeModal();
+}
+
+function deleteCachedVersion(this: HTMLElement) {
+    let row = this.parentElement.parentElement as HTMLTableRowElement;
+    let cell = row.cells[0];
+    let version = cell.textContent;
+
+    connection.send('DeleteCachedVersion', version);
+}
+
+connection.on('SendCachedVersions', (versions: string[]) => {
+    cachedVersionsTableBody.innerHTML = "";
+
+    for (let version of versions) {
+        let row = document.createElement('tr');
+
+        let cell1 = document.createElement('td');
+        cell1.innerText = version;
+        row.appendChild(cell1);
+
+        let cell2 = document.createElement('td');
+        let deleteButton = document.createElement('button');
+        deleteButton.classList.add('button', 'is-danger');
+        deleteButton.innerText = 'Delete';
+        deleteButton.onclick = deleteCachedVersion;
+        cell2.appendChild(deleteButton);
+        row.appendChild(cell2);
+
+        let cell3 = document.createElement('td');
+        let UpdateButton = document.createElement('button');
+        UpdateButton.classList.add('button', 'is-success');
+        UpdateButton.innerText = 'Update';
+        UpdateButton.onclick = cachedUpdate;
+        cell3.appendChild(UpdateButton);
+        row.appendChild(cell3);
+
+        cachedVersionsTableBody.appendChild(row);
+    }
+});
 
 forceStopButton.onclick = () => {
     connection.invoke("ForceStop")

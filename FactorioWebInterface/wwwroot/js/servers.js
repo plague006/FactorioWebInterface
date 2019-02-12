@@ -5040,6 +5040,12 @@ const localSaveFilesTable = document.getElementById('localSaveFilesTable');
 const globalSaveFilesTable = document.getElementById('globalSaveFilesTable');
 const scenarioTable = document.getElementById('scenarioTable');
 const logsFileTable = document.getElementById('logsFileTable');
+const updateModal = document.getElementById('updateModal');
+const closeModalButton = document.getElementById('closeModalButton');
+const modalBackground = document.getElementById('modalBackground');
+const updateSelect = document.getElementById('updateSelect');
+const downloadAndUpdateButton = document.getElementById('downloadAndUpdateButton');
+const cachedVersionsTableBody = document.getElementById('cachedVersionsTableBody');
 // XSRF/CSRF token, see https://docs.microsoft.com/en-us/aspnet/core/security/anti-request-forgery?view=aspnetcore-2.1
 let requestVerificationToken = document.querySelector('input[name="__RequestVerificationToken"][type="hidden"]').value;
 const fileUploadInput = document.getElementById('fileUploadInput');
@@ -5245,14 +5251,78 @@ saveButton.onclick = () => {
         }
     });
 };
-updateButton.onclick = () => {
-    connection.invoke("Update")
-        .then((result) => {
+function install(version) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let result = yield connection.invoke("Update", version);
         if (!result.success) {
             alert(JSON.stringify(result.errors));
         }
     });
+}
+updateButton.onclick = () => {
+    connection.send('RequestGetDownloadableVersions');
+    connection.send('RequestGetCachedVersions');
+    updateModal.classList.add('is-active');
+    updateSelect.parentElement.classList.add('is-loading');
 };
+function closeModal() {
+    updateModal.classList.remove('is-active');
+}
+modalBackground.onclick = closeModal;
+closeModalButton.onclick = closeModal;
+downloadAndUpdateButton.onclick = () => {
+    install(updateSelect.value);
+    closeModal();
+};
+connection.on('SendDownloadableVersions', (versions) => {
+    updateSelect.innerHTML = "";
+    for (let version of versions) {
+        let option = document.createElement('option');
+        option.innerText = version;
+        updateSelect.appendChild(option);
+    }
+    let option = document.createElement('option');
+    option.innerText = 'latest';
+    updateSelect.appendChild(option);
+    updateSelect.parentElement.classList.remove('is-loading');
+});
+function cachedUpdate() {
+    let row = this.parentElement.parentElement;
+    let cell = row.cells[0];
+    let version = cell.textContent;
+    install(version);
+    closeModal();
+}
+function deleteCachedVersion() {
+    let row = this.parentElement.parentElement;
+    let cell = row.cells[0];
+    let version = cell.textContent;
+    connection.send('DeleteCachedVersion', version);
+}
+connection.on('SendCachedVersions', (versions) => {
+    cachedVersionsTableBody.innerHTML = "";
+    for (let version of versions) {
+        let row = document.createElement('tr');
+        let cell1 = document.createElement('td');
+        cell1.innerText = version;
+        row.appendChild(cell1);
+        let cell2 = document.createElement('td');
+        let deleteButton = document.createElement('button');
+        deleteButton.classList.add('button', 'is-danger');
+        deleteButton.innerText = 'Delete';
+        deleteButton.onclick = deleteCachedVersion;
+        cell2.appendChild(deleteButton);
+        row.appendChild(cell2);
+        let cell3 = document.createElement('td');
+        let UpdateButton = document.createElement('button');
+        UpdateButton.classList.add('button', 'is-success');
+        UpdateButton.innerText = 'Update';
+        UpdateButton.onclick = cachedUpdate;
+        cell3.appendChild(UpdateButton);
+        row.appendChild(cell3);
+        cachedVersionsTableBody.appendChild(row);
+    }
+});
 forceStopButton.onclick = () => {
     connection.invoke("ForceStop")
         .then((result) => {

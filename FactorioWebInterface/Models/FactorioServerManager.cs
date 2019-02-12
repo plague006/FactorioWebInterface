@@ -42,6 +42,7 @@ namespace FactorioWebInterface.Models
         private readonly DbContextFactory _dbContextFactory;
         private readonly ILogger<FactorioServerManager> _logger;
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly FactorioUpdater _factorioUpdater;
 
         //private SemaphoreSlim serverLock = new SemaphoreSlim(1, 1);
         private Dictionary<string, FactorioServerData> servers = FactorioServerData.Servers;
@@ -58,7 +59,8 @@ namespace FactorioWebInterface.Models
             IHubContext<FactorioBanHub, IFactorioBanClientMethods> factorioBanHub,
             DbContextFactory dbContextFactory,
             ILogger<FactorioServerManager> logger,
-            IHttpClientFactory httpClientFactory
+            IHttpClientFactory httpClientFactory,
+            FactorioUpdater factorioUpdater
         )
         {
             _configuration = configuration;
@@ -70,6 +72,7 @@ namespace FactorioWebInterface.Models
             _dbContextFactory = dbContextFactory;
             _logger = logger;
             _httpClientFactory = httpClientFactory;
+            _factorioUpdater = factorioUpdater;
 
             string name = _configuration[Constants.FactorioWrapperNameKey];
             if (string.IsNullOrWhiteSpace(name))
@@ -831,95 +834,7 @@ namespace FactorioWebInterface.Models
 
             _logger.LogInformation("server saved :serverId {serverId} user: {userName}", serverId, userName);
             return Result.OK;
-        }
-
-        private async Task<Result> DownloadAndExtract(FactorioServerData serverData, string version)
-        {
-            try
-            {
-                string basePath = serverData.BaseDirectoryPath;
-                var extractDirectoryPath = Path.Combine(basePath, "factorio");
-                var binDirectoryPath = Path.Combine(basePath, "bin");
-                var dataDirectoryPath = Path.Combine(basePath, "data");
-                var binariesPath = Path.Combine(basePath, "binaries.tar.xz");
-
-                var extractDirectory = new DirectoryInfo(extractDirectoryPath);
-                if (extractDirectory.Exists)
-                {
-                    extractDirectory.Delete(true);
-                }
-
-                var client = _httpClientFactory.CreateClient();
-                string url = $"https://factorio.com/get-download/{version}/headless/linux64";
-                var download = await client.GetAsync(url);
-                if (!download.IsSuccessStatusCode)
-                {
-                    _logger.LogWarning("Update failed: Error downloading {url}", url);
-                    return Result.Failure(Constants.UpdateErrorKey, "Error downloading file.");
-                }
-
-                var binaries = new FileInfo(binariesPath);
-
-                using (var fs = binaries.OpenWrite())
-                {
-                    await download.Content.CopyToAsync(fs);
-                }
-
-                bool success = ExecuteProcess("/bin/tar", $"-xJf {binariesPath} -C {basePath}");
-
-                var binDirectory = new DirectoryInfo(binDirectoryPath);
-                if (binDirectory.Exists)
-                {
-                    binDirectory.Delete(true);
-                }
-                var dataDirectory = new DirectoryInfo(dataDirectoryPath);
-                if (dataDirectory.Exists)
-                {
-                    dataDirectory.Delete(true);
-                }
-
-                if (success)
-                {
-                    Directory.Move(Path.Combine(extractDirectoryPath, "bin"), binDirectoryPath);
-                    Directory.Move(Path.Combine(extractDirectoryPath, "data"), dataDirectoryPath);
-
-                    var configFile = new FileInfo(Path.Combine(basePath, "config-path.cfg"));
-                    if (!configFile.Exists)
-                    {
-                        var extractConfigFile = new FileInfo(Path.Combine(extractDirectoryPath, "config-path.cfg"));
-                        if (extractConfigFile.Exists)
-                        {
-                            extractConfigFile.MoveTo(configFile.FullName);
-                        }
-                    }
-                }
-
-                extractDirectory.Refresh();
-                if (extractDirectory.Exists)
-                {
-                    extractDirectory.Delete(true);
-                }
-
-                if (binaries.Exists)
-                {
-                    binaries.Delete();
-                }
-
-                if (success)
-                {
-                    return Result.OK;
-                }
-                else
-                {
-                    return Result.Failure("UpdateErrorKey", "Error extracting file.");
-                }
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, nameof(DownloadAndExtract));
-                return Result.Failure(Constants.UnexpctedErrorKey, "Unexpected error installing.");
-            }
-        }
+        }        
 
         /// SignalR processes one message at a time, so this method needs to return before the downloading starts.
         /// Else if the user clicks the update button twice in quick succession, the first request is finished before
@@ -928,7 +843,7 @@ namespace FactorioWebInterface.Models
         {
             _ = Task.Run(async () =>
             {
-                var result = await DownloadAndExtract(serverData, version);
+                var result = await _factorioUpdater.DoUpdate(serverData, version);
 
                 try
                 {
@@ -1991,7 +1906,7 @@ namespace FactorioWebInterface.Models
 
             bool added = await AddBanToDatabase(ban);
             if (added)
-            {                
+            {
                 return Result.OK;
             }
             else
@@ -2025,7 +1940,7 @@ namespace FactorioWebInterface.Models
                 SendBanCommandToEachRunningServer(command);
             }
 
-            await RemoveBanFromDatabase(username, admin);            
+            await RemoveBanFromDatabase(username, admin);
 
             return Result.OK;
         }
@@ -3407,6 +3322,19 @@ namespace FactorioWebInterface.Models
             }
         }
 
+        public Task<List<string>> GetDownloadableVersions()
+        {
+            return _factorioUpdater.GetDownloadableVersions();
+        }
 
+        public Task<List<string>> GetCachedVersions()
+        {
+            return Task.FromResult(_factorioUpdater.GetCachedVersions());
+        }
+
+        public bool DeleteCachedVersion(string version)
+        {
+            return _factorioUpdater.DeleteCachedFile(version);
+        }
     }
 }
