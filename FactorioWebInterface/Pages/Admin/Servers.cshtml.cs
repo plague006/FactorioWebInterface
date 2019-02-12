@@ -43,6 +43,11 @@ namespace FactorioWebInterface.Pages.Admin
 
             var user = await _userManger.GetUserAsync(User);
 
+            if (Id < 1 || Id > FactorioServerData.serverCount)
+            {
+                return RedirectToPage("Servers", 1);
+            }
+
             if (user == null || user.Suspended)
             {
                 HttpContext.Session.SetString("returnUrl", "servers/" + Id);
