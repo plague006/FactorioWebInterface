@@ -137,6 +137,7 @@ namespace FactorioWebInterface.Models
         {
             StringBuilder sb = new StringBuilder(message);
 
+            sb.Replace("\\", "\\\\");
             sb.Replace("'", "\\'");
             sb.Replace("\n", " ");
 
