@@ -3138,6 +3138,7 @@ namespace FactorioWebInterface.Models
                     Admins = serverSettigns.Admins,
                     AutosaveInterval = serverSettigns.AutosaveInterval,
                     AutosaveSlots = serverSettigns.AutosaveSlots,
+                    NonBlockingSaving = serverSettigns.NonBlockingSaving,
                     PublicVisible = serverSettigns.Visibility.Public
                 };
 
@@ -3172,6 +3173,7 @@ namespace FactorioWebInterface.Models
                 serverSettigns.AutoPause = settings.AutoPause;
                 serverSettigns.AutosaveSlots = settings.AutosaveSlots < 0 ? 0 : settings.AutosaveSlots;
                 serverSettigns.AutosaveInterval = settings.AutosaveInterval < 1 ? 1 : settings.AutosaveInterval;
+                serverSettigns.NonBlockingSaving = settings.NonBlockingSaving;
                 serverSettigns.Visibility.Public = settings.PublicVisible;
 
                 List<string> admins;

@@ -53,6 +53,7 @@ interface FactorioServerSettings {
     admins: string[];
     autosave_interval: number;
     autosave_slots: number;
+    non_blocking_saving: boolean;
     public_visible: boolean;
 }
 
@@ -119,6 +120,7 @@ const configAdminInput = document.getElementById('configAdminInput') as HTMLText
 const configSaveButton = document.getElementById('configSaveButton') as HTMLButtonElement;
 const configAutoSaveIntervalInput = document.getElementById('configAutoSaveIntervalInput') as HTMLInputElement;
 const configAutoSaveSlotsInput = document.getElementById('configAutoSaveSlotsInput') as HTMLInputElement;
+const configNonBlockingSavingInput = document.getElementById('configNonBlockingSavingInput') as HTMLInputElement;
 const configPublicVisibleInput = document.getElementById('configPublicVisibleInput') as HTMLInputElement;
 const configSyncBans = document.getElementById('configSyncBans') as HTMLInputElement;
 const configBuildBansFromDb = document.getElementById('configBuildBansFromDb') as HTMLInputElement;
@@ -205,6 +207,7 @@ async function getSettings() {
     configAdminInput.value = settings.admins.join(', ');
     configAutoSaveIntervalInput.value = settings.autosave_interval + "";
     configAutoSaveSlotsInput.value = settings.autosave_slots + "";
+    configNonBlockingSavingInput.checked = settings.non_blocking_saving;
     configPublicVisibleInput.checked = settings.public_visible;
 
     serverName.innerText = settings.name;
@@ -335,7 +338,7 @@ async function install(version: string) {
 
     if (!result.success) {
         alert(JSON.stringify(result.errors));
-    }    
+    }
 }
 
 updateButton.onclick = () => {
@@ -964,6 +967,7 @@ configSaveButton.onclick = async () => {
         admins: configAdminInput.value.split(','),
         autosave_interval: interval,
         autosave_slots: slots,
+        non_blocking_saving: configNonBlockingSavingInput.checked,
         public_visible: configPublicVisibleInput.checked
     };
 

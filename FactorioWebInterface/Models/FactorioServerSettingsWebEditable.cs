@@ -35,6 +35,9 @@ namespace FactorioWebInterface.Models
         [JsonProperty(PropertyName = "autosave_slots")]
         public int AutosaveSlots { get; set; }
 
+        [JsonProperty(PropertyName = "non_blocking_saving")]
+        public bool NonBlockingSaving { get; set; }
+
         [JsonProperty(PropertyName = "public_visible")]
         public bool PublicVisible { get; set; }
     }

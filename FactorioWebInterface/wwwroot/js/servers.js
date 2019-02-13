@@ -5070,6 +5070,7 @@ const configAdminInput = document.getElementById('configAdminInput');
 const configSaveButton = document.getElementById('configSaveButton');
 const configAutoSaveIntervalInput = document.getElementById('configAutoSaveIntervalInput');
 const configAutoSaveSlotsInput = document.getElementById('configAutoSaveSlotsInput');
+const configNonBlockingSavingInput = document.getElementById('configNonBlockingSavingInput');
 const configPublicVisibleInput = document.getElementById('configPublicVisibleInput');
 const configSyncBans = document.getElementById('configSyncBans');
 const configBuildBansFromDb = document.getElementById('configBuildBansFromDb');
@@ -5145,6 +5146,7 @@ function getSettings() {
         configAdminInput.value = settings.admins.join(', ');
         configAutoSaveIntervalInput.value = settings.autosave_interval + "";
         configAutoSaveSlotsInput.value = settings.autosave_slots + "";
+        configNonBlockingSavingInput.checked = settings.non_blocking_saving;
         configPublicVisibleInput.checked = settings.public_visible;
         serverName.innerText = settings.name;
     });
@@ -5737,6 +5739,7 @@ configSaveButton.onclick = () => __awaiter(undefined, void 0, void 0, function* 
         admins: configAdminInput.value.split(','),
         autosave_interval: interval,
         autosave_slots: slots,
+        non_blocking_saving: configNonBlockingSavingInput.checked,
         public_visible: configPublicVisibleInput.checked
     };
     let result = yield connection.invoke('SaveServerSettings', settings);
