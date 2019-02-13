@@ -1222,6 +1222,14 @@ namespace FactorioWebInterface.Models
                     sb.Append(item.Key).Append(", ");
                 }
 
+                if (sb.Length > Constants.discordTopicMaxLength)
+                {
+                    int start = Constants.discordTopicMaxLength - 3;
+                    int length = sb.Length - start;
+                    sb.Remove(start, length);
+                    sb.Append("...");
+                    return sb.ToString();
+                }
             }
             sb.Remove(sb.Length - 2, 2);
 

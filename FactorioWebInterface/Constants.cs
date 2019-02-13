@@ -42,6 +42,8 @@
         public const string ServerExtraSettingsFileName = "server-extra-settings.json";
         public const string ServerBanListFileName = "server-banlist.json";
 
+        public const int discordTopicMaxLength = 1024;
+
         public const string ChatTag = "[CHAT]";
         public const string DiscordTag = "[DISCORD]";
         public const string DiscordRawTag = "[DISCORD-RAW]";
