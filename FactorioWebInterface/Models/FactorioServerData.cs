@@ -119,8 +119,8 @@ namespace FactorioWebInterface.Models
                 ValidSaveDirectories.Add($"{serverId}\\{Constants.TempSavesDirectoryName}");
                 ValidSaveDirectories.Add($"{serverId}\\{Constants.LocalSavesDirectoryName}");
             }
-            Servers["7"].IsRemote = true;
-            Servers["7"].SshIdentity = "usvserver";
+            //Servers["7"].IsRemote = true;
+            //Servers["7"].SshIdentity = "usvserver";
         }
     }
 }
