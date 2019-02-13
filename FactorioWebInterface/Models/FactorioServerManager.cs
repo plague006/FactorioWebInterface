@@ -184,7 +184,7 @@ namespace FactorioWebInterface.Models
                 }
 
                 string path = MakeLogFilePath(serverData, currentLog);
-                currentLog.CopyTo(path);
+                currentLog.CopyTo(path, false);
 
                 currentLog.CreationTimeUtc = DateTime.UtcNow;
 
@@ -196,12 +196,22 @@ namespace FactorioWebInterface.Models
                     return;
                 }
 
+                var archiveDir = new DirectoryInfo(serverData.ArchiveLogsDirectoryPath);
+                if (!archiveDir.Exists)
+                {
+                    archiveDir.Create();
+                }
+
                 // sort oldest first.
                 Array.Sort(logs, (a, b) => a.CreationTimeUtc.CompareTo(b.CreationTimeUtc));
 
                 for (int i = 0; i < removeCount && i < logs.Length; i++)
                 {
-                    logs[i].Delete();
+                    var log = logs[i];
+
+                    var archivePath = Path.Combine(archiveDir.FullName, log.Name);
+
+                    log.MoveTo(archivePath);
                 }
             }
             catch (Exception e)
@@ -834,7 +844,7 @@ namespace FactorioWebInterface.Models
 
             _logger.LogInformation("server saved :serverId {serverId} user: {userName}", serverId, userName);
             return Result.OK;
-        }        
+        }
 
         /// SignalR processes one message at a time, so this method needs to return before the downloading starts.
         /// Else if the user clicks the update button twice in quick succession, the first request is finished before
