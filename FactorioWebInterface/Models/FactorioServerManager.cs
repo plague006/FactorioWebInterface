@@ -1462,8 +1462,8 @@ namespace FactorioWebInterface.Models
                     .ServerCommand("raise_callback")
                     .Add(func)
                     .Add(",")
-                    .Add("{data_set=").AddQuotedString(data.DataSet)
-                    .Add(",key=").AddQuotedString(data.Key);
+                    .Add("{data_set=").AddDoubleQuotedString(data.DataSet)
+                    .Add(",key=").AddDoubleQuotedString(data.Key);
 
                 if (entry != null)
                 {
@@ -1522,7 +1522,7 @@ namespace FactorioWebInterface.Models
                         .ServerCommand("raise_callback")
                         .Add(func)
                         .Add(",")
-                        .Add("{data_set=").AddQuotedString(data.DataSet);
+                        .Add("{data_set=").AddDoubleQuotedString(data.DataSet);
                 if (entries.Length == 0)
                 {
                     cb.Add("}");
@@ -1533,7 +1533,7 @@ namespace FactorioWebInterface.Models
                     for (int i = 0; i < entries.Length; i++)
                     {
                         var entry = entries[i];
-                        cb.Add("[").AddQuotedString(entry.Key).Add("]=").Add(entry.Value).Add(",");
+                        cb.Add("[").AddDoubleQuotedString(entry.Key).Add("]=").Add(entry.Value).Add(",");
                     }
                     cb.RemoveLast(1);
                     cb.Add("}}");
