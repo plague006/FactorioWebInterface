@@ -7,7 +7,8 @@
         let sortProperty = "";
 
         let rowsCopy: HTMLTableRowElement[] = []
-        for (let r of rows) {
+        for (let i = 0; i < rows.length; i++) {
+            let r = rows[i];
             rowsCopy.push(r);
         }
 
@@ -28,7 +29,8 @@
 
             body.innerHTML = "";
 
-            for (let r of rowsCopy) {
+            for (let i = 0; i < rowsCopy.length; i++) {
+                let r = rowsCopy[i];
                 body.appendChild(r);
             }
         }

@@ -564,9 +564,11 @@ function updateFileTable(table: HTMLTableElement, files: FileMetaData[]) {
 
     let rows: HTMLTableRowElement[] = []
     let rc = body.rows;
-    for (let r of rc) {
+    for (let i = 0; i < rc.length; i++) {
+        let r = rc[i];
         rows.push(r);
     }
+
     jTable.data('rows', rows);
 
     let ascending = !jTable.data('ascending');
@@ -632,7 +634,8 @@ function updateLogFileTable(table: HTMLTableElement, files: FileMetaData[]) {
 
     let rows: HTMLTableRowElement[] = []
     let rc = body.rows;
-    for (let r of rc) {
+    for (let i = 0; i < rc.length; i++) {
+        let r = rc[i];
         rows.push(r);
     }
     jTable.data('rows', rows);
@@ -705,7 +708,8 @@ function updateBuildScenarioTable(table: HTMLTableElement, scenarios: ScenarioMe
 
     let rows: HTMLTableRowElement[] = []
     let rc = body.rows;
-    for (let r of rc) {
+    for (let i = 0; i < rc.length; i++) {
+        let r = rc[i];
         rows.push(r);
     }
     jTable.data('rows', rows);
@@ -933,8 +937,9 @@ configTagsInput.oninput = function (this, e: Event) {
 configSaveButton.onclick = async () => {
 
     let tags = [];
-
-    for (let child of configTagsInput.children) {
+    let children = configTagsInput.children;
+    for (var i = 0; i < children.length; i++) {
+        let child = children[i];
         let input = child.firstChild as HTMLInputElement;
         let value = input.value.trim();
         if (value !== '') {

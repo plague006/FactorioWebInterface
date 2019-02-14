@@ -134,7 +134,8 @@ import * as $ from "jquery";
 
         let rows: HTMLTableRowElement[] = []
         let rc = body.rows;
-        for (let r of rc) {
+        for (let i = 0; i < rc.length; i++) {
+            let r = rc[i];
             rows.push(r);
         }
         jTable.data('rows', rows);
@@ -256,7 +257,8 @@ import * as $ from "jquery";
         let body = table.tBodies[0];
         body.innerHTML = "";
 
-        for (let r of rows) {
+        for (let i = 0; i < rows.length; i++) {
+            let r = rows[i];
             body.appendChild(r);
         }
     }
