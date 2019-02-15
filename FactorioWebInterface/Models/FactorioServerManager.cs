@@ -86,15 +86,7 @@ namespace FactorioWebInterface.Models
 
             _discordBot.ServerValidator = IsValidServerId;
             _discordBot.FactorioDiscordDataReceived += FactorioDiscordDataReceived;
-        }
-
-        private bool ExecuteProcess(string filename, string arguments)
-        {
-            _logger.LogInformation("ExecuteProcess filename: {fileName} arguments: {arguments}", filename, arguments);
-            Process proc = Process.Start(filename, arguments);
-            proc.WaitForExit();
-            return proc.ExitCode > -1;
-        }
+        }        
 
         private Task SendControlMessageNonLocking(FactorioServerData serverData, MessageData message)
         {
