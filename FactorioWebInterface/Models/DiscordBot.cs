@@ -158,7 +158,17 @@ namespace FactorioWebInterface.Models
         public async Task<bool> IsAdminRoleAsync(ulong userId)
         {
             var guild = await DiscordClient.GetGuildAsync(guildId);
-            var memeber = await guild.GetMemberAsync(userId);
+            DiscordMember memeber;
+
+            try
+            {
+                // Apprently this throws an excpetion if the member isn't found.
+                memeber = await guild.GetMemberAsync(userId);
+            }
+            catch (Exception)
+            {
+                return false;
+            }
 
             if (memeber == null)
                 return false;
