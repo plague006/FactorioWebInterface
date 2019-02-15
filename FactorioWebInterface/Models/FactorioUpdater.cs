@@ -1,4 +1,5 @@
-﻿using HtmlAgilityPack;
+﻿using FactorioWebInterface.Utils;
+using HtmlAgilityPack;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -40,15 +41,7 @@ namespace FactorioWebInterface.Models
             {
                 return fileName;
             }
-        }
-
-        private bool ExecuteProcess(string filename, string arguments)
-        {
-            _logger.LogInformation("ExecuteProcess filename: {fileName} arguments: {arguments}", filename, arguments);
-            Process proc = Process.Start(filename, arguments);
-            proc.WaitForExit();
-            return proc.ExitCode > -1;
-        }
+        }       
 
         private FileInfo GetCachedFile(string version)
         {
@@ -236,7 +229,7 @@ namespace FactorioWebInterface.Models
                     extractDirectory.Delete(true);
                 }
 
-                bool success = ExecuteProcess("/bin/tar", $"-xJf {binaries.FullName} -C {basePath}");
+                bool success = await ProcessHelper.RunProcessToEndAsync("/bin/tar", $"-xJf {binaries.FullName} -C {basePath}");
 
                 var binDirectory = new DirectoryInfo(binDirectoryPath);
                 if (binDirectory.Exists)
