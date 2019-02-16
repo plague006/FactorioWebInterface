@@ -29,7 +29,7 @@ namespace FactorioWebInterface.Utils
             {
                 process.Start();
                 process.WaitForExit();
-                return process.ExitCode > -1;
+                return process.ExitCode == 0;
             }
             catch (Exception e)
             {
@@ -65,7 +65,7 @@ namespace FactorioWebInterface.Utils
 
             process.Exited += (sender, args) =>
             {
-                tcs.SetResult(process.ExitCode > -1);
+                tcs.SetResult(process.ExitCode == 0);
                 process.Dispose();
             };
 
@@ -81,6 +81,6 @@ namespace FactorioWebInterface.Utils
             }
 
             return tcs.Task;
-        }
+        }        
     }
 }
