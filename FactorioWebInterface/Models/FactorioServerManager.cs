@@ -88,14 +88,6 @@ namespace FactorioWebInterface.Models
             _discordBot.FactorioDiscordDataReceived += FactorioDiscordDataReceived;
         }
 
-        private bool ExecuteProcess(string filename, string arguments)
-        {
-            _logger.LogInformation("ExecuteProcess filename: {fileName} arguments: {arguments}", filename, arguments);
-            Process proc = Process.Start(filename, arguments);
-            proc.WaitForExit();
-            return proc.ExitCode > -1;
-        }
-
         private Task SendControlMessageNonLocking(FactorioServerData serverData, MessageData message)
         {
             serverData.ControlMessageBuffer.Add(message);
@@ -556,18 +548,19 @@ namespace FactorioWebInterface.Models
 
         private async Task<Result> StartScenarioInner(FactorioServerData serverData, string scenarioName, string userName)
         {
-            // For some reason Facotrio always takes scenarios relative to the scenario directory local to each Factorio instance
-            // even if you provide an absolute path.
-            // To trick Facotrio into taking scenarios from the shared scenario directory we provide a relative path from the local
-            // scenario directory.                        
-            string scenarioPathFromShared = Path.Combine("/../../", Constants.ScenarioDirectoryName, scenarioName);
             string basePath = serverData.BaseDirectoryPath;
             string serverId = serverData.ServerId;
+            string localScenarioDirectoryPath = serverData.LocalScenarioDirectoryPath;
 
-            var dir = new DirectoryInfo(serverData.LocalScenarioDirectoryPath);
+            var dir = new DirectoryInfo(localScenarioDirectoryPath);
             if (!dir.Exists)
             {
-                dir.Create();
+                FileHelpers.CreateDirectorySymlink(FactorioServerData.ScenarioDirectoryPath, localScenarioDirectoryPath);
+            }
+            else if (!FileHelpers.IsSymbolicLink(localScenarioDirectoryPath))
+            {
+                dir.Delete(true);                
+                FileHelpers.CreateDirectorySymlink(FactorioServerData.ScenarioDirectoryPath, localScenarioDirectoryPath);
             }
 
             await PrepareServer(serverData);
@@ -576,20 +569,20 @@ namespace FactorioWebInterface.Models
             string arguments;
 #if WINDOWS
             fullName = "C:/Program Files/dotnet/dotnet.exe";
-            arguments = $"C:/Projects/FactorioWebInterface/FactorioWrapper/bin/Windows/netcoreapp2.2/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio.exe --start-server-load-scenario {scenarioPathFromShared} --server-settings {basePath}/server-settings.json --port {serverData.Port}";
+            arguments = $"C:/Projects/FactorioWebInterface/FactorioWrapper/bin/Windows/netcoreapp2.2/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio.exe --start-server-load-scenario {scenarioName} --server-settings {basePath}/server-settings.json --port {serverData.Port}";
 #elif WSL
             fullName = "/usr/bin/dotnet";
-            arguments = $"/mnt/c/Projects/FactorioWebInterface/FactorioWrapper/bin/Wsl/netcoreapp2.2/publish/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-scenario {scenarioPathFromShared} --server-settings {basePath}/server-settings.json --port {serverData.Port}";
+            arguments = $"/mnt/c/Projects/FactorioWebInterface/FactorioWrapper/bin/Wsl/netcoreapp2.2/publish/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-scenario {scenarioName} --server-settings {basePath}/server-settings.json --port {serverData.Port}";
 #else
             if (serverData.IsRemote)
             {
                 fullName = "ssh";
-                arguments = $"{serverData.SshIdentity} '/factorio/{factorioWrapperName}/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-scenario {scenarioPathFromShared} --server-settings {basePath}/server-settings.json --port {serverData.Port}'";
+                arguments = $"{serverData.SshIdentity} '/factorio/{factorioWrapperName}/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-scenario {scenarioName} --server-settings {basePath}/server-settings.json --port {serverData.Port}'";
             }
             else
             {
                 fullName = "/usr/bin/dotnet";
-                arguments = $"/factorio/{factorioWrapperName}/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-scenario {scenarioPathFromShared} --server-settings {basePath}/server-settings.json --port {serverData.Port}";
+                arguments = $"/factorio/{factorioWrapperName}/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-scenario {scenarioName} --server-settings {basePath}/server-settings.json --port {serverData.Port}";
             }
 #endif
             var startInfo = new ProcessStartInfo
