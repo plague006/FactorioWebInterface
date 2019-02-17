@@ -1,0 +1,8 @@
+{
+  "AllowedHosts": "*",
+  "DiscordBotToken": "DA6qVEgQ2ienYoXQHuJ4H0hQAesOzvkbkD0wOpqx1buA6PP52OytIsChIh8",
+  "ClientID": "438173704994309012",
+  "ClientSecret": "Meg7tSTu9FXU8qikwgVQa7TOVrJrKdwB",
+  "GuildID": "430324340033538799",
+  "AdminRoleID": "145248373518245671"
+}
