@@ -158,12 +158,22 @@ namespace FactorioWebInterface.Models
         public async Task<bool> IsAdminRoleAsync(ulong userId)
         {
             var guild = await DiscordClient.GetGuildAsync(guildId);
-            var memeber = await guild.GetMemberAsync(userId);
+            DiscordMember member;
 
-            if (memeber == null)
+            try
+            {
+                // Apprently this throws an excpetion if the member isn't found.
+                member = await guild.GetMemberAsync(userId);
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+
+            if (member == null)
                 return false;
 
-            var role = memeber.Roles.FirstOrDefault(x => validAdminRoleIds.Contains(x.Id));
+            var role = member.Roles.FirstOrDefault(x => validAdminRoleIds.Contains(x.Id));
 
             return role != null;
         }
@@ -275,6 +285,10 @@ namespace FactorioWebInterface.Models
             }
 
             var channel = await DiscordClient.GetChannelAsync(channelId);
+            if (channel == null)
+            {
+                return;
+            }
 
             var message = new DiscordMessage()
             {
@@ -301,6 +315,10 @@ namespace FactorioWebInterface.Models
             }
 
             var channel = await DiscordClient.GetChannelAsync(channelId);
+            if (channel == null)
+            {
+                return;
+            }
 
             var message = new DiscordMessage()
             {
@@ -337,6 +355,11 @@ namespace FactorioWebInterface.Models
             }
 
             var channel = await DiscordClient.GetChannelAsync(channelId);
+            if (channel == null)
+            {
+                return;
+            }
+
             await channel.ModifyAsync(name: name, topic: topic);
         }
     }

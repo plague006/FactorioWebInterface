@@ -1,17 +1,15 @@
 ﻿@model FileTableModel
-<h2>@Model.Name</h2>
+<h3 class="title is-3">@Model.Name</h3>
 
-<div class="table-responsive">
-    <table id="@Model.Id" class="table table-bordered table-striped table-hover">
-        <thead>
-            <tr>
-                <th><input type="checkbox" /> Select</th>
-                <th>Name</th>
-                <th>Created Time</th>
-                <th>Modified Time</th>
-                <th>Size</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-</div>
+<table id="@Model.Id" class="table is-bordered is-striped is-hoverable is-fullwidth">
+    <thead>
+        <tr>
+            <th><input type="checkbox" /> Select</th>
+            <th>Name</th>
+            <th>Created Time</th>
+            <th>Modified Time</th>
+            <th>Size</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>

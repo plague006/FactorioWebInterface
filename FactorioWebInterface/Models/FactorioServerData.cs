@@ -20,6 +20,7 @@ namespace FactorioWebInterface.Models
 
         public static string GlobalSavesDirectoryPath { get; } = Path.GetFullPath(Path.Combine(baseDirectoryPath, Constants.GlobalSavesDirectoryName));
         public static string ScenarioDirectoryPath { get; } = Path.GetFullPath(Path.Combine(baseDirectoryPath, Constants.ScenarioDirectoryName));
+        public static string UpdateCacheDirectoryPath { get; } = Path.GetFullPath(Path.Combine(baseDirectoryPath, Constants.UpdateCacheDirectoryName));
 
         public static HashSet<string> ValidSaveDirectories { get; } = new HashSet<string>();
 
@@ -30,6 +31,7 @@ namespace FactorioWebInterface.Models
         public string LocalSavesDirectoroyPath { get; set; }
         public string LocalScenarioDirectoryPath { get; set; }
         public string LogsDirectoryPath { get; set; }
+        public string ArchiveLogsDirectoryPath { get; set; }
         public string CurrentLogPath { get; set; }
         public string ServerSettingsPath { get; set; }
         public string serverExtraSettingsPath { get; set; }
@@ -81,6 +83,7 @@ namespace FactorioWebInterface.Models
                     serverExtraSettingsPath = Path.Combine(basePath, Constants.ServerExtraSettingsFileName),
                     LocalScenarioDirectoryPath = Path.Combine(basePath, Constants.ScenarioDirectoryName),
                     LogsDirectoryPath = Path.Combine(basePath, Constants.LogDirectoryName),
+                    ArchiveLogsDirectoryPath = Path.Combine(basePath, Constants.LogArchiveDirectoryName),
                     CurrentLogPath = Path.Combine(basePath, Constants.CurrentLogFileName),
                     ServerBanListPath = Path.Combine(basePath, Constants.ServerBanListFileName),
                     Port = port,
@@ -116,8 +119,8 @@ namespace FactorioWebInterface.Models
                 ValidSaveDirectories.Add($"{serverId}\\{Constants.TempSavesDirectoryName}");
                 ValidSaveDirectories.Add($"{serverId}\\{Constants.LocalSavesDirectoryName}");
             }
-            Servers["7"].IsRemote = true;
-            Servers["7"].SshIdentity = "usvserver";
+            //Servers["7"].IsRemote = true;
+            //Servers["7"].SshIdentity = "usvserver";
         }
     }
 }

@@ -21,6 +21,7 @@
         public const string GlobalSavesDirectoryName = "global_saves";
         public const string ScenarioDirectoryName = "scenarios";
         public const string LogDirectoryName = "logs";
+        public const string LogArchiveDirectoryName = "archive_logs";
         public const string CurrentLogName = "factorio-current";
         public const string CurrentLogFileName = "factorio-current.log";
 
@@ -30,11 +31,18 @@
         public const string PublicStartSavesDirectoryName = "public/start";
         public const string PublicFinalSavesDirectoryName = "public/final";
         public const string PublicOldSavesDirectoryName = "public/old";
+        public const string UpdateCacheDirectoryName = "update_cache";
+
+        public const string DownloadHeadlessURL = @"https://factorio.com/download-headless";
+        public const string DownloadHeadlessExperimentalURL = @"https://factorio.com/download-headless/experimental";
+        public const string GetDownloadURL = @"https://factorio.com/get-download/";
 
         //public const string DefaultFileName = "current_map.zip";
         public const string ServerSettingsFileName = "server-settings.json";
         public const string ServerExtraSettingsFileName = "server-extra-settings.json";
         public const string ServerBanListFileName = "server-banlist.json";
+
+        public const int discordTopicMaxLength = 1024;
 
         public const string ChatTag = "[CHAT]";
         public const string DiscordTag = "[DISCORD]";

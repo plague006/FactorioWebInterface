@@ -311,19 +311,6 @@ namespace FactorioWebInterface.Hubs
             return Task.FromResult(error);
         }
 
-        public async Task<Result> Update()
-        {
-            string connectionId = Context.ConnectionId;
-            if (Context.Items.TryGetValue(connectionId, out object serverId))
-            {
-                string name = Context.User.Identity.Name;
-                string id = (string)serverId;
-                return await _factorioServerManager.Install(id, name, "latest");
-            }
-            var error = Result.Failure(Constants.ServerIdErrorKey, $"The server id for the connection is invalid.");
-            return error;
-        }
-
         public Task<ScenarioMetaData[]> GetScenarios()
         {
             return Task.FromResult(_factorioServerManager.GetScenarios());
@@ -332,6 +319,60 @@ namespace FactorioWebInterface.Hubs
         public Task<Result> DeflateSave(string directoryPath, string fileName, string newFileName)
         {
             return Task.FromResult(_factorioServerManager.DeflateSave(Context.ConnectionId, directoryPath, fileName, newFileName));
+        }
+
+        public async Task<Result> Update(string version = "latest")
+        {
+            string connectionId = Context.ConnectionId;
+            if (Context.Items.TryGetValue(connectionId, out object serverId))
+            {
+                string name = Context.User.Identity.Name;
+                string id = (string)serverId;
+                return await _factorioServerManager.Install(id, name, version);
+            }
+            var error = Result.Failure(Constants.ServerIdErrorKey, $"The server id for the connection is invalid.");
+            return error;
+        }
+
+        public Task RequestGetDownloadableVersions()
+        {
+            var client = Clients.Client(Context.ConnectionId);
+
+            _ = Task.Run(async () =>
+             {
+                 var result = await _factorioServerManager.GetDownloadableVersions();
+                 _ = client.SendDownloadableVersions(result);
+             });
+
+            return Task.FromResult(0);
+        }
+
+        public Task RequestGetCachedVersions()
+        {
+            var client = Clients.Client(Context.ConnectionId);
+
+            _ = Task.Run(async () =>
+            {
+                var result = await _factorioServerManager.GetCachedVersions();
+                _ = client.SendCachedVersions(result);
+            });
+
+            return Task.FromResult(0);
+        }
+
+        public Task DeleteCachedVersion(string version)
+        {
+            var client = Clients.Client(Context.ConnectionId);
+
+            _ = Task.Run(async () =>
+            {
+                _ = _factorioServerManager.DeleteCachedVersion(version);
+
+                var result = await _factorioServerManager.GetCachedVersions();
+                _ = client.SendCachedVersions(result);
+            });
+
+            return Task.FromResult(0);
         }
     }
 }

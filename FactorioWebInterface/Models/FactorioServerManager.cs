@@ -42,6 +42,7 @@ namespace FactorioWebInterface.Models
         private readonly DbContextFactory _dbContextFactory;
         private readonly ILogger<FactorioServerManager> _logger;
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly FactorioUpdater _factorioUpdater;
 
         //private SemaphoreSlim serverLock = new SemaphoreSlim(1, 1);
         private Dictionary<string, FactorioServerData> servers = FactorioServerData.Servers;
@@ -58,7 +59,8 @@ namespace FactorioWebInterface.Models
             IHubContext<FactorioBanHub, IFactorioBanClientMethods> factorioBanHub,
             DbContextFactory dbContextFactory,
             ILogger<FactorioServerManager> logger,
-            IHttpClientFactory httpClientFactory
+            IHttpClientFactory httpClientFactory,
+            FactorioUpdater factorioUpdater
         )
         {
             _configuration = configuration;
@@ -70,6 +72,7 @@ namespace FactorioWebInterface.Models
             _dbContextFactory = dbContextFactory;
             _logger = logger;
             _httpClientFactory = httpClientFactory;
+            _factorioUpdater = factorioUpdater;
 
             string name = _configuration[Constants.FactorioWrapperNameKey];
             if (string.IsNullOrWhiteSpace(name))
@@ -83,14 +86,6 @@ namespace FactorioWebInterface.Models
 
             _discordBot.ServerValidator = IsValidServerId;
             _discordBot.FactorioDiscordDataReceived += FactorioDiscordDataReceived;
-        }
-
-        private bool ExecuteProcess(string filename, string arguments)
-        {
-            _logger.LogInformation("ExecuteProcess filename: {fileName} arguments: {arguments}", filename, arguments);
-            Process proc = Process.Start(filename, arguments);
-            proc.WaitForExit();
-            return proc.ExitCode > -1;
         }
 
         private Task SendControlMessageNonLocking(FactorioServerData serverData, MessageData message)
@@ -134,6 +129,7 @@ namespace FactorioWebInterface.Models
         {
             StringBuilder sb = new StringBuilder(message);
 
+            sb.Replace("\\", "\\\\");
             sb.Replace("'", "\\'");
             sb.Replace("\n", " ");
 
@@ -181,7 +177,7 @@ namespace FactorioWebInterface.Models
                 }
 
                 string path = MakeLogFilePath(serverData, currentLog);
-                currentLog.CopyTo(path);
+                currentLog.CopyTo(path, false);
 
                 currentLog.CreationTimeUtc = DateTime.UtcNow;
 
@@ -193,12 +189,22 @@ namespace FactorioWebInterface.Models
                     return;
                 }
 
+                var archiveDir = new DirectoryInfo(serverData.ArchiveLogsDirectoryPath);
+                if (!archiveDir.Exists)
+                {
+                    archiveDir.Create();
+                }
+
                 // sort oldest first.
                 Array.Sort(logs, (a, b) => a.CreationTimeUtc.CompareTo(b.CreationTimeUtc));
 
                 for (int i = 0; i < removeCount && i < logs.Length; i++)
                 {
-                    logs[i].Delete();
+                    var log = logs[i];
+
+                    var archivePath = Path.Combine(archiveDir.FullName, log.Name);
+
+                    log.MoveTo(archivePath);
                 }
             }
             catch (Exception e)
@@ -542,18 +548,19 @@ namespace FactorioWebInterface.Models
 
         private async Task<Result> StartScenarioInner(FactorioServerData serverData, string scenarioName, string userName)
         {
-            // For some reason Facotrio always takes scenarios relative to the scenario directory local to each Factorio instance
-            // even if you provide an absolute path.
-            // To trick Facotrio into taking scenarios from the shared scenario directory we provide a relative path from the local
-            // scenario directory.                        
-            string scenarioPathFromShared = Path.Combine("/../../", Constants.ScenarioDirectoryName, scenarioName);
             string basePath = serverData.BaseDirectoryPath;
             string serverId = serverData.ServerId;
+            string localScenarioDirectoryPath = serverData.LocalScenarioDirectoryPath;
 
-            var dir = new DirectoryInfo(serverData.LocalScenarioDirectoryPath);
+            var dir = new DirectoryInfo(localScenarioDirectoryPath);
             if (!dir.Exists)
             {
-                dir.Create();
+                FileHelpers.CreateDirectorySymlink(FactorioServerData.ScenarioDirectoryPath, localScenarioDirectoryPath);
+            }
+            else if (!FileHelpers.IsSymbolicLink(localScenarioDirectoryPath))
+            {
+                dir.Delete(true);                
+                FileHelpers.CreateDirectorySymlink(FactorioServerData.ScenarioDirectoryPath, localScenarioDirectoryPath);
             }
 
             await PrepareServer(serverData);
@@ -562,20 +569,20 @@ namespace FactorioWebInterface.Models
             string arguments;
 #if WINDOWS
             fullName = "C:/Program Files/dotnet/dotnet.exe";
-            arguments = $"C:/Projects/FactorioWebInterface/FactorioWrapper/bin/Windows/netcoreapp2.2/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio.exe --start-server-load-scenario {scenarioPathFromShared} --server-settings {basePath}/server-settings.json --port {serverData.Port}";
+            arguments = $"C:/Projects/FactorioWebInterface/FactorioWrapper/bin/Windows/netcoreapp2.2/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio.exe --start-server-load-scenario {scenarioName} --server-settings {basePath}/server-settings.json --port {serverData.Port}";
 #elif WSL
             fullName = "/usr/bin/dotnet";
-            arguments = $"/mnt/c/Projects/FactorioWebInterface/FactorioWrapper/bin/Wsl/netcoreapp2.2/publish/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-scenario {scenarioPathFromShared} --server-settings {basePath}/server-settings.json --port {serverData.Port}";
+            arguments = $"/mnt/c/Projects/FactorioWebInterface/FactorioWrapper/bin/Wsl/netcoreapp2.2/publish/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-scenario {scenarioName} --server-settings {basePath}/server-settings.json --port {serverData.Port}";
 #else
             if (serverData.IsRemote)
             {
                 fullName = "ssh";
-                arguments = $"{serverData.SshIdentity} '/factorio/{factorioWrapperName}/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-scenario {scenarioPathFromShared} --server-settings {basePath}/server-settings.json --port {serverData.Port}'";
+                arguments = $"{serverData.SshIdentity} '/factorio/{factorioWrapperName}/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-scenario {scenarioName} --server-settings {basePath}/server-settings.json --port {serverData.Port}'";
             }
             else
             {
                 fullName = "/usr/bin/dotnet";
-                arguments = $"/factorio/{factorioWrapperName}/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-scenario {scenarioPathFromShared} --server-settings {basePath}/server-settings.json --port {serverData.Port}";
+                arguments = $"/factorio/{factorioWrapperName}/FactorioWrapper.dll {serverId} {basePath}/bin/x64/factorio --start-server-load-scenario {scenarioName} --server-settings {basePath}/server-settings.json --port {serverData.Port}";
             }
 #endif
             var startInfo = new ProcessStartInfo
@@ -833,94 +840,6 @@ namespace FactorioWebInterface.Models
             return Result.OK;
         }
 
-        private async Task<Result> DownloadAndExtract(FactorioServerData serverData, string version)
-        {
-            try
-            {
-                string basePath = serverData.BaseDirectoryPath;
-                var extractDirectoryPath = Path.Combine(basePath, "factorio");
-                var binDirectoryPath = Path.Combine(basePath, "bin");
-                var dataDirectoryPath = Path.Combine(basePath, "data");
-                var binariesPath = Path.Combine(basePath, "binaries.tar.xz");
-
-                var extractDirectory = new DirectoryInfo(extractDirectoryPath);
-                if (extractDirectory.Exists)
-                {
-                    extractDirectory.Delete(true);
-                }
-
-                var client = _httpClientFactory.CreateClient();
-                string url = $"https://factorio.com/get-download/{version}/headless/linux64";
-                var download = await client.GetAsync(url);
-                if (!download.IsSuccessStatusCode)
-                {
-                    _logger.LogWarning("Update failed: Error downloading {url}", url);
-                    return Result.Failure(Constants.UpdateErrorKey, "Error downloading file.");
-                }
-
-                var binaries = new FileInfo(binariesPath);
-
-                using (var fs = binaries.OpenWrite())
-                {
-                    await download.Content.CopyToAsync(fs);
-                }
-
-                bool success = ExecuteProcess("/bin/tar", $"-xJf {binariesPath} -C {basePath}");
-
-                var binDirectory = new DirectoryInfo(binDirectoryPath);
-                if (binDirectory.Exists)
-                {
-                    binDirectory.Delete(true);
-                }
-                var dataDirectory = new DirectoryInfo(dataDirectoryPath);
-                if (dataDirectory.Exists)
-                {
-                    dataDirectory.Delete(true);
-                }
-
-                if (success)
-                {
-                    Directory.Move(Path.Combine(extractDirectoryPath, "bin"), binDirectoryPath);
-                    Directory.Move(Path.Combine(extractDirectoryPath, "data"), dataDirectoryPath);
-
-                    var configFile = new FileInfo(Path.Combine(basePath, "config-path.cfg"));
-                    if (!configFile.Exists)
-                    {
-                        var extractConfigFile = new FileInfo(Path.Combine(extractDirectoryPath, "config-path.cfg"));
-                        if (extractConfigFile.Exists)
-                        {
-                            extractConfigFile.MoveTo(configFile.FullName);
-                        }
-                    }
-                }
-
-                extractDirectory.Refresh();
-                if (extractDirectory.Exists)
-                {
-                    extractDirectory.Delete(true);
-                }
-
-                if (binaries.Exists)
-                {
-                    binaries.Delete();
-                }
-
-                if (success)
-                {
-                    return Result.OK;
-                }
-                else
-                {
-                    return Result.Failure("UpdateErrorKey", "Error extracting file.");
-                }
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, nameof(DownloadAndExtract));
-                return Result.Failure(Constants.UnexpctedErrorKey, "Unexpected error installing.");
-            }
-        }
-
         /// SignalR processes one message at a time, so this method needs to return before the downloading starts.
         /// Else if the user clicks the update button twice in quick succession, the first request is finished before
         /// the second requests starts, meaning the update will happen twice.
@@ -928,7 +847,7 @@ namespace FactorioWebInterface.Models
         {
             _ = Task.Run(async () =>
             {
-                var result = await DownloadAndExtract(serverData, version);
+                var result = await _factorioUpdater.DoUpdate(serverData, version);
 
                 try
                 {
@@ -1297,6 +1216,14 @@ namespace FactorioWebInterface.Models
                     sb.Append(item.Key).Append(", ");
                 }
 
+                if (sb.Length > Constants.discordTopicMaxLength)
+                {
+                    int start = Constants.discordTopicMaxLength - 3;
+                    int length = sb.Length - start;
+                    sb.Remove(start, length);
+                    sb.Append("...");
+                    return sb.ToString();
+                }
             }
             sb.Remove(sb.Length - 2, 2);
 
@@ -1529,8 +1456,8 @@ namespace FactorioWebInterface.Models
                     .ServerCommand("raise_callback")
                     .Add(func)
                     .Add(",")
-                    .Add("{data_set=").AddQuotedString(data.DataSet)
-                    .Add(",key=").AddQuotedString(data.Key);
+                    .Add("{data_set=").AddDoubleQuotedString(data.DataSet)
+                    .Add(",key=").AddDoubleQuotedString(data.Key);
 
                 if (entry != null)
                 {
@@ -1589,7 +1516,7 @@ namespace FactorioWebInterface.Models
                         .ServerCommand("raise_callback")
                         .Add(func)
                         .Add(",")
-                        .Add("{data_set=").AddQuotedString(data.DataSet);
+                        .Add("{data_set=").AddDoubleQuotedString(data.DataSet);
                 if (entries.Length == 0)
                 {
                     cb.Add("}");
@@ -1600,7 +1527,7 @@ namespace FactorioWebInterface.Models
                     for (int i = 0; i < entries.Length; i++)
                     {
                         var entry = entries[i];
-                        cb.Add("[").AddQuotedString(entry.Key).Add("]=").Add(entry.Value).Add(",");
+                        cb.Add("[").AddDoubleQuotedString(entry.Key).Add("]=").Add(entry.Value).Add(",");
                     }
                     cb.RemoveLast(1);
                     cb.Add("}}");
@@ -1991,7 +1918,7 @@ namespace FactorioWebInterface.Models
 
             bool added = await AddBanToDatabase(ban);
             if (added)
-            {                
+            {
                 return Result.OK;
             }
             else
@@ -2025,7 +1952,7 @@ namespace FactorioWebInterface.Models
                 SendBanCommandToEachRunningServer(command);
             }
 
-            await RemoveBanFromDatabase(username, admin);            
+            await RemoveBanFromDatabase(username, admin);
 
             return Result.OK;
         }
@@ -3204,6 +3131,7 @@ namespace FactorioWebInterface.Models
                     Admins = serverSettigns.Admins,
                     AutosaveInterval = serverSettigns.AutosaveInterval,
                     AutosaveSlots = serverSettigns.AutosaveSlots,
+                    NonBlockingSaving = serverSettigns.NonBlockingSaving,
                     PublicVisible = serverSettigns.Visibility.Public
                 };
 
@@ -3238,6 +3166,7 @@ namespace FactorioWebInterface.Models
                 serverSettigns.AutoPause = settings.AutoPause;
                 serverSettigns.AutosaveSlots = settings.AutosaveSlots < 0 ? 0 : settings.AutosaveSlots;
                 serverSettigns.AutosaveInterval = settings.AutosaveInterval < 1 ? 1 : settings.AutosaveInterval;
+                serverSettigns.NonBlockingSaving = settings.NonBlockingSaving;
                 serverSettigns.Visibility.Public = settings.PublicVisible;
 
                 List<string> admins;
@@ -3407,6 +3336,19 @@ namespace FactorioWebInterface.Models
             }
         }
 
+        public Task<List<string>> GetDownloadableVersions()
+        {
+            return _factorioUpdater.GetDownloadableVersions();
+        }
 
+        public Task<List<string>> GetCachedVersions()
+        {
+            return Task.FromResult(_factorioUpdater.GetCachedVersions());
+        }
+
+        public bool DeleteCachedVersion(string version)
+        {
+            return _factorioUpdater.DeleteCachedFile(version);
+        }
     }
 }

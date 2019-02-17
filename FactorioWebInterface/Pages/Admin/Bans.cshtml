@@ -5,100 +5,148 @@
 }
 
 <div class="container-fluid">
-    <div class="container">
-        <h2>Bans</h2>
+    <section class="container section">
+        <h2 class="title is-2">Bans</h2>
         <p>Bans that are added or removed from this page will be synced with all servers immediately.</p>
         <p>All bans issued in game or at the server console with /ban or /unban with be synced with all servers immediately and automatically have the admin and date time added.</p>
         <p>If a ban is performed on a player that is already banned, the new ban will overwrite the old ban.</p>
         <p>Click on a row to have the values filled into the form.</p>
-    </div>
+    </section>
 
-    <div class="row">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-8">
-                    <form id="addBanForm" class="form-horizontal">
-                        <h4>Add Ban</h4>
-                        <hr />
-                        <div class="form-group">
-                            <label for="usernameInput" class="control-label col-sm-2">Username:</label>
-                            <div class="col-sm-10">
-                                <input id="usernameInput" type="text" class="form-control" required />
+    <section class="container">
+        <div class="columns is-centered">
+            <form id="addBanForm" class="column is-8 box">
+                <h4 class="title is-4">Add Ban</h4>
+                <hr />
+
+                <div class="field is-horizontal">
+                    <div class="field-label">
+                        <label for="usernameInput" class="label">Username:</label>
+                    </div>
+                    <div class="field-body">
+                        <div class="field">
+                            <div class="control">
+                                <input id="usernameInput" type="text" class="input" required />
                             </div>
                         </div>
-                        <div class="form-group">
-                            <label for="reasonInput" class="control-label col-sm-2">Reason:</label>
-                            <div class="col-sm-10">
-                                <textarea id="reasonInput" class="form-control" required></textarea>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="adminInput" class="control-label col-sm-2">Admin:</label>
-                            <div class="col-sm-10">
-                                <input id="adminInput" type="text" class="form-control" required value="@Model.Input.Admin" />
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for=" dateInput" class="control-label col-sm-2">Date:</label>
-                            <div class="col-sm-10">
-                                <input id="dateInput" type="date" class="form-control" required value="@Model.Input.Date" />
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for=" timeInput" class="control-label col-sm-2">Time:</label>
-                            <div class="col-sm-10">
-                                <input id="timeInput" type="time" class="form-control" required  step="1" value="@Model.Input.Time" />
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="synchronizeWithServersCheckbox" class="control-label col-sm-2">Synchronize with servers:</label>
-                            <div class="col-sm-10">
-                                <input id="synchronizeWithServersCheckbox" type="checkbox" checked />
-                            </div>
-                        </div>
-                        <button type="submit" class="btn btn-default">Confirm Ban</button>
-                    </form>
+                    </div>
                 </div>
-            </div>
-        </div>
-    </div>
 
-    <div class="row">
-        <div class="col-md-10 col-md-offset-1">
-            <h4><span>Ban List</span><span id="banCount" style="margin-left:1rem"></span></h4>
+                <div class="field is-horizontal">
+                    <div class="field-label">
+                        <label for="reasonInput" class="label">Reason:</label>
+                    </div>
+                    <div class="field-body">
+                        <div class="field">
+                            <div class="control">
+                                <textarea id="reasonInput" class="textarea" required></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="field is-horizontal">
+                    <div class="field-label">
+                        <label for="adminInput" class="label">Admin:</label>
+                    </div>
+                    <div class="field-body">
+                        <div class="field">
+                            <div class="control">
+                                <input id="adminInput" type="text" class="input" required value="@Model.Input.Admin" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="field is-horizontal">
+                    <div class="field-label">
+                        <label for=" dateInput" class="label">Date:</label>
+                    </div>
+                    <div class="field-body">
+                        <div class="field">
+                            <div class="control">
+                                <input id="dateInput" type="date" class="input" required value="@Model.Input.Date" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="field is-horizontal">
+                    <div class="field-label">
+                        <label for=" timeInput" class="label">Time:</label>
+                    </div>
+                    <div class="field-body">
+                        <div class="field">
+                            <div class="control">
+                                <input id="timeInput" type="time" class="input" required step="1" value="@Model.Input.Time" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="field is-horizontal">
+                    <div class="field-label">
+                        <label for="synchronizeWithServersCheckbox" class="label">Synchronize with servers:</label>
+                    </div>
+                    <div class="field-body">
+                        <div class="field">
+                            <div class="control">
+                                <input id="synchronizeWithServersCheckbox" type="checkbox" class="checkbox" checked />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="field is-horizontal">
+                    <div class="field-label">
+                        <!-- Left empty for spacing -->
+                    </div>
+                    <div class="field-body">
+                        <div class="field">
+                            <div class="control">
+                                <button type="submit" class="button is-link">Confirm Ban</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+    </section>
+
+    <section class="columns is-centered">
+        <div class="column is-10 is-full-tablet">
+            <h4 class="title is-4"><span>Ban List</span><span id="banCount" style="margin-left:1rem"></span></h4>
 
             <div style="height:900px; overflow:auto;">
-                <div class="table-responsive">
-                    <table id="bansTable" class="table table-bordered table-striped table-hover">
-                        <thead>
+                <table id="bansTable" class="table is-bordered is-striped is-hoverable is-fullwidth">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Reason</th>
+                            <th>Admin</th>
+                            <th>DateTime</th>
+                            <th>Remove</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var b in Model.Bans)
+                        {
                             <tr>
-                                <th>Username</th>
-                                <th>Reason</th>
-                                <th>Admin</th>
-                                <th>DateTime</th>
-                                <th>Remove</th>
+                                <td>@b.Username</td>
+                                <td>@b.Reason</td>
+                                <td>@b.Admin</td>
+                                <td style="width: 7rem">@b.DateTime.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                                <td>
+                                    <button class="button is-danger">Remove</button>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var b in Model.Bans)
-                            {
-                                <tr>
-                                    <td>@b.Username</td>
-                                    <td>@b.Reason</td>
-                                    <td>@b.Admin</td>
-                                    <td>@b.DateTime.ToString("yyyy-MM-dd HH:mm:ss")</td>
-                                    <td>
-                                        <button class="btn btn-danger">Remove</button>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-
-                    </table>
-                </div>
+                        }
+                    </tbody>
+                </table>
             </div>
         </div>
-    </div>
+    </section>
 
     @section Scripts{
         <environment include="Development">

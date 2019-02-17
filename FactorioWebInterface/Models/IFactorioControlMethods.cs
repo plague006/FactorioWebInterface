@@ -49,6 +49,7 @@ namespace FactorioWebInterface.Models
         Task<FactorioServerExtraSettings> GetServerExtraSettings();
         Task<Result> SaveServerExtraSettings(FactorioServerExtraSettings settings);
         Task<Result> DeflateSave(string directoryPath, string fileName, string newFileName);
+        Task RequestGetDownloadableVersions();
     }
 
     public interface IFactorioControlClientMethods
@@ -62,5 +63,7 @@ namespace FactorioWebInterface.Models
         Task SendLocalSaveFiles(FileMetaData[] files);
         Task SendGlobalSaveFiles(FileMetaData[] files);
         Task DeflateFinished(Result result);
+        Task SendDownloadableVersions(List<string> versions);
+        Task SendCachedVersions(List<string> versions);
     }
 }

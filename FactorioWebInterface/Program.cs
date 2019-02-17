@@ -1,7 +1,9 @@
-﻿using FactorioWebInterface.Models;
+﻿using FactorioWebInterface.Data;
+using FactorioWebInterface.Models;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using Serilog.Events;
@@ -28,12 +30,14 @@ namespace FactorioWebInterface
             try
             {
                 Log.Information("Starting factorio web interface");
+
                 var host = CreateWebHostBuilder(args).Build();
 
-                // This makes sure the FactorioServerManger is started when the web interface starts
-                host.Services.GetService<IFactorioServerManager>();
+                // This makes sure the databases are setup.
+                SeedData(host);
 
-                //SeedData(host);                 
+                // This makes sure the FactorioServerManger is started when the web interface starts.
+                host.Services.GetService<IFactorioServerManager>();
 
                 host.Run();
             }
@@ -58,6 +62,13 @@ namespace FactorioWebInterface
             using (var scope = host.Services.CreateScope())
             {
                 var services = scope.ServiceProvider;
+
+                var appDb = services.GetService<ApplicationDbContext>();
+                appDb.Database.Migrate();
+
+                var scenarioDb = services.GetService<ScenarioDbContext>();
+                scenarioDb.Database.Migrate();
+
                 var roleManager = services.GetService<RoleManager<IdentityRole>>();
 
                 roleManager.CreateAsync(new IdentityRole(Constants.RootRole));

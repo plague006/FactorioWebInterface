@@ -53,6 +53,7 @@ interface FactorioServerSettings {
     admins: string[];
     autosave_interval: number;
     autosave_slots: number;
+    non_blocking_saving: boolean;
     public_visible: boolean;
 }
 
@@ -69,6 +70,7 @@ const tbMessage: HTMLInputElement = document.querySelector("#tbMessage");
 const btnSend: HTMLButtonElement = document.querySelector("#btnSend");
 const serverName = document.getElementById('serverName') as HTMLHeadingElement;
 const serverIdInput: HTMLInputElement = document.getElementById('serverIdInput') as HTMLInputElement;
+const serverSelect = document.getElementById('serverSelect') as HTMLSelectElement;
 const resumeButton: HTMLButtonElement = document.getElementById('resumeButton') as HTMLButtonElement;
 const loadButton: HTMLButtonElement = document.getElementById('loadButton') as HTMLButtonElement;
 const startScenarioButton: HTMLButtonElement = document.getElementById('startScenarioButton') as HTMLButtonElement;
@@ -77,13 +79,20 @@ const saveButton: HTMLButtonElement = document.getElementById('saveButton') as H
 const updateButton: HTMLButtonElement = document.getElementById('updateButton') as HTMLButtonElement;
 const forceStopButton: HTMLButtonElement = document.getElementById('forceStopButton') as HTMLButtonElement;
 const getStatusButton: HTMLButtonElement = document.getElementById('getStatusButton') as HTMLButtonElement;
-const statusText: HTMLInputElement = document.getElementById('statusText') as HTMLInputElement;
+const statusText: HTMLLabelElement = document.getElementById('statusText') as HTMLLabelElement;
 
 const tempSaveFilesTable: HTMLTableElement = document.getElementById('tempSaveFilesTable') as HTMLTableElement;
 const localSaveFilesTable: HTMLTableElement = document.getElementById('localSaveFilesTable') as HTMLTableElement;
 const globalSaveFilesTable: HTMLTableElement = document.getElementById('globalSaveFilesTable') as HTMLTableElement;
 const scenarioTable: HTMLTableElement = document.getElementById('scenarioTable') as HTMLTableElement;
 const logsFileTable: HTMLTableElement = document.getElementById('logsFileTable') as HTMLTableElement;
+
+const updateModal = document.getElementById('updateModal') as HTMLDivElement;
+const closeModalButton = document.getElementById('closeModalButton') as HTMLButtonElement;
+const modalBackground = document.getElementById('modalBackground') as HTMLDivElement;
+const updateSelect = document.getElementById('updateSelect') as HTMLSelectElement;
+const downloadAndUpdateButton = document.getElementById('downloadAndUpdateButton') as HTMLButtonElement;
+const cachedVersionsTableBody = document.getElementById('cachedVersionsTableBody') as HTMLBodyElement;
 
 // XSRF/CSRF token, see https://docs.microsoft.com/en-us/aspnet/core/security/anti-request-forgery?view=aspnetcore-2.1
 let requestVerificationToken = (document.querySelector('input[name="__RequestVerificationToken"][type="hidden"]') as HTMLInputElement).value
@@ -111,6 +120,7 @@ const configAdminInput = document.getElementById('configAdminInput') as HTMLText
 const configSaveButton = document.getElementById('configSaveButton') as HTMLButtonElement;
 const configAutoSaveIntervalInput = document.getElementById('configAutoSaveIntervalInput') as HTMLInputElement;
 const configAutoSaveSlotsInput = document.getElementById('configAutoSaveSlotsInput') as HTMLInputElement;
+const configNonBlockingSavingInput = document.getElementById('configNonBlockingSavingInput') as HTMLInputElement;
 const configPublicVisibleInput = document.getElementById('configPublicVisibleInput') as HTMLInputElement;
 const configSyncBans = document.getElementById('configSyncBans') as HTMLInputElement;
 const configBuildBansFromDb = document.getElementById('configBuildBansFromDb') as HTMLInputElement;
@@ -122,6 +132,10 @@ let messageCount = 0;
 const connection = new signalR.HubConnectionBuilder()
     .withUrl("/factorioControlHub")
     .build();
+
+serverSelect.onchange = function (this: HTMLSelectElement) {
+    window.location.href = `/admin/servers/${this.value}`;
+};
 
 async function getFiles() {
     let tempFiles = await connection.invoke('GetTempSaveFiles') as FileMetaData[];
@@ -193,6 +207,7 @@ async function getSettings() {
     configAdminInput.value = settings.admins.join(', ');
     configAutoSaveIntervalInput.value = settings.autosave_interval + "";
     configAutoSaveSlotsInput.value = settings.autosave_slots + "";
+    configNonBlockingSavingInput.checked = settings.non_blocking_saving;
     configPublicVisibleInput.checked = settings.public_visible;
 
     serverName.innerText = settings.name;
@@ -217,7 +232,7 @@ async function start() {
         getSettings();
         getExtraSettings();
 
-        statusText.value = data.status;
+        statusText.innerText = data.status;
 
         for (let message of data.messages) {
             writeMessage(message);
@@ -236,7 +251,7 @@ connection.on("SendMessage", writeMessage)
 
 connection.on('FactorioStatusChanged', (newStatus: string, oldStatus: string) => {
     console.log(`new: ${newStatus}, old: ${oldStatus}`);
-    statusText.value = newStatus;
+    statusText.innerText = newStatus;
 });
 
 tbMessage.addEventListener("keyup", (e: KeyboardEvent) => {
@@ -318,14 +333,96 @@ saveButton.onclick = () => {
         });
 };
 
+async function install(version: string) {
+    let result: Result = await connection.invoke("Update", version);
+
+    if (!result.success) {
+        alert(JSON.stringify(result.errors));
+    }
+}
+
 updateButton.onclick = () => {
-    connection.invoke("Update")
-        .then((result: Result) => {
-            if (!result.success) {
-                alert(JSON.stringify(result.errors));
-            }
-        });
+    connection.send('RequestGetDownloadableVersions');
+    connection.send('RequestGetCachedVersions');
+
+    updateModal.classList.add('is-active');
+    updateSelect.parentElement.classList.add('is-loading');
 };
+
+function closeModal() {
+    updateModal.classList.remove('is-active');
+}
+
+modalBackground.onclick = closeModal;
+closeModalButton.onclick = closeModal;
+
+downloadAndUpdateButton.onclick = () => {
+    install(updateSelect.value);
+    closeModal();
+};
+
+connection.on('SendDownloadableVersions', (versions: string[]) => {
+    updateSelect.innerHTML = "";
+
+    for (let version of versions) {
+        let option = document.createElement('option');
+        option.innerText = version;
+        updateSelect.appendChild(option);
+    }
+
+    let option = document.createElement('option');
+    option.innerText = 'latest';
+    updateSelect.appendChild(option);
+
+    updateSelect.parentElement.classList.remove('is-loading');
+});
+
+function cachedUpdate(this: HTMLElement) {
+    let row = this.parentElement.parentElement as HTMLTableRowElement;
+    let cell = row.cells[0];
+    let version = cell.textContent;
+
+    install(version);
+    closeModal();
+}
+
+function deleteCachedVersion(this: HTMLElement) {
+    let row = this.parentElement.parentElement as HTMLTableRowElement;
+    let cell = row.cells[0];
+    let version = cell.textContent;
+
+    connection.send('DeleteCachedVersion', version);
+}
+
+connection.on('SendCachedVersions', (versions: string[]) => {
+    cachedVersionsTableBody.innerHTML = "";
+
+    for (let version of versions) {
+        let row = document.createElement('tr');
+
+        let cell1 = document.createElement('td');
+        cell1.innerText = version;
+        row.appendChild(cell1);
+
+        let cell2 = document.createElement('td');
+        let deleteButton = document.createElement('button');
+        deleteButton.classList.add('button', 'is-danger');
+        deleteButton.innerText = 'Delete';
+        deleteButton.onclick = deleteCachedVersion;
+        cell2.appendChild(deleteButton);
+        row.appendChild(cell2);
+
+        let cell3 = document.createElement('td');
+        let UpdateButton = document.createElement('button');
+        UpdateButton.classList.add('button', 'is-success');
+        UpdateButton.innerText = 'Update';
+        UpdateButton.onclick = cachedUpdate;
+        cell3.appendChild(UpdateButton);
+        row.appendChild(cell3);
+
+        cachedVersionsTableBody.appendChild(row);
+    }
+});
 
 forceStopButton.onclick = () => {
     connection.invoke("ForceStop")
@@ -352,14 +449,14 @@ function writeMessage(message: MessageData): void {
             data = `[Wrapper] ${message.message}`;
             break;
         case MessageType.Control:
-            div.classList.add('bg-warning');
+            div.classList.add('has-background-warning');
             data = `[Control] ${message.message}`;
             break;
         case MessageType.Discord:
             data = message.message;
             break;
         case MessageType.Status:
-            div.classList.add('bg-info', 'text-white');
+            div.classList.add('has-background-info', 'has-text-white');
             data = message.message;
             break;
         default:
@@ -467,9 +564,11 @@ function updateFileTable(table: HTMLTableElement, files: FileMetaData[]) {
 
     let rows: HTMLTableRowElement[] = []
     let rc = body.rows;
-    for (let r of rc) {
+    for (let i = 0; i < rc.length; i++) {
+        let r = rc[i];
         rows.push(r);
     }
+
     jTable.data('rows', rows);
 
     let ascending = !jTable.data('ascending');
@@ -535,7 +634,8 @@ function updateLogFileTable(table: HTMLTableElement, files: FileMetaData[]) {
 
     let rows: HTMLTableRowElement[] = []
     let rc = body.rows;
-    for (let r of rc) {
+    for (let i = 0; i < rc.length; i++) {
+        let r = rc[i];
         rows.push(r);
     }
     jTable.data('rows', rows);
@@ -608,7 +708,8 @@ function updateBuildScenarioTable(table: HTMLTableElement, scenarios: ScenarioMe
 
     let rows: HTMLTableRowElement[] = []
     let rc = body.rows;
-    for (let r of rc) {
+    for (let i = 0; i < rc.length; i++) {
+        let r = rc[i];
         rows.push(r);
     }
     jTable.data('rows', rows);
@@ -836,8 +937,9 @@ configTagsInput.oninput = function (this, e: Event) {
 configSaveButton.onclick = async () => {
 
     let tags = [];
-
-    for (let child of configTagsInput.children) {
+    let children = configTagsInput.children;
+    for (var i = 0; i < children.length; i++) {
+        let child = children[i];
         let input = child.firstChild as HTMLInputElement;
         let value = input.value.trim();
         if (value !== '') {
@@ -870,6 +972,7 @@ configSaveButton.onclick = async () => {
         admins: configAdminInput.value.split(','),
         autosave_interval: interval,
         autosave_slots: slots,
+        non_blocking_saving: configNonBlockingSavingInput.checked,
         public_visible: configPublicVisibleInput.checked
     };
 

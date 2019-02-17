@@ -37,9 +37,9 @@ namespace FactorioWebInterface
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite("Data Source=FactorioWebInterface.db"));
+            services.AddDbContextPool<ApplicationDbContext>(options => options.UseSqlite("Data Source=FactorioWebInterface.db"));
 
-            services.AddDbContext<ScenarioDbContext>(options => options.UseSqlite("Data Source=Scenario.db"));
+            services.AddDbContextPool<ScenarioDbContext>(options => options.UseSqlite("Data Source=Scenario.db"));
 
             services.AddSingleton<DbContextFactory, DbContextFactory>();
 
@@ -88,6 +88,7 @@ namespace FactorioWebInterface
             services.AddMemoryCache();
 
             services.AddSingleton<IDiscordBot, DiscordBot>();
+            services.AddSingleton<FactorioUpdater, FactorioUpdater>();
             services.AddSingleton<IFactorioServerManager, FactorioServerManager>();
 
             services.AddRouting(o => o.LowercaseUrls = true);

@@ -45,7 +45,8 @@ import * as $ from "jquery";
     let sortProperty = "datetime";
 
     let rowsCopy: HTMLTableRowElement[] = []
-    for (let r of rows) {
+    for (let i = 0; i < rows.length; i++) {
+        let r = rows[i];
         let cells = r.cells
 
         rowsCopy.push(r);
@@ -107,7 +108,7 @@ import * as $ from "jquery";
         let cell4 = document.createElement('td');
         let button = document.createElement('button') as HTMLButtonElement
         button.innerText = 'Remove';
-        button.classList.add('btn', 'btn-danger');
+        button.classList.add('button', 'is-danger');
         button.onclick = removeBanClick;
         cell4.appendChild(button);
         row.appendChild(cell4);
@@ -256,7 +257,8 @@ import * as $ from "jquery";
         let body = table.tBodies[0];
         body.innerHTML = "";
 
-        for (let r of rowsCopy) {
+        for (let i = 0; i < rowsCopy.length; i++) {
+            let r = rowsCopy[i];
             body.appendChild(r);
         }
     }
