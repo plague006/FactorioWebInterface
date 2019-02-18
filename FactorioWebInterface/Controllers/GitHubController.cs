@@ -41,7 +41,7 @@ namespace FactorioWebInterface.Controllers
 
                 string branch = push.Ref.Substring(11);
 
-                _ = ProcessHelper.RunProcessToEndAsync(filePath, branch);
+                _ = ProcessHelper.RunProcessToEndAsync(filePath, $"\"{branch}\"");
             }
 
             return Ok();
