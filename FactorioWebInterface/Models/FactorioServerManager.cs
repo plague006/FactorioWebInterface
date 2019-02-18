@@ -559,7 +559,7 @@ namespace FactorioWebInterface.Models
             }
             else if (!FileHelpers.IsSymbolicLink(localScenarioDirectoryPath))
             {
-                dir.Delete(true);                
+                dir.Delete(true);
                 FileHelpers.CreateDirectorySymlink(FactorioServerData.ScenarioDirectoryPath, localScenarioDirectoryPath);
             }
 
@@ -1062,6 +1062,10 @@ namespace FactorioWebInterface.Models
             switch (tag)
             {
                 case Constants.ChatTag:
+                    content = Formatter.Sanitize(content);
+                    _ = _discordBot.SendToFactorioChannel(serverId, content);
+                    break;
+                case Constants.ShoutTag:
                     content = Formatter.Sanitize(content);
                     _ = _discordBot.SendToFactorioChannel(serverId, content);
                     break;
