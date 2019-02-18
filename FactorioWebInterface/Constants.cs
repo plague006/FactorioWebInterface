@@ -15,6 +15,7 @@
         public const string ServerSettingsUsernameKey = "serverSettingsUsername";
         public const string ServerSettingsTokenKey = "serverSettingsToken";
         public const string FactorioWrapperNameKey = "FactorioWrapperNameKey";
+        public const string GitHubCallbackFilePathKey = "WebHookGitHubCallbackFile";
 
         public const string TempSavesDirectoryName = "saves";
         public const string LocalSavesDirectoryName = "local_saves";
