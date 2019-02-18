@@ -9,7 +9,11 @@
       {
         "name": "admin",
         "id": 145248373518245671
-      },
+      }
     ]
-  }
+  },
+  "SecurityKey": "a3555e32-454e-4496-8c83-25bc41abd507",
+  "serverSettingsUsername": "username",
+  "serverSettingsToken": "dfgdgdfdf045680alkllkldg23242g",
+  "FactorioWrapperNameKey": "factorioWrapper"
 }
