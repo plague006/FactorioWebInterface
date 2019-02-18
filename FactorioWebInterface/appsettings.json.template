@@ -1,0 +1,19 @@
+{
+  "AllowedHosts": "*",
+  "DiscordBotToken": "DA6qVEgQ2ienYoXQHuJ4H0hQAesOzvkbkD0wOpqx1buA6PP52OytIsChIh8",
+  "ClientID": "438173704994309012",
+  "ClientSecret": "Meg7tSTu9FXU8qikwgVQa7TOVrJrKdwB",
+  "GuildID": "430324340033538799",
+  "AdminRoles": {
+    "Roles": [
+      {
+        "name": "admin",
+        "id": 145248373518245671
+      }
+    ]
+  },
+  "SecurityKey": "a3555e32-454e-4496-8c83-25bc41abd507",
+  "serverSettingsUsername": "username",
+  "serverSettingsToken": "dfgdgdfdf045680alkllkldg23242g",
+  "FactorioWrapperNameKey": "factorioWrapper"
+}

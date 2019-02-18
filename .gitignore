@@ -264,8 +264,11 @@ __pycache__/
 FactorioWebInterface/wwwroot/js/
 FactorioWebInterface/src/ts/*.js*
 
+#tokens
+FactorioWebInterface/appsettings.json
+FactorioWrapper/token.txt
+
+#databases
 FactorioWebInterface/FactorioWebInterface.db
 FactorioWebInterface/Scenario.db
-FactorioWebInterface/appsettings.json
 
-FactorioWrapper/token.txt
