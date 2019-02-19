@@ -93,11 +93,14 @@ namespace FactorioWebInterface
 
             services.AddRouting(o => o.LowercaseUrls = true);
 
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1).AddRazorPagesOptions(options =>
+            services.AddMvc()
+                .SetCompatibilityVersion(CompatibilityVersion.Version_2_1)
+                .AddRazorPagesOptions(options =>
             {
                 options.Conventions.AddPageRoute("/admin/servers", "/admin");
                 services.AddAntiforgery(o => o.HeaderName = "XSRF-TOKEN");
-            });
+            })
+            .AddGitHubWebHooks();
 
             services.AddSignalR();
 
