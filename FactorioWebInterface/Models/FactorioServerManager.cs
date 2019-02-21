@@ -125,6 +125,11 @@ namespace FactorioWebInterface.Models
             return Task.WhenAll(group.FactorioStatusChanged(newStatusString, oldStatusString), group.SendMessage(message));
         }
 
+        private string SanitizeGameChat(string message)
+        {
+            return Formatter.Sanitize(message).Replace("@", "@\u200B");
+        }
+
         private string SanitizeDiscordChat(string message)
         {
             StringBuilder sb = new StringBuilder(message);
@@ -1062,16 +1067,16 @@ namespace FactorioWebInterface.Models
             switch (tag)
             {
                 case Constants.ChatTag:
-                    content = Formatter.Sanitize(content);
+                    content = SanitizeGameChat(content);
                     _ = _discordBot.SendToFactorioChannel(serverId, content);
                     break;
                 case Constants.ShoutTag:
-                    content = Formatter.Sanitize(content);
+                    content = SanitizeGameChat(content);
                     _ = _discordBot.SendToFactorioChannel(serverId, content);
                     break;
                 case Constants.DiscordTag:
                     content = content.Replace("\\n", "\n");
-                    content = Formatter.Sanitize(content);
+                    content = SanitizeGameChat(content);
                     _ = _discordBot.SendToFactorioChannel(serverId, content);
                     break;
                 case Constants.DiscordRawTag:
@@ -1080,13 +1085,13 @@ namespace FactorioWebInterface.Models
                     break;
                 case Constants.DiscordBold:
                     content = content.Replace("\\n", "\n");
-                    content = Formatter.Sanitize(content);
+                    content = SanitizeGameChat(content);
                     content = Formatter.Bold(content);
                     _ = _discordBot.SendToFactorioChannel(serverId, content);
                     break;
                 case Constants.DiscordAdminTag:
                     content = content.Replace("\\n", "\n");
-                    content = Formatter.Sanitize(content);
+                    content = SanitizeGameChat(content);
                     _ = _discordBot.SendToFactorioAdminChannel(content);
                     break;
                 case Constants.DiscordAdminRawTag:
@@ -1105,7 +1110,7 @@ namespace FactorioWebInterface.Models
                 case Constants.DiscordEmbedTag:
                     {
                         content = content.Replace("\\n", "\n");
-                        content = Formatter.Sanitize(content);
+                        content = SanitizeGameChat(content);
 
                         var embed = new DiscordEmbedBuilder()
                         {
@@ -1133,7 +1138,7 @@ namespace FactorioWebInterface.Models
                 case Constants.DiscordAdminEmbedTag:
                     {
                         content = content.Replace("\\n", "\n");
-                        content = Formatter.Sanitize(content);
+                        content = SanitizeGameChat(content);
 
                         var embed = new DiscordEmbedBuilder()
                         {
@@ -1247,7 +1252,7 @@ namespace FactorioWebInterface.Models
                 return;
             }
 
-            string safeName = Formatter.Sanitize(name);
+            string safeName = SanitizeGameChat(name);
             var t1 = _discordBot.SendToFactorioChannel(serverId, $"**{safeName} has joined the game**");
 
             string topic;
@@ -1292,7 +1297,7 @@ namespace FactorioWebInterface.Models
                 return;
             }
 
-            string safeName = Formatter.Sanitize(name);
+            string safeName = SanitizeGameChat(name);
             var t1 = _discordBot.SendToFactorioChannel(serverId, $"**{safeName} has left the game**");
 
             string topic;
