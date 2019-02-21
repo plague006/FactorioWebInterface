@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace FactorioWebInterface.Controllers
 {
@@ -33,19 +34,24 @@ namespace FactorioWebInterface.Controllers
                     return Ok();
                 }
 
-                var push = data.ToObject<PushEvent>();
-                string @ref = push.Ref;
-
-                if (@ref.Length < 12)
+                _ = Task.Run(async () =>
                 {
-                    return Ok();
-                }
+                    var push = data.ToObject<PushEvent>();
+                    string @ref = push.Ref;
 
-                string branch = push.Ref.Substring(11);
+                    if (@ref.Length < 12)
+                    {
+                        return;
+                    }
 
-                var maxTime = new CancellationTokenSource(TimeSpan.FromSeconds(300));
+                    string branch = push.Ref.Substring(11);
 
-                _ = ProcessHelper.RunProcessToEndAsync(filePath, $"\"{branch}\"", maxTime.Token);
+                    var maxTime = new CancellationTokenSource(TimeSpan.FromSeconds(300));
+
+                    await ProcessHelper.RunProcessToEndAsync(filePath, $"\"{branch}\"", maxTime.Token);
+
+                    maxTime.Dispose();
+                });
             }
 
             return Ok();
