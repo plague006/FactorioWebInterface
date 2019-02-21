@@ -3,7 +3,7 @@
 
     let body = table.tBodies[0];
     let rows = body.rows;
-    let sortProperty = "";
+    let sortProperty = 'name';
 
     let rowsCopy: HTMLTableRowElement[] = []
     for (let i = 0; i < rows.length; i++) {
@@ -13,7 +13,11 @@
 
     let cells = table.tHead.rows[0].cells;
 
-    cells[0].onclick = () => { sortTable('name', r => r.children[0].textContent.toLowerCase()); };
+    let nameClick = () => { sortTable('name', r => r.children[0].textContent.toLowerCase()); };
+
+    cells[0].onclick = nameClick;
+
+    nameClick();
 
     function sortTable(property: string, keySelector: (r: HTMLTableRowElement) => string) {
         if (sortProperty === property) {
@@ -26,8 +30,8 @@
 
         body.innerHTML = "";
 
-        for (let i = 0; i < rows.length; i++) {
-            let r = rows[i];
+        for (let i = 0; i < rowsCopy.length; i++) {
+            let r = rowsCopy[i];
             body.appendChild(r);
         }
     }
