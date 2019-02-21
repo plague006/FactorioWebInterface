@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebHooks;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json.Linq;
+using System;
+using System.Threading;
 
 namespace FactorioWebInterface.Controllers
 {
@@ -41,7 +43,9 @@ namespace FactorioWebInterface.Controllers
 
                 string branch = push.Ref.Substring(11);
 
-                _ = ProcessHelper.RunProcessToEndAsync(filePath, $"\"{branch}\"");
+                var maxTime = new CancellationTokenSource(TimeSpan.FromSeconds(300));
+
+                _ = ProcessHelper.RunProcessToEndAsync(filePath, $"\"{branch}\"", maxTime.Token);
             }
 
             return Ok();
