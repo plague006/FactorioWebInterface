@@ -1,0 +1,29 @@
+﻿@page
+@model FactorioWebInterface.Pages.BansModel
+@{
+    ViewData["Title"] = "Bans";
+}
+
+<div class="container">
+
+    <h2 class="title is-2">Bans</h2>
+
+    <section class="section">
+        <p> If you want to contest a ban please visit <a href="~/discord">redmew.com/discord</a> and ask in the <strong>moderation-requests</strong> channel.</p>
+    </section>
+
+    <hr />
+
+    <ul>
+        @{
+            foreach (var username in Model.Bans)
+            {
+                <li>@username</li>
+            }
+        }
+    </ul>
+
+</div>
+
+
+
