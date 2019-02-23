@@ -163,5 +163,18 @@ namespace FactorioWebInterface.Utils
 
             return tcs.Task;
         }
+        /// <summary>
+        /// Asynchronous runs a process until it ends. Returns true if successful.
+        /// </summary>
+        /// <param name="fileName"></param>
+        /// <param name="arguments"></param> 
+        /// <param name="timeout"></param> 
+        public static async Task<bool> RunProcessToEndAsync(string fileName, string arguments = null, TimeSpan timeout = default)
+        {
+            using (var cts = new CancellationTokenSource(timeout))
+            {
+                return await RunProcessToEndAsync(fileName, arguments, cts.Token);
+            }
+        }
     }
 }

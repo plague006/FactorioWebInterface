@@ -2419,7 +2419,17 @@ namespace FactorioWebInterface.Models
         public async Task<List<Ban>> GetBansAsync()
         {
             var db = _dbContextFactory.Create<ApplicationDbContext>();
-            return await db.Bans.ToListAsync();
+            return await db.Bans.AsNoTracking().ToListAsync();
+        }
+
+        public async Task<List<string>> GetBanUserNamesAsync()
+        {
+            var db = _dbContextFactory.Create<ApplicationDbContext>();
+            return await db.Bans
+                .AsNoTracking()
+                .Select(x => x.Username)
+                .OrderBy(x => x.ToLowerInvariant())
+                .ToListAsync();
         }
 
         public async Task<List<Admin>> GetAdminsAsync()

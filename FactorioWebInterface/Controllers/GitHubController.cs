@@ -5,8 +5,6 @@ using Microsoft.AspNetCore.WebHooks;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json.Linq;
 using System;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace FactorioWebInterface.Controllers
 {
@@ -34,24 +32,18 @@ namespace FactorioWebInterface.Controllers
                     return Ok();
                 }
 
-                _ = Task.Run(async () =>
+                var push = data.ToObject<PushEvent>();
+                string @ref = push.Ref;
+
+                if (@ref.Length < 12)
                 {
-                    var push = data.ToObject<PushEvent>();
-                    string @ref = push.Ref;
+                    return Ok();
+                }
 
-                    if (@ref.Length < 12)
-                    {
-                        return;
-                    }
+                string branch = push.Ref.Substring(11);
 
-                    string branch = push.Ref.Substring(11);
-
-                    var maxTime = new CancellationTokenSource(TimeSpan.FromSeconds(300));
-
-                    await ProcessHelper.RunProcessToEndAsync(filePath, $"\"{branch}\"", maxTime.Token);
-
-                    maxTime.Dispose();
-                });
+                var timeout = TimeSpan.FromSeconds(300);
+                _ = ProcessHelper.RunProcessToEndAsync(filePath, $"\"{branch}\"", timeout);
             }
 
             return Ok();
