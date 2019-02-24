@@ -5,6 +5,7 @@ using FactorioWebInterface.Data;
 using FactorioWebInterface.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Shared.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -288,6 +289,11 @@ namespace FactorioWebInterface.Models
             if (channel == null)
             {
                 return;
+            }
+
+            if(data.Length > Constants.discordMaxMessageLength)
+            {
+                data = data.Substring(0, Constants.discordMaxMessageLength);
             }
 
             var message = new DiscordMessage()
