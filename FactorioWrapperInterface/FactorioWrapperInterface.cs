@@ -1,6 +1,7 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 
-namespace FactorioWrapperInterface
+namespace Shared
 {
     public enum FactorioServerStatus
     {
@@ -29,8 +30,12 @@ namespace FactorioWrapperInterface
     public interface IFactorioProcessServerMethods
     {
         Task RegisterServerId(string serverId);
+        Task RegisterServerIdWithDateTime(string serverId, DateTime dateTime);
         Task SendFactorioOutputData(string data);
+        Task SendFactorioOutputDataWithDateTime(string data, DateTime dateTime);
         Task SendWrapperData(string data);
+        Task SendWrapperDataWithDateTime(string data, DateTime dateTime);
         Task StatusChanged(FactorioServerStatus newStatus, FactorioServerStatus oldStatus);
+        Task StatusChangedWithDateTime(FactorioServerStatus newStatus, FactorioServerStatus oldStatus, DateTime dateTime);
     }
 }

@@ -44,6 +44,7 @@
         public const string ServerBanListFileName = "server-banlist.json";
 
         public const int discordTopicMaxLength = 1024;
+        public const int discordMaxMessageLength = 2000;
 
         public const string ChatTag = "[CHAT]";
         public const string ShoutTag = "[SHOUT]";
