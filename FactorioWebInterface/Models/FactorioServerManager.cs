@@ -3,13 +3,13 @@ using DSharpPlus.Entities;
 using FactorioWebInterface.Data;
 using FactorioWebInterface.Hubs;
 using FactorioWebInterface.Utils;
-using FactorioWrapperInterface;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Shared;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -1115,7 +1115,8 @@ namespace FactorioWebInterface.Models
                         var embed = new DiscordEmbedBuilder()
                         {
                             Description = content,
-                            Color = DiscordBot.infoColor
+                            Color = DiscordBot.infoColor,
+                            Timestamp = DateTimeOffset.UtcNow
                         };
 
                         _ = _discordBot.SendEmbedToFactorioChannel(serverId, embed);
@@ -1128,7 +1129,8 @@ namespace FactorioWebInterface.Models
                         var embed = new DiscordEmbedBuilder()
                         {
                             Description = content,
-                            Color = DiscordBot.infoColor
+                            Color = DiscordBot.infoColor,
+                            Timestamp = DateTimeOffset.UtcNow
                         };
 
                         _ = _discordBot.SendEmbedToFactorioChannel(serverId, embed);
@@ -1143,7 +1145,8 @@ namespace FactorioWebInterface.Models
                         var embed = new DiscordEmbedBuilder()
                         {
                             Description = content,
-                            Color = DiscordBot.infoColor
+                            Color = DiscordBot.infoColor,
+                            Timestamp = DateTimeOffset.UtcNow
                         };
 
                         _ = _discordBot.SendEmbedToFactorioAdminChannel(embed);
@@ -1156,7 +1159,8 @@ namespace FactorioWebInterface.Models
                         var embed = new DiscordEmbedBuilder()
                         {
                             Description = content,
-                            Color = DiscordBot.infoColor
+                            Color = DiscordBot.infoColor,
+                            Timestamp = DateTimeOffset.UtcNow
                         };
 
                         _ = _discordBot.SendEmbedToFactorioAdminChannel(embed);
@@ -2268,8 +2272,10 @@ namespace FactorioWebInterface.Models
 
             var embed = new DiscordEmbedBuilder()
             {
-                Description = "Server has started",
-                Color = DiscordBot.successColor
+                Title = "Status:",
+                Description = "Server has **started**",
+                Color = DiscordBot.successColor,
+                Timestamp = DateTimeOffset.UtcNow
             };
             var t2 = _discordBot.SendEmbedToFactorioChannel(serverId, embed);
 
@@ -2356,8 +2362,10 @@ namespace FactorioWebInterface.Models
             {
                 var embed = new DiscordEmbedBuilder()
                 {
-                    Description = "Server has stopped",
-                    Color = DiscordBot.infoColor
+                    Title = "Status:",
+                    Description = "Server has **stopped**",
+                    Color = DiscordBot.infoColor,
+                    Timestamp = DateTimeOffset.UtcNow
                 };
                 discordTask = _discordBot.SendEmbedToFactorioChannel(serverId, embed);
 
@@ -2368,8 +2376,10 @@ namespace FactorioWebInterface.Models
             {
                 var embed = new DiscordEmbedBuilder()
                 {
-                    Description = "Server has crashed",
-                    Color = DiscordBot.failureColor
+                    Title = "Status:",
+                    Description = "Server has **crashed**",
+                    Color = DiscordBot.failureColor,
+                    Timestamp = DateTimeOffset.UtcNow
                 };
                 discordTask = _discordBot.SendEmbedToFactorioChannel(serverId, embed);
                 _ = MarkChannelOffline(serverData);
