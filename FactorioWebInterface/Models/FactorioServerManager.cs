@@ -176,7 +176,7 @@ namespace FactorioWebInterface.Models
 
                 var currentLog = new FileInfo(serverData.CurrentLogPath);
                 if (!currentLog.Exists)
-                {                    
+                {
                     return;
                 }
 
@@ -2354,12 +2354,6 @@ namespace FactorioWebInterface.Models
                 await serverData.ServerLock.WaitAsync();
 
                 recordedOldStatus = serverData.Status;
-
-                if (recordedOldStatus != newStatus)
-                {
-                    serverData.Status = newStatus;
-                }
-
             }
             finally
             {

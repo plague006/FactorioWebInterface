@@ -498,7 +498,14 @@ namespace FactorioWrapper
             var now = DateTime.UtcNow;
             await connection.InvokeAsync(nameof(IFactorioProcessServerMethods.RegisterServerIdWithDateTime), serverId, now);
 
-            await ChangeStatus(FactorioServerStatus.WrapperStarted);            
+            if (status == FactorioServerStatus.WrapperStarting)
+            {
+                await ChangeStatus(FactorioServerStatus.WrapperStarted);
+            }
+            else
+            {
+                await ChangeStatus(status);
+            }
 
             Log.Information("Connected");
         }
