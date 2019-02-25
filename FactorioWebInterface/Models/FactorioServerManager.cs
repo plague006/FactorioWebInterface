@@ -176,13 +176,17 @@ namespace FactorioWebInterface.Models
 
                 var currentLog = new FileInfo(serverData.CurrentLogPath);
                 if (!currentLog.Exists)
-                {
-                    currentLog.Create();
+                {                    
                     return;
                 }
 
                 string path = MakeLogFilePath(serverData, currentLog);
-                currentLog.CopyTo(path, false);
+                if (File.Exists(path))
+                {
+                    return;
+                }
+
+                currentLog.CopyTo(path);
 
                 currentLog.CreationTimeUtc = DateTime.UtcNow;
 
@@ -2344,16 +2348,31 @@ namespace FactorioWebInterface.Models
                 return;
             }
 
-            Task discordTask = null;
-            if (newStatus == oldStatus)
+            FactorioServerStatus recordedOldStatus;
+            try
             {
-                // Do nothing.
+                await serverData.ServerLock.WaitAsync();
+
+                recordedOldStatus = serverData.Status;
+
+                if (recordedOldStatus != newStatus)
+                {
+                    serverData.Status = newStatus;
+                }
+
             }
-            else if (oldStatus == FactorioServerStatus.Starting && newStatus == FactorioServerStatus.Running)
+            finally
+            {
+                serverData.ServerLock.Release();
+            }
+
+            Task discordTask = null;
+
+            if (oldStatus == FactorioServerStatus.Starting && newStatus == FactorioServerStatus.Running)
             {
                 discordTask = ServerStarted(serverData);
             }
-            else if (newStatus == FactorioServerStatus.Running)
+            else if (newStatus == FactorioServerStatus.Running && recordedOldStatus != FactorioServerStatus.Running)
             {
                 discordTask = ServerConnected(serverData);
             }
@@ -2372,7 +2391,7 @@ namespace FactorioWebInterface.Models
                 _ = MarkChannelOffline(serverData);
                 await DoStoppedCallback(serverData);
             }
-            else if (newStatus == FactorioServerStatus.Crashed)
+            else if (newStatus == FactorioServerStatus.Crashed && oldStatus != FactorioServerStatus.Crashed)
             {
                 var embed = new DiscordEmbedBuilder()
                 {
@@ -2401,21 +2420,17 @@ namespace FactorioWebInterface.Models
                 controlTask2 = groups.SendMessage(messageData);
             }
 
-            try
+            if (recordedOldStatus != newStatus)
             {
-                await serverData.ServerLock.WaitAsync();
-
-                var recordedOldStatus = serverData.Status;
-
-                if (recordedOldStatus != newStatus)
+                try
                 {
+                    await serverData.ServerLock.WaitAsync();
                     serverData.Status = newStatus;
                 }
-
-            }
-            finally
-            {
-                serverData.ServerLock.Release();
+                finally
+                {
+                    serverData.ServerLock.Release();
+                }
             }
 
             if (discordTask != null)

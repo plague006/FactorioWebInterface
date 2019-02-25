@@ -7,7 +7,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FactorioWebInterface", "Fac
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FactorioWrapper", "FactorioWrapper\FactorioWrapper.csproj", "{DE82C43F-A46D-490F-BD8B-FA423C0D3EC5}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FactorioWrapperInterface", "FactorioWrapperInterface\FactorioWrapperInterface.csproj", "{8269B0BC-EEDA-4DC8-9F4A-2CCB9D449FC1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Shared", "FactorioWrapperInterface\Shared.csproj", "{8269B0BC-EEDA-4DC8-9F4A-2CCB9D449FC1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

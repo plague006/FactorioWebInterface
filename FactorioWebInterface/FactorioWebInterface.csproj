@@ -89,10 +89,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\FactorioWrapperInterface\FactorioWrapperInterface.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
     <TypeScriptCompile Include="src\ts\admins.ts" />
     <TypeScriptCompile Include="src\ts\bans.ts" />
     <TypeScriptCompile Include="src\ts\saves.ts" />
@@ -110,6 +106,10 @@
 
   <ItemGroup>
     <Folder Include="wwwroot\lib\bulma\dist\css\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FactorioWrapperInterface\Shared.csproj" />
   </ItemGroup>
 
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent">

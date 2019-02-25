@@ -267,6 +267,7 @@ FactorioWebInterface/src/ts/*.js*
 #tokens
 FactorioWebInterface/appsettings.json
 FactorioWrapper/token.txt
+FactorioWrapper/settings.json
 
 #databases
 FactorioWebInterface/FactorioWebInterface.db

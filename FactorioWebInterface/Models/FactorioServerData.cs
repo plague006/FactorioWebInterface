@@ -1,5 +1,5 @@
 ﻿using DSharpPlus;
-using FactorioWrapperInterface;
+using Shared;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;

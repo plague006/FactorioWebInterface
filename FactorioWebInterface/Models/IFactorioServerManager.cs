@@ -1,5 +1,5 @@
 ﻿using FactorioWebInterface.Data;
-using FactorioWrapperInterface;
+using Shared;
 using Microsoft.AspNetCore.Http;
 using System.Collections.Generic;
 using System.IO;
