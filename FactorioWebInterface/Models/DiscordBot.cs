@@ -26,12 +26,14 @@ namespace FactorioWebInterface.Models
             public Role[] Roles { get; set; }
         }
 
-        private class DiscordMessage
+        private class Message
         {
             public DiscordChannel Channel { get; set; }
             public string Content { get; set; }
             public DiscordEmbed Embed { get; set; }
         }
+
+        private const int maxMessageQueueSize = 1000;
 
         public static readonly DiscordColor infoColor = new DiscordColor(0, 127, 255);
         public static readonly DiscordColor successColor = DiscordColor.Green;
@@ -48,7 +50,7 @@ namespace FactorioWebInterface.Models
         private readonly Dictionary<ulong, string> discordToServer = new Dictionary<ulong, string>();
         private readonly Dictionary<string, ulong> serverdToDiscord = new Dictionary<string, ulong>();
 
-        private SingleConsumerQueue<DiscordMessage> messageQueue;
+        private SingleConsumerQueue<Message> messageQueue;
 
         public DiscordClient DiscordClient { get; private set; }
 
@@ -112,7 +114,7 @@ namespace FactorioWebInterface.Models
                 }
             }
 
-            messageQueue = new SingleConsumerQueue<DiscordMessage>(async m =>
+            messageQueue = new SingleConsumerQueue<Message>(maxMessageQueueSize, async m =>
             {
                 try
                 {
@@ -291,12 +293,12 @@ namespace FactorioWebInterface.Models
                 return;
             }
 
-            if(data.Length > Constants.discordMaxMessageLength)
+            if (data.Length > Constants.discordMaxMessageLength)
             {
                 data = data.Substring(0, Constants.discordMaxMessageLength);
             }
 
-            var message = new DiscordMessage()
+            var message = new Message()
             {
                 Channel = channel,
                 Content = data
@@ -326,7 +328,7 @@ namespace FactorioWebInterface.Models
                 return;
             }
 
-            var message = new DiscordMessage()
+            var message = new Message()
             {
                 Channel = channel,
                 Embed = embed
