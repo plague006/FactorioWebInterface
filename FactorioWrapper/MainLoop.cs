@@ -432,34 +432,35 @@ namespace FactorioWrapper
 
             // Even if the status hasn't changed, still send it to the Server as this method is used to poll the status for reconnected processes.
 
-            if (!connected)
+            await SendStatus(newStatus, oldStatus);
+
+            canSendMessages = true;
+        }
+
+        private async Task SendStatus(FactorioServerStatus newStatus, FactorioServerStatus oldStatus)
+        {
+            try
             {
-                return;
+                Log.Information("Sending Factorio status changed from {oldStatus} to {newStatus}", oldStatus, newStatus);
+                var now = DateTime.UtcNow;
+                await connection.InvokeAsync(nameof(IFactorioProcessServerMethods.StatusChangedWithDateTime), newStatus, oldStatus, now);
             }
-
-            Log.Information("Sending Factorio status changed from {oldStatus} to {newStatus}", oldStatus, newStatus);
-            var now = DateTime.UtcNow;
-
-            int retry = 10;
-            while (true)
+            catch (Exception e)
             {
-                try
-                {
-                    await connection.SendAsync(nameof(IFactorioProcessServerMethods.StatusChangedWithDateTime), newStatus, oldStatus, now);
-                    canSendMessages = true;
-                    return;
-                }
-                catch (Exception e)
-                {
-                    Log.Error(e, "Error sending factorio status data");
+                Log.Error(e, "Error sending factorio status data");
+            }
+        }
 
-                    retry--;
-                    if (retry == 0)
-                    {
-                        canSendMessages = true;
-                        return;
-                    }
-                }
+        private async Task SendRegister()
+        {
+            try
+            {
+                var now = DateTime.UtcNow;
+                await connection.InvokeAsync(nameof(IFactorioProcessServerMethods.RegisterServerIdWithDateTime), serverId, now);
+            }
+            catch (Exception e)
+            {
+                Log.Error(e, nameof(SendRegister));
             }
         }
 
@@ -495,8 +496,7 @@ namespace FactorioWrapper
             }
             connected = true;
 
-            var now = DateTime.UtcNow;
-            await connection.InvokeAsync(nameof(IFactorioProcessServerMethods.RegisterServerIdWithDateTime), serverId, now);
+            await SendRegister();
 
             if (status == FactorioServerStatus.WrapperStarting)
             {
@@ -504,7 +504,8 @@ namespace FactorioWrapper
             }
             else
             {
-                await ChangeStatus(status);
+                await SendStatus(status, status);
+                canSendMessages = true;
             }
 
             Log.Information("Connected");
