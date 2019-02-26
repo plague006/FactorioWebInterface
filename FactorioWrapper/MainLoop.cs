@@ -30,7 +30,6 @@ namespace FactorioWrapper
         private volatile bool exit = false;
         private DateTime lastUpdateTime;
         private volatile HubConnection connection;
-        private volatile bool connected = false;
 
         private volatile CancellationTokenSource exitClearMessageQueueCancelSource;
 
@@ -205,7 +204,6 @@ namespace FactorioWrapper
             connection.Closed += async (error) =>
             {
                 canSendMessages = false;
-                connected = false;
 
                 if (exit)
                 {
@@ -494,7 +492,6 @@ namespace FactorioWrapper
                 }
                 await Task.Delay(1000);
             }
-            connected = true;
 
             await SendRegister();
 
