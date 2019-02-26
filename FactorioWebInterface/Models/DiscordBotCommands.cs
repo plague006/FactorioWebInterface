@@ -7,13 +7,15 @@ namespace FactorioWebInterface.Models
 {
     public class DiscordBotCommands
     {
-        private readonly DiscordBot _discordBot;
+        private readonly DiscordBotContext _discordBotContext;
+        private readonly IFactorioServerManager _factorioServerManager;
 
-        public DiscordBotCommands(DiscordBot discordBot)
+        public DiscordBotCommands(DiscordBotContext discordBot, IFactorioServerManager factorioServerManager)
         {
-            _discordBot = discordBot;
+            _discordBotContext = discordBot;
+            _factorioServerManager = factorioServerManager;
 
-            var c = _discordBot.DiscordClient.GetCommandsNext();
+            var c = _discordBotContext.DiscordClient.GetCommandsNext();
             c.CommandErrored += CommandErrored;
         }
 
@@ -59,34 +61,43 @@ namespace FactorioWebInterface.Models
             await ctx.RespondAsync(embed: embed);
         }
 
+        private async Task ErrorSetSever(CommandContext ctx, string serverId)
+        {
+            var embed = new DiscordEmbedBuilder()
+            {
+                Description = $"Error connecting the factorio server {serverId} to this channel",
+                Color = DiscordBot.failureColor
+            }
+            .Build();
+
+            await ctx.RespondAsync(embed: embed);
+        }
+
         [Command("setserver")]
         [RequireUserPermissions(DSharpPlus.Permissions.ManageChannels)]
         [Description("Connects the factorio server to this channel.")]
         public async Task SetServer(CommandContext ctx, [Description("The Factorio server ID eg 7.")] string serverId)
         {
-            bool success = await _discordBot.SetServer(serverId, ctx.Channel.Id);
-            if (success)
+            if (!_factorioServerManager.IsValidServerId(serverId))
             {
-                var embed = new DiscordEmbedBuilder()
-                {
-                    Description = $"Factorio server {serverId} has been connected to this channel",
-                    Color = DiscordBot.successColor
-                }
-                .Build();
-
-                await ctx.RespondAsync(embed: embed);
+                await ErrorSetSever(ctx, serverId);
+                return;
             }
-            else
+            
+            if (!await _discordBotContext.SetServer(serverId, ctx.Channel.Id))
             {
-                var embed = new DiscordEmbedBuilder()
-                {
-                    Description = $"Error connecting the factorio server {serverId} to this channel",
-                    Color = DiscordBot.failureColor
-                }
-                .Build();
-
-                await ctx.RespondAsync(embed: embed);
+                await ErrorSetSever(ctx, serverId);
+                return;
             }
+
+            var embed = new DiscordEmbedBuilder()
+            {
+                Description = $"Factorio server {serverId} has been connected to this channel",
+                Color = DiscordBot.successColor
+            }
+            .Build();
+
+            await ctx.RespondAsync(embed: embed);
         }
 
         [Command("unset")]
@@ -94,7 +105,7 @@ namespace FactorioWebInterface.Models
         [Description("Disconnects the currently connected factorio server from this channel.")]
         public async Task UnSetServer(CommandContext ctx)
         {
-            string serverId = await _discordBot.UnSetServer(ctx.Channel.Id);
+            string serverId = await _discordBotContext.UnSetServer(ctx.Channel.Id);
             if (serverId != null)
             {
                 string description = serverId == Constants.AdminChannelID
@@ -125,10 +136,10 @@ namespace FactorioWebInterface.Models
 
         [Command("setadmin")]
         [RequireUserPermissions(DSharpPlus.Permissions.ManageChannels)]
-        [Description("Connects the factorio server to this channel.")]        
+        [Description("Connects the factorio server to this channel.")]
         public async Task SetAdmin(CommandContext ctx)
         {
-            bool success = await _discordBot.SetServer(Constants.AdminChannelID, ctx.Channel.Id);
+            bool success = await _discordBotContext.SetServer(Constants.AdminChannelID, ctx.Channel.Id);
             if (success)
             {
                 var embed = new DiscordEmbedBuilder()

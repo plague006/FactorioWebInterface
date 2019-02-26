@@ -34,7 +34,7 @@ namespace FactorioWebInterface.Models
         };
 
         private readonly IConfiguration _configuration;
-        private readonly IDiscordBot _discordBot;
+        private readonly DiscordBotContext _discordBotContext;
         private readonly IHubContext<FactorioProcessHub, IFactorioProcessClientMethods> _factorioProcessHub;
         private readonly IHubContext<FactorioControlHub, IFactorioControlClientMethods> _factorioControlHub;
         private readonly IHubContext<ScenarioDataHub, IScenarioDataClientMethods> _scenariolHub;
@@ -52,7 +52,7 @@ namespace FactorioWebInterface.Models
         public FactorioServerManager
         (
             IConfiguration configuration,
-            IDiscordBot discordBot,
+            DiscordBotContext discordBotContext,
             IHubContext<FactorioProcessHub, IFactorioProcessClientMethods> factorioProcessHub,
             IHubContext<FactorioControlHub, IFactorioControlClientMethods> factorioControlHub,
             IHubContext<ScenarioDataHub, IScenarioDataClientMethods> scenariolHub,
@@ -64,7 +64,7 @@ namespace FactorioWebInterface.Models
         )
         {
             _configuration = configuration;
-            _discordBot = discordBot;
+            _discordBotContext = discordBotContext;
             _factorioProcessHub = factorioProcessHub;
             _factorioControlHub = factorioControlHub;
             _scenariolHub = scenariolHub;
@@ -83,9 +83,8 @@ namespace FactorioWebInterface.Models
             {
                 factorioWrapperName = name;
             }
-
-            _discordBot.ServerValidator = IsValidServerId;
-            _discordBot.FactorioDiscordDataReceived += FactorioDiscordDataReceived;
+            
+            _discordBotContext.FactorioDiscordDataReceived += FactorioDiscordDataReceived;
         }
 
         private Task SendControlMessageNonLocking(FactorioServerData serverData, MessageData message)
@@ -141,7 +140,7 @@ namespace FactorioWebInterface.Models
             return sb.ToString();
         }
 
-        private void FactorioDiscordDataReceived(IDiscordBot sender, ServerMessageEventArgs eventArgs)
+        private void FactorioDiscordDataReceived(DiscordBotContext sender, ServerMessageEventArgs eventArgs)
         {
             var name = SanitizeDiscordChat(eventArgs.User.Username);
             var message = SanitizeDiscordChat(eventArgs.Message);
@@ -1072,35 +1071,35 @@ namespace FactorioWebInterface.Models
             {
                 case Constants.ChatTag:
                     content = SanitizeGameChat(content);
-                    _ = _discordBot.SendToFactorioChannel(serverId, content);
+                    _ = _discordBotContext.SendToFactorioChannel(serverId, content);
                     break;
                 case Constants.ShoutTag:
                     content = SanitizeGameChat(content);
-                    _ = _discordBot.SendToFactorioChannel(serverId, content);
+                    _ = _discordBotContext.SendToFactorioChannel(serverId, content);
                     break;
                 case Constants.DiscordTag:
                     content = content.Replace("\\n", "\n");
                     content = SanitizeGameChat(content);
-                    _ = _discordBot.SendToFactorioChannel(serverId, content);
+                    _ = _discordBotContext.SendToFactorioChannel(serverId, content);
                     break;
                 case Constants.DiscordRawTag:
                     content = content.Replace("\\n", "\n");
-                    _ = _discordBot.SendToFactorioChannel(serverId, content);
+                    _ = _discordBotContext.SendToFactorioChannel(serverId, content);
                     break;
                 case Constants.DiscordBold:
                     content = content.Replace("\\n", "\n");
                     content = SanitizeGameChat(content);
                     content = Formatter.Bold(content);
-                    _ = _discordBot.SendToFactorioChannel(serverId, content);
+                    _ = _discordBotContext.SendToFactorioChannel(serverId, content);
                     break;
                 case Constants.DiscordAdminTag:
                     content = content.Replace("\\n", "\n");
                     content = SanitizeGameChat(content);
-                    _ = _discordBot.SendToFactorioAdminChannel(content);
+                    _ = _discordBotContext.SendToFactorioAdminChannel(content);
                     break;
                 case Constants.DiscordAdminRawTag:
                     content = content.Replace("\\n", "\n");
-                    _ = _discordBot.SendToFactorioAdminChannel(content);
+                    _ = _discordBotContext.SendToFactorioAdminChannel(content);
                     break;
                 case Constants.PlayerJoinTag:
                     _ = DoPlayerJoined(serverId, content);
@@ -1123,7 +1122,7 @@ namespace FactorioWebInterface.Models
                             Timestamp = DateTimeOffset.UtcNow
                         };
 
-                        _ = _discordBot.SendEmbedToFactorioChannel(serverId, embed);
+                        _ = _discordBotContext.SendEmbedToFactorioChannel(serverId, embed);
                         break;
                     }
                 case Constants.DiscordEmbedRawTag:
@@ -1137,7 +1136,7 @@ namespace FactorioWebInterface.Models
                             Timestamp = DateTimeOffset.UtcNow
                         };
 
-                        _ = _discordBot.SendEmbedToFactorioChannel(serverId, embed);
+                        _ = _discordBotContext.SendEmbedToFactorioChannel(serverId, embed);
                         break;
                     }
 
@@ -1153,7 +1152,7 @@ namespace FactorioWebInterface.Models
                             Timestamp = DateTimeOffset.UtcNow
                         };
 
-                        _ = _discordBot.SendEmbedToFactorioAdminChannel(embed);
+                        _ = _discordBotContext.SendEmbedToFactorioAdminChannel(embed);
                         break;
                     }
                 case Constants.DiscordAdminEmbedRawTag:
@@ -1167,7 +1166,7 @@ namespace FactorioWebInterface.Models
                             Timestamp = DateTimeOffset.UtcNow
                         };
 
-                        _ = _discordBot.SendEmbedToFactorioAdminChannel(embed);
+                        _ = _discordBotContext.SendEmbedToFactorioAdminChannel(embed);
                         break;
                     }
                 case Constants.StartScenarioTag:
@@ -1261,7 +1260,7 @@ namespace FactorioWebInterface.Models
             }
 
             string safeName = SanitizeGameChat(name);
-            var t1 = _discordBot.SendToFactorioChannel(serverId, $"**{safeName} has joined the game**");
+            var t1 = _discordBotContext.SendToFactorioChannel(serverId, $"**{safeName} has joined the game**");
 
             string topic;
 
@@ -1288,7 +1287,7 @@ namespace FactorioWebInterface.Models
                 serverData.ServerLock.Release();
             }
 
-            await _discordBot.SetChannelNameAndTopic(serverId, topic: topic);
+            await _discordBotContext.SetChannelNameAndTopic(serverId, topic: topic);
             await t1;
         }
 
@@ -1306,7 +1305,7 @@ namespace FactorioWebInterface.Models
             }
 
             string safeName = SanitizeGameChat(name);
-            var t1 = _discordBot.SendToFactorioChannel(serverId, $"**{safeName} has left the game**");
+            var t1 = _discordBotContext.SendToFactorioChannel(serverId, $"**{safeName} has left the game**");
 
             string topic;
 
@@ -1341,7 +1340,7 @@ namespace FactorioWebInterface.Models
                 serverData.ServerLock.Release();
             }
 
-            await _discordBot.SetChannelNameAndTopic(serverId, topic: topic);
+            await _discordBotContext.SetChannelNameAndTopic(serverId, topic: topic);
             await t1;
         }
 
@@ -1392,7 +1391,7 @@ namespace FactorioWebInterface.Models
                 serverData.ServerLock.Release();
             }
 
-            await _discordBot.SetChannelNameAndTopic(serverId, topic: topic);
+            await _discordBotContext.SetChannelNameAndTopic(serverId, topic: topic);
         }
 
         private async Task DoTrackedData(string serverId, string content)
@@ -2281,14 +2280,14 @@ namespace FactorioWebInterface.Models
                 Color = DiscordBot.successColor,
                 Timestamp = DateTimeOffset.UtcNow
             };
-            var t2 = _discordBot.SendEmbedToFactorioChannel(serverId, embed);
+            var t2 = _discordBotContext.SendEmbedToFactorioChannel(serverId, embed);
 
             string name = null;
             if (serverData.ExtraServerSettings.SetDiscordChannelName)
             {
                 name = $"s{serverId}-{serverData.ServerSettings.Name}";
             }
-            var t3 = _discordBot.SetChannelNameAndTopic(serverData.ServerId, name: name, topic: "Players online 0");
+            var t3 = _discordBotContext.SetChannelNameAndTopic(serverData.ServerId, name: name, topic: "Players online 0");
 
             await t1;
             await ServerConnected(serverData);
@@ -2337,7 +2336,7 @@ namespace FactorioWebInterface.Models
                 name = $"s{serverId}-offline";
             }
 
-            await _discordBot.SetChannelNameAndTopic(serverId, name: name, topic: "Server offline");
+            await _discordBotContext.SetChannelNameAndTopic(serverId, name: name, topic: "Server offline");
         }
 
         public async Task StatusChanged(string serverId, FactorioServerStatus newStatus, FactorioServerStatus oldStatus)
@@ -2385,7 +2384,7 @@ namespace FactorioWebInterface.Models
                     Color = DiscordBot.infoColor,
                     Timestamp = DateTimeOffset.UtcNow
                 };
-                discordTask = _discordBot.SendEmbedToFactorioChannel(serverId, embed);
+                discordTask = _discordBotContext.SendEmbedToFactorioChannel(serverId, embed);
 
                 _ = MarkChannelOffline(serverData);
                 await DoStoppedCallback(serverData);
@@ -2399,7 +2398,7 @@ namespace FactorioWebInterface.Models
                     Color = DiscordBot.failureColor,
                     Timestamp = DateTimeOffset.UtcNow
                 };
-                discordTask = _discordBot.SendEmbedToFactorioChannel(serverId, embed);
+                discordTask = _discordBotContext.SendEmbedToFactorioChannel(serverId, embed);
                 _ = MarkChannelOffline(serverData);
             }
 

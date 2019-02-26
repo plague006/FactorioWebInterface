@@ -87,7 +87,8 @@ namespace FactorioWebInterface
             services.AddSession();
             services.AddMemoryCache();
 
-            services.AddSingleton<IDiscordBot, DiscordBot>();
+            services.AddSingleton<DiscordBotContext, DiscordBotContext>();
+            services.AddSingleton<DiscordBot, DiscordBot>();
             services.AddSingleton<FactorioUpdater, FactorioUpdater>();
             services.AddSingleton<IFactorioServerManager, FactorioServerManager>();
 

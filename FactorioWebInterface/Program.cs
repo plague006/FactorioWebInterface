@@ -7,10 +7,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using Serilog.Events;
-using Shared.Utils;
 using System;
 using System.IO;
-using System.Threading.Tasks;
 
 namespace FactorioWebInterface
 {
@@ -40,6 +38,7 @@ namespace FactorioWebInterface
 
                 // This makes sure the FactorioServerManger is started when the web interface starts.
                 host.Services.GetService<IFactorioServerManager>();
+                host.Services.GetService<DiscordBot>();
 
                 host.Run();
             }
