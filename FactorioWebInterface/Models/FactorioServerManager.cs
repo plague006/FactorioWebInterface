@@ -2354,6 +2354,11 @@ namespace FactorioWebInterface.Models
                 await serverData.ServerLock.WaitAsync();
 
                 recordedOldStatus = serverData.Status;
+
+                if (newStatus != recordedOldStatus)
+                {
+                    serverData.Status = newStatus;
+                }
             }
             finally
             {
@@ -2412,19 +2417,6 @@ namespace FactorioWebInterface.Models
 
                 serverData.ControlMessageBuffer.Add(messageData);
                 controlTask2 = groups.SendMessage(messageData);
-            }
-
-            if (recordedOldStatus != newStatus)
-            {
-                try
-                {
-                    await serverData.ServerLock.WaitAsync();
-                    serverData.Status = newStatus;
-                }
-                finally
-                {
-                    serverData.ServerLock.Release();
-                }
             }
 
             if (discordTask != null)
