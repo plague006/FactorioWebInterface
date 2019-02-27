@@ -83,7 +83,7 @@ namespace FactorioWebInterface.Models
             {
                 factorioWrapperName = name;
             }
-            
+
             _discordBotContext.FactorioDiscordDataReceived += FactorioDiscordDataReceived;
         }
 
@@ -252,6 +252,25 @@ namespace FactorioWebInterface.Models
             }
         }
 
+        private async Task BuildAdminList(FactorioServerData serverData)
+        {
+            var settings = serverData.ServerSettings;
+
+            if (!settings.UseDefaultAdmins)
+            {
+                return;
+            }
+
+            var a = await GetAdminsAsync();
+            var admins = a.Select(x => x.Name).ToList();
+
+            serverData.ServerAdminList = admins;
+
+            var adminData = JsonConvert.SerializeObject(admins, Formatting.Indented);
+
+            await File.WriteAllTextAsync(serverData.ServerAdminListPath, adminData);
+        }
+
         private void SendToEachRunningServer(string data)
         {
             var clients = _factorioProcessHub.Clients;
@@ -304,7 +323,8 @@ namespace FactorioWebInterface.Models
 
         private async Task PrepareServer(FactorioServerData serverData)
         {
-            var task = BuildBanList(serverData);
+            var banTask = BuildBanList(serverData);
+            var adminTask = BuildAdminList(serverData);
 
             serverData.TrackingDataSets.Clear();
 
@@ -313,7 +333,8 @@ namespace FactorioWebInterface.Models
 
             RotateLogs(serverData);
 
-            await task;
+            await banTask;
+            await adminTask;
         }
 
         public bool IsValidServerId(string serverId)
@@ -3103,18 +3124,14 @@ namespace FactorioWebInterface.Models
             {
                 serverSettings = FactorioServerSettings.MakeDefault(_configuration);
 
-                var a = await GetAdminsAsync();
-                serverSettings.Admins = a.Select(x => x.Name).ToList();
-
                 serverData.ServerSettings = serverSettings;
 
                 var data = JsonConvert.SerializeObject(serverSettings, Formatting.Indented);
                 using (var fs = fi.CreateText())
                 {
                     await fs.WriteAsync(data);
+                    await fs.FlushAsync();
                 }
-
-                return serverSettings;
             }
             else
             {
@@ -3125,9 +3142,38 @@ namespace FactorioWebInterface.Models
                 }
 
                 serverData.ServerSettings = serverSettings;
-
-                return serverSettings;
             }
+
+            return serverSettings;
+        }
+
+        private async Task<List<string>> GetServerAdminList(FactorioServerData serverData)
+        {
+            var adminList = serverData.ServerAdminList;
+
+            if (adminList != null)
+            {
+                return adminList;
+            }
+
+            var a = await GetAdminsAsync();
+            adminList = a.Select(x => x.Name).ToList();
+
+            serverData.ServerAdminList = adminList;
+
+            var fi = new FileInfo(serverData.ServerAdminListPath);
+
+            if (!fi.Exists)
+            {
+                var data = JsonConvert.SerializeObject(adminList, Formatting.Indented);
+                using (var fs = fi.CreateText())
+                {
+                    await fs.WriteAsync(data);
+                    await fs.FlushAsync();
+                }
+            }
+
+            return adminList;
         }
 
         public async Task<FactorioServerSettingsWebEditable> GetEditableServerSettings(string serverId)
@@ -3142,26 +3188,23 @@ namespace FactorioWebInterface.Models
             {
                 await serverData.ServerLock.WaitAsync();
 
-                var serverSettigns = await GetServerSettings(serverData);
-
-                if (serverSettigns == null)
-                {
-                    return new FactorioServerSettingsWebEditable();
-                }
+                var serverSettings = await GetServerSettings(serverData);
+                var adminList = await GetServerAdminList(serverData);
 
                 var editableSettings = new FactorioServerSettingsWebEditable()
                 {
-                    Name = serverSettigns.Name,
-                    Description = serverSettigns.Description,
-                    Tags = serverSettigns.Tags,
-                    MaxPlayers = serverSettigns.MaxPlayers,
-                    GamePassword = serverSettigns.GamePassword,
-                    AutoPause = serverSettigns.AutoPause,
-                    Admins = serverSettigns.Admins,
-                    AutosaveInterval = serverSettigns.AutosaveInterval,
-                    AutosaveSlots = serverSettigns.AutosaveSlots,
-                    NonBlockingSaving = serverSettigns.NonBlockingSaving,
-                    PublicVisible = serverSettigns.Visibility.Public
+                    Name = serverSettings.Name,
+                    Description = serverSettings.Description,
+                    Tags = serverSettings.Tags,
+                    MaxPlayers = serverSettings.MaxPlayers,
+                    GamePassword = serverSettings.GamePassword,
+                    AutoPause = serverSettings.AutoPause,
+                    UseDefaultAdmins = serverSettings.UseDefaultAdmins,
+                    Admins = adminList,
+                    AutosaveInterval = serverSettings.AutosaveInterval,
+                    AutosaveSlots = serverSettings.AutosaveSlots,
+                    NonBlockingSaving = serverSettings.NonBlockingSaving,
+                    PublicVisible = serverSettings.Visibility.Public
                 };
 
                 return editableSettings;
@@ -3171,7 +3214,6 @@ namespace FactorioWebInterface.Models
                 serverData.ServerLock.Release();
             }
         }
-
 
         public async Task<Result> SaveEditableServerSettings(string serverId, FactorioServerSettingsWebEditable settings)
         {
@@ -3193,6 +3235,7 @@ namespace FactorioWebInterface.Models
                 serverSettigns.MaxPlayers = settings.MaxPlayers < 0 ? 0 : settings.MaxPlayers;
                 serverSettigns.GamePassword = settings.GamePassword;
                 serverSettigns.AutoPause = settings.AutoPause;
+                serverSettigns.UseDefaultAdmins = settings.UseDefaultAdmins;
                 serverSettigns.AutosaveSlots = settings.AutosaveSlots < 0 ? 0 : settings.AutosaveSlots;
                 serverSettigns.AutosaveInterval = settings.AutosaveInterval < 1 ? 1 : settings.AutosaveInterval;
                 serverSettigns.NonBlockingSaving = settings.NonBlockingSaving;
@@ -3200,9 +3243,7 @@ namespace FactorioWebInterface.Models
 
                 List<string> admins;
 
-                int count = settings.Admins.Count(x => !string.IsNullOrWhiteSpace(x));
-
-                if (count != 0)
+                if (!settings.UseDefaultAdmins)
                 {
                     admins = settings.Admins.Select(x => x.Trim())
                         .Where(x => !string.IsNullOrWhiteSpace(x))
@@ -3214,11 +3255,13 @@ namespace FactorioWebInterface.Models
                     admins = a.Select(x => x.Name).ToList();
                 }
 
-                serverSettigns.Admins = admins;
+                serverData.ServerAdminList = admins;
 
-                var data = JsonConvert.SerializeObject(serverSettigns, Formatting.Indented);
+                var settingsData = JsonConvert.SerializeObject(serverSettigns, Formatting.Indented);
+                var adminData = JsonConvert.SerializeObject(admins, Formatting.Indented);
 
-                await File.WriteAllTextAsync(serverData.ServerSettingsPath, data);
+                await File.WriteAllTextAsync(serverData.ServerSettingsPath, settingsData);
+                await File.WriteAllTextAsync(serverData.ServerAdminListPath, adminData);
 
                 return Result.OK;
             }

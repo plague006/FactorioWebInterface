@@ -42,6 +42,7 @@
         public const string ServerSettingsFileName = "server-settings.json";
         public const string ServerExtraSettingsFileName = "server-extra-settings.json";
         public const string ServerBanListFileName = "server-banlist.json";
+        public const string ServerAdminListFileName = "server-adminlist.json";
 
         public const int discordTopicMaxLength = 1024;
         public const int discordMaxMessageLength = 2000;

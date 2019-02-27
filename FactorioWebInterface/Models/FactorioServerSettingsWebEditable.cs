@@ -1,8 +1,5 @@
 ﻿using Newtonsoft.Json;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace FactorioWebInterface.Models
 {
@@ -18,13 +15,16 @@ namespace FactorioWebInterface.Models
         public List<string> Tags { get; set; }
 
         [JsonProperty(PropertyName = "max_players")]
-        public int MaxPlayers { get; set; }    
+        public int MaxPlayers { get; set; }
 
         [JsonProperty(PropertyName = "game_password")]
         public string GamePassword { get; set; }
 
         [JsonProperty(PropertyName = "auto_pause")]
         public bool AutoPause { get; set; }
+
+        [JsonProperty(PropertyName = "use_default_admins")]
+        public bool UseDefaultAdmins { get; set; }
 
         [JsonProperty(PropertyName = "admins")]
         public List<string> Admins { get; set; }
