@@ -16,8 +16,7 @@ namespace FactorioWebInterface.Data
         }
 
         public DbSet<DiscordServers> DiscordServers { get; set; }
-        public DbSet<Regular> Regulars { get; set; }
-        public DbSet<Donator> Donators { get; set; }
+        public DbSet<NamedDiscordServer> NamedDiscordServers { get; set; }
         public DbSet<Admin> Admins { get; set; }
         public DbSet<Ban> Bans { get; set; }
 
@@ -29,6 +28,9 @@ namespace FactorioWebInterface.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<NamedDiscordServer>()
+                .HasKey(e => new { e.DiscordChannelId, e.Name });
 
             modelBuilder.Entity<ApplicationUser>(b =>
             {
