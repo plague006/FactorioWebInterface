@@ -1865,7 +1865,11 @@ namespace FactorioWebInterface.Models
                 var command = $"/ban {player} {reason}";
                 command.Substring(0, command.Length - 1);
 
-                _ = SendToFactorioProcess(serverId, command);
+                // /ban doesn't support names with spaces.
+                if (!player.Contains(' '))
+                {
+                    _ = SendToFactorioProcess(serverId, command);
+                }
 
                 if (!servers.TryGetValue(serverId, out var sourceServerData))
                 {
@@ -1878,25 +1882,31 @@ namespace FactorioWebInterface.Models
                     return;
                 }
 
-                SendBanCommandToEachRunningServerExcept(command, serverId);
+                // /ban doesn't support names with spaces.
+                if (!player.Contains(' '))
+                {
+                    SendBanCommandToEachRunningServerExcept(command, serverId);
+                }
 
                 await AddBanToDatabase(ban);
 
             }
             else if (data.StartsWith("/unban"))
             {
-                string[] words = data.Split(' ');
-
-                if (words.Length < 2)
+                if (data.Length < 8)
                 {
                     return;
                 }
 
-                string player = words[1];
+                string player = data.Substring(6).Trim();
 
                 var command = $"/unban {player}";
 
-                _ = SendToFactorioProcess(serverId, command);
+                // /unban doesn't support names with spaces.
+                if (!player.Contains(' '))
+                {
+                    _ = SendToFactorioProcess(serverId, command);
+                }
 
                 if (!servers.TryGetValue(serverId, out var sourceServerData))
                 {
@@ -1909,7 +1919,11 @@ namespace FactorioWebInterface.Models
                     return;
                 }
 
-                SendBanCommandToEachRunningServerExcept(command, serverId);
+                // /unban doesn't support names with spaces.
+                if (!player.Contains(' '))
+                {
+                    SendBanCommandToEachRunningServerExcept(command, serverId);
+                }
 
                 await RemoveBanFromDatabase(player, userName);
             }
@@ -1947,10 +1961,14 @@ namespace FactorioWebInterface.Models
 
             if (synchronizeWithServers)
             {
-                var command = $"/ban {ban.Username} {ban.Reason}";
-                command.Substring(0, command.Length - 1);
+                // /ban doesn't support names with spaces.
+                if (!ban.Username.Contains(' '))
+                {
+                    var command = $"/ban {ban.Username} {ban.Reason}";
+                    command.Substring(0, command.Length - 1);
 
-                SendBanCommandToEachRunningServer(command);
+                    SendBanCommandToEachRunningServer(command);
+                }
             }
 
             bool added = await AddBanToDatabase(ban);
@@ -1984,9 +2002,12 @@ namespace FactorioWebInterface.Models
 
             if (synchronizeWithServers)
             {
-                var command = $"/unban {username}";
-
-                SendBanCommandToEachRunningServer(command);
+                // /unban doesn't support names with spaces.
+                if (!username.Contains(' '))
+                {
+                    var command = $"/unban {username}";
+                    SendBanCommandToEachRunningServer(command);
+                }
             }
 
             await RemoveBanFromDatabase(username, admin);
@@ -2072,36 +2093,45 @@ namespace FactorioWebInterface.Models
                 return;
             }
 
-            string[] words = content.Split(' ');
+            int index = content.IndexOf(" was banned by ");
 
-            if (words.Length < 7)
+            if (index < 0)
             {
                 return;
             }
 
-            string player = words[0];
-
-            int index = 4;
-            if (words[1] == "(not")
+            string player = content.Substring(0, index).Trim();
+            if (player.EndsWith(" (not on map)"))
             {
-                if (words.Length < 10)
-                {
-                    return;
-                }
-                index += 3;
+                player = player.Substring(0, player.Length - 13);
             }
 
-            string admin = words[index];
+            index = index + 15;
+
+            if (index >= content.Length)
+            {
+                return;
+            }
+
+            string rest = content.Substring(index);
+
+            string[] words = rest.Split(' ');
+            if (words.Length < 2)
+            {
+                return;
+            }
+
+            string admin = words[0];
 
             if (admin == "<server>.")
             {
                 return;
             }
 
-            index++;
+            int reasonIndex = 1;
 
             // If the admin has a tag, that will appear after their name.
-            if (words[index] == "Reason:")
+            if (words[reasonIndex] == "Reason:")
             {
                 // case no tag, remove '.' at end of name.
                 admin = admin.Substring(0, admin.Length - 1);
@@ -2111,17 +2141,30 @@ namespace FactorioWebInterface.Models
                 // case tag, keep going utill we find 'Reason:'
                 do
                 {
-                    index++;
-                } while (words[index] != "Reason:");
+                    reasonIndex++;
+                    if (reasonIndex >= words.Length)
+                    {
+                        return;
+                    }
+                } while (words[reasonIndex] != "Reason:");
             }
 
-            index += 1;
-            string reason = string.Join(' ', words, index, words.Length - index);
+            reasonIndex += 1;
+            string reason = string.Join(' ', words, reasonIndex, words.Length - reasonIndex);
 
-            var command = $"/ban {player} {reason}";
-            command.Substring(0, command.Length - 1);
+            // /ban doesn't support names with spaces.
+            if (!player.Contains(' '))
+            {
+                var command = $"/ban {player} {reason}";
+                command.Substring(0, command.Length - 1);
 
-            SendBanCommandToEachRunningServerExcept(command, serverId);
+                SendBanCommandToEachRunningServerExcept(command, serverId);
+            }
+
+            if (reason.EndsWith(".."))
+            {
+                reason = reason.Substring(0, reason.Length - 1);
+            }
 
             var ban = new Ban()
             {
@@ -2170,10 +2213,14 @@ namespace FactorioWebInterface.Models
 
             ban.DateTime = DateTime.UtcNow;
 
-            var command = $"/ban {ban.Username} {ban.Reason}";
-            command.Substring(0, command.Length - 1);
+            // /ban doesn't support names with spaces.
+            if (!ban.Username.Contains(' '))
+            {
+                var command = $"/ban {ban.Username} {ban.Reason}";
+                command.Substring(0, command.Length - 1);
 
-            SendBanCommandToEachRunningServerExcept(command, serverId);
+                SendBanCommandToEachRunningServerExcept(command, serverId);
+            }
 
             await AddBanToDatabase(ban);
         }
@@ -2216,23 +2263,27 @@ namespace FactorioWebInterface.Models
                 return;
             }
 
-            string[] words = content.Split(' ');
-            if (words.Length < 5)
+            int index = content.IndexOf(" was unbanned by ");
+
+            if (index < 0)
             {
                 return;
             }
 
-            string admin = words[4];
+            string player = content.Substring(0, index).Trim();
+            string admin = content.Substring(index + 17).Trim();
+
             if (admin == "<server>.")
             {
                 return;
             }
 
-            string player = words[0];
-
-            var command = $"/unban {player}";
-
-            SendBanCommandToEachRunningServerExcept(command, serverId);
+            // /unban doesn't support names with spaces.
+            if (!player.Contains(' '))
+            {
+                var command = $"/unban {player}";
+                SendBanCommandToEachRunningServerExcept(command, serverId);
+            }
 
             await RemoveBanFromDatabase(player, admin);
         }
@@ -2271,8 +2322,12 @@ namespace FactorioWebInterface.Models
                 ban.Admin = "<script>";
             }
 
-            var command = $"/unban {ban.Username}";
-            SendBanCommandToEachRunningServerExcept(command, serverId);
+            // /unban doesn't support names with spaces.
+            if (!ban.Username.Contains(' '))
+            {
+                var command = $"/unban {ban.Username}";
+                SendBanCommandToEachRunningServerExcept(command, serverId);
+            }
 
             await RemoveBanFromDatabase(ban.Username, ban.Admin);
         }
