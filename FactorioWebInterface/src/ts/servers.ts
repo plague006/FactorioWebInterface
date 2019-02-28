@@ -81,6 +81,7 @@ const updateButton: HTMLButtonElement = document.getElementById('updateButton') 
 const forceStopButton: HTMLButtonElement = document.getElementById('forceStopButton') as HTMLButtonElement;
 const getStatusButton: HTMLButtonElement = document.getElementById('getStatusButton') as HTMLButtonElement;
 const statusText: HTMLLabelElement = document.getElementById('statusText') as HTMLLabelElement;
+const versionText: HTMLLabelElement = document.getElementById('versionText') as HTMLLabelElement;
 
 const tempSaveFilesTable: HTMLTableElement = document.getElementById('tempSaveFilesTable') as HTMLTableElement;
 const localSaveFilesTable: HTMLTableElement = document.getElementById('localSaveFilesTable') as HTMLTableElement;
@@ -230,6 +231,10 @@ async function getExtraSettings() {
     configSetDiscordChannelName.checked = settings.setDiscordChannelName;
 }
 
+async function getVersion() {
+    versionText.textContent = await connection.invoke('GetVersion')
+}
+
 async function start() {
     try {
         await connection.start();
@@ -240,6 +245,7 @@ async function start() {
         getLogs();
         getSettings();
         getExtraSettings();
+        getVersion();
 
         statusText.innerText = data.status;
 
@@ -261,6 +267,10 @@ connection.on("SendMessage", writeMessage)
 connection.on('FactorioStatusChanged', (newStatus: string, oldStatus: string) => {
     console.log(`new: ${newStatus}, old: ${oldStatus}`);
     statusText.innerText = newStatus;
+});
+
+connection.on('SendVersion', (version: string) => {
+    versionText.textContent = version;
 });
 
 tbMessage.addEventListener("keyup", (e: KeyboardEvent) => {

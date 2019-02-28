@@ -26,6 +26,7 @@ namespace FactorioWebInterface.Models
 
         public string ServerId { get; set; }
         public FactorioServerStatus Status { get; set; }
+        public string Version { get; set; }
         public string BaseDirectoryPath { get; set; }
         public string TempSavesDirectoryPath { get; set; }
         public string LocalSavesDirectoroyPath { get; set; }
@@ -33,8 +34,9 @@ namespace FactorioWebInterface.Models
         public string LogsDirectoryPath { get; set; }
         public string ArchiveLogsDirectoryPath { get; set; }
         public string CurrentLogPath { get; set; }
+        public string ExecutablePath { get; set; }
         public string ServerSettingsPath { get; set; }
-        public string serverExtraSettingsPath { get; set; }
+        public string ServerExtraSettingsPath { get; set; }
         public string ServerBanListPath { get; set; }
         public string ServerAdminListPath { get; set; }
         public string Port { get; set; }
@@ -82,9 +84,10 @@ namespace FactorioWebInterface.Models
                     TempSavesDirectoryPath = Path.Combine(basePath, Constants.TempSavesDirectoryName),
                     LocalSavesDirectoroyPath = Path.Combine(basePath, Constants.LocalSavesDirectoryName),
                     ServerSettingsPath = Path.Combine(basePath, Constants.ServerSettingsFileName),
-                    serverExtraSettingsPath = Path.Combine(basePath, Constants.ServerExtraSettingsFileName),
+                    ServerExtraSettingsPath = Path.Combine(basePath, Constants.ServerExtraSettingsFileName),
                     LocalScenarioDirectoryPath = Path.Combine(basePath, Constants.ScenarioDirectoryName),
                     LogsDirectoryPath = Path.Combine(basePath, Constants.LogDirectoryName),
+                    ExecutablePath = Path.Combine(basePath, Constants.ExecutablePath),
                     ArchiveLogsDirectoryPath = Path.Combine(basePath, Constants.LogArchiveDirectoryName),
                     CurrentLogPath = Path.Combine(basePath, Constants.CurrentLogFileName),
                     ServerBanListPath = Path.Combine(basePath, Constants.ServerBanListFileName),
@@ -101,7 +104,7 @@ namespace FactorioWebInterface.Models
 
                 try
                 {
-                    var fi = new FileInfo(serverData.serverExtraSettingsPath);
+                    var fi = new FileInfo(serverData.ServerExtraSettingsPath);
                     if (fi.Exists)
                     {
                         var data = File.ReadAllText(fi.FullName);
@@ -117,13 +120,15 @@ namespace FactorioWebInterface.Models
                 {
                 }
 
+                serverData.Version = FactorioVersionFinder.GetVersionString(serverData.ExecutablePath);
+
                 ValidSaveDirectories.Add($"{serverId}/{Constants.TempSavesDirectoryName}");
                 ValidSaveDirectories.Add($"{serverId}/{Constants.LocalSavesDirectoryName}");
                 ValidSaveDirectories.Add($"{serverId}\\{Constants.TempSavesDirectoryName}");
                 ValidSaveDirectories.Add($"{serverId}\\{Constants.LocalSavesDirectoryName}");
             }
             //Servers["7"].IsRemote = true;
-            //Servers["7"].SshIdentity = "usvserver";
+            //Servers["7"].SshIdentity = "usvserver";            
         }
     }
 }

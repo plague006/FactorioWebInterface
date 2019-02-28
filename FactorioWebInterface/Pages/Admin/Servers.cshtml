@@ -82,20 +82,61 @@
                         <span>Force Stop</span>
                     </button>
                     <div>
-                        <div class="field is-horizontal">
-                            <div class="field-label is-normal">
-                                <label class="label">Status:</label>
+                        <div class="columns is-variable is-8">
+                            <div class="column is-narrow is-offset-1">
+                                <div class="field is-grouped">
+                                    <div class="control">
+                                        <label class="label">Status:</label>
+                                    </div>
+                                    <div class="control">
+                                        <label id="statusText" class="label"></label>
+                                    </div>                                    
+                                </div>                                
                             </div>
-                            <div class="field-label is-normal">
-                                <label id="statusText" class="label"></label>
+                            <div class="column is-narrow">
+                                <div class="field is-grouped">
+                                    <div class="control">
+                                        <label class="label">Version:</label>
+                                    </div>
+                                    <div class="control">
+                                        <label id="versionText" class="label"></label>
+                                    </div>
+                                </div>                                
                             </div>
-                            <div class="field-body">
+                            <div class="column is-narrow">
                                 <button id="getStatusButton" class="button is-info">
                                     <span class="icon"><i class="fas fa-info-circle"></i></span>
                                     <span>Get Status</span>
                                 </button>
                             </div>
                         </div>
+
+
+                        @*<div class="field is-horizontal">
+                                <div class="field-label is-normal">
+                                    <label class="label">Status:</label>
+                                </div>
+                                <div class="field-label is-normal">
+                                    <label id="statusText" class="label"></label>
+                                </div>
+
+                                <div class="field-label is-normal">
+                                    <label class="label">Version:</label>
+                                </div>
+                                <div class="field-body">
+                                    <div class="field-label is-normal">
+                                        <label id="versionText" class="label"></label>
+                                    </div>
+                                </div>
+
+                                <div class="field-body">
+                                    <button id="getStatusButton" class="button is-info">
+                                        <span class="icon"><i class="fas fa-info-circle"></i></span>
+                                        <span>Get Status</span>
+                                    </button>
+                                </div>
+                            </div>*@
+
                     </div>
                 </div>
 

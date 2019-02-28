@@ -889,7 +889,7 @@ namespace FactorioWebInterface.Models
                     {
                         serverData.Status = FactorioServerStatus.Updated;
 
-                        await group.FactorioStatusChanged(FactorioServerStatus.Updated.ToString(), oldStatus.ToString());
+                        _ = group.FactorioStatusChanged(FactorioServerStatus.Updated.ToString(), oldStatus.ToString());
 
                         var messageData = new MessageData()
                         {
@@ -898,7 +898,7 @@ namespace FactorioWebInterface.Models
                         };
 
                         serverData.ControlMessageBuffer.Add(messageData);
-                        await group.SendMessage(messageData);
+                        _ = group.SendMessage(messageData);
 
                         _logger.LogInformation("Updated server.");
                     }
@@ -906,7 +906,7 @@ namespace FactorioWebInterface.Models
                     {
                         serverData.Status = FactorioServerStatus.Crashed;
 
-                        await group.FactorioStatusChanged(FactorioServerStatus.Crashed.ToString(), oldStatus.ToString());
+                        _ = group.FactorioStatusChanged(FactorioServerStatus.Crashed.ToString(), oldStatus.ToString());
 
                         var messageData = new MessageData()
                         {
@@ -915,7 +915,7 @@ namespace FactorioWebInterface.Models
                         };
 
                         serverData.ControlMessageBuffer.Add(messageData);
-                        await group.SendMessage(messageData);
+                        _ = group.SendMessage(messageData);
 
                         var messageData2 = new MessageData()
                         {
@@ -924,9 +924,11 @@ namespace FactorioWebInterface.Models
                         };
 
                         serverData.ControlMessageBuffer.Add(messageData2);
-                        await group.SendMessage(messageData2);
+                        _ = group.SendMessage(messageData2);
                     }
 
+                    serverData.Version = FactorioVersionFinder.GetVersionString(serverData.ExecutablePath);
+                    _ = group.SendVersion(serverData.Version);
                 }
                 finally
                 {
@@ -2361,7 +2363,7 @@ namespace FactorioWebInterface.Models
             string name = null;
             if (serverData.ExtraServerSettings.SetDiscordChannelName)
             {
-                name = $"s{serverId}-{serverData.ServerSettings.Name}";
+                name = $"s{serverId}-{serverData.ServerSettings.Name} {serverData.Version.Replace('.', '_')}";
             }
             var t3 = _discordBotContext.SetChannelNameAndTopic(serverData.ServerId, name: name, topic: "Players online 0");
 
@@ -3365,7 +3367,7 @@ namespace FactorioWebInterface.Models
                 serverData.ExtraServerSettings = settings;
 
                 string data = JsonConvert.SerializeObject(settings, Formatting.Indented);
-                await File.WriteAllTextAsync(serverData.serverExtraSettingsPath, data);
+                await File.WriteAllTextAsync(serverData.ServerExtraSettingsPath, data);
 
                 return Result.OK;
             }
@@ -3476,6 +3478,17 @@ namespace FactorioWebInterface.Models
         public bool DeleteCachedVersion(string version)
         {
             return _factorioUpdater.DeleteCachedFile(version);
+        }
+
+        public string GetVersion(string serverId)
+        {
+            if (!servers.TryGetValue(serverId, out var serverData))
+            {
+                _logger.LogError("Unknown serverId: {serverId}", serverId);
+                return "";
+            }
+
+            return serverData.Version;
         }
     }
 }

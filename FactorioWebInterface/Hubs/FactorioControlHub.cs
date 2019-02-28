@@ -374,5 +374,17 @@ namespace FactorioWebInterface.Hubs
 
             return Task.FromResult(0);
         }
+
+        public Task<string> GetVersion()
+        {
+            string connectionId = Context.ConnectionId;
+            if (Context.Items.TryGetValue(connectionId, out object serverId))
+            {
+                string id = (string)serverId;
+                return Task.FromResult(_factorioServerManager.GetVersion(id));
+            }
+
+            return Task.FromResult("");
+        }
     }
 }

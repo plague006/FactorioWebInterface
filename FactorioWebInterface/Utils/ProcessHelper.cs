@@ -1,11 +1,26 @@
 ﻿using Serilog;
 using System;
 using System.Diagnostics;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace FactorioWebInterface.Utils
 {
+    public class ProcessResult
+    {
+        public ProcessResult(int exitCode, string output, string error)
+        {
+            ExitCode = exitCode;
+            Output = output;
+            Error = error;
+        }
+
+        public int ExitCode { get; }
+        public string Output { get; }
+        public string Error { get; }
+    }
+
     public static class ProcessHelper
     {
         /// <summary>
@@ -47,6 +62,61 @@ namespace FactorioWebInterface.Utils
             {
                 Log.Logger.Error(e, "RunProcessToEnd filename: {fileName} arguments: {arguments}", fileName, arguments);
                 return false;
+            }
+            finally
+            {
+                process.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Runs a process until it ends and reads all StdOut and StdErr.
+        /// </summary>
+        /// <param name="fileName"></param>
+        /// <param name="arguments"></param>        
+        /// <param name="timeout">-1 for no timeout.</param>     
+        public static ProcessResult RunProcessReadAll(string fileName, string arguments = null, int timeout = -1)
+        {
+            Log.Logger.Information("RunProcessReadAll filename: {fileName} arguments: {arguments}", fileName, arguments);
+
+            var process = new Process
+            {
+                StartInfo =
+                {
+                    FileName = fileName, Arguments = arguments,
+                    UseShellExecute = false, CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                }
+            };
+
+            var output = new StringBuilder();
+            var error = new StringBuilder();
+
+            process.OutputDataReceived += (_, e) => output.Append(e.Data);
+            process.ErrorDataReceived += (_, e) => error.Append(e.Data);            
+
+            try
+            {
+                process.Start();
+
+                process.BeginOutputReadLine();
+                process.BeginErrorReadLine();
+
+                process.WaitForExit(timeout);
+
+                if (!process.HasExited)
+                {
+                    process.Kill();
+                    Log.Logger.Information("RunProcessReadAll Cancelled filename: {fileName} arguments: {arguments}", fileName, arguments);
+                }
+
+                return new ProcessResult(process.ExitCode, output.ToString(), error.ToString());
+            }
+            catch (Exception e)
+            {
+                Log.Logger.Error(e, "RunProcessReadAll filename: {fileName} arguments: {arguments}", fileName, arguments);
+                return new ProcessResult(-1, output.ToString(), error.ToString());
             }
             finally
             {
@@ -178,3 +248,4 @@ namespace FactorioWebInterface.Utils
         }
     }
 }
+

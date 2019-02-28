@@ -26,6 +26,12 @@
         public const string CurrentLogName = "factorio-current";
         public const string CurrentLogFileName = "factorio-current.log";
 
+#if WINDOWS
+        public const string ExecutablePath = "bin/x64/factorio.exe";
+#else
+        public const string ExecutablePath = "bin/x64/factorio";
+#endif
+
         public const string WindowsPublicStartSavesDirectoryName = "public\\start";
         public const string WindowsPublicFinalSavesDirectoryName = "public\\final";
         public const string WindowsPublicOldSavesDirectoryName = "public\\old";
