@@ -22,7 +22,7 @@ namespace FactorioWebInterface.Pages.Admin
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ILogger<SigninModel> _logger;
         private readonly IHttpClientFactory _clientFactory;
-        private readonly IDiscordBot _discordBot;
+        private readonly DiscordBotContext _discordBotContext;
 
         public SigninModel(
             IConfiguration configuration,
@@ -30,14 +30,14 @@ namespace FactorioWebInterface.Pages.Admin
             UserManager<ApplicationUser> userManager,
             ILogger<SigninModel> logger,
             IHttpClientFactory clientFactory,
-            IDiscordBot discordBot)
+            DiscordBotContext discordBotContext)
         {
             _configuration = configuration;
             _signInManager = signInManager;
             _userManager = userManager;
             _logger = logger;
             _clientFactory = clientFactory;
-            _discordBot = discordBot;
+            _discordBotContext = discordBotContext;
         }
 
         private string RedirectUrl => $"{Request.Scheme}://{Request.Host}/admin/signin";
@@ -122,7 +122,7 @@ namespace FactorioWebInterface.Pages.Admin
             if (user == null)
             {
                 // If the user doesn't have an account make one, but only if they have the admin role in the Redmew guild.
-                var isAdmin = await _discordBot.IsAdminRoleAsync(userId);
+                var isAdmin = await _discordBotContext.IsAdminRoleAsync(userId);
                 if (!isAdmin)
                 {
                     ModelState.AddModelError(string.Empty, "Discord authorization failed - not an admin member of the Redmew guild.");

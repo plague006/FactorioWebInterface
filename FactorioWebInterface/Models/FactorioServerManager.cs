@@ -34,7 +34,7 @@ namespace FactorioWebInterface.Models
         };
 
         private readonly IConfiguration _configuration;
-        private readonly IDiscordBot _discordBot;
+        private readonly DiscordBotContext _discordBotContext;
         private readonly IHubContext<FactorioProcessHub, IFactorioProcessClientMethods> _factorioProcessHub;
         private readonly IHubContext<FactorioControlHub, IFactorioControlClientMethods> _factorioControlHub;
         private readonly IHubContext<ScenarioDataHub, IScenarioDataClientMethods> _scenariolHub;
@@ -52,7 +52,7 @@ namespace FactorioWebInterface.Models
         public FactorioServerManager
         (
             IConfiguration configuration,
-            IDiscordBot discordBot,
+            DiscordBotContext discordBotContext,
             IHubContext<FactorioProcessHub, IFactorioProcessClientMethods> factorioProcessHub,
             IHubContext<FactorioControlHub, IFactorioControlClientMethods> factorioControlHub,
             IHubContext<ScenarioDataHub, IScenarioDataClientMethods> scenariolHub,
@@ -64,7 +64,7 @@ namespace FactorioWebInterface.Models
         )
         {
             _configuration = configuration;
-            _discordBot = discordBot;
+            _discordBotContext = discordBotContext;
             _factorioProcessHub = factorioProcessHub;
             _factorioControlHub = factorioControlHub;
             _scenariolHub = scenariolHub;
@@ -84,8 +84,7 @@ namespace FactorioWebInterface.Models
                 factorioWrapperName = name;
             }
 
-            _discordBot.ServerValidator = IsValidServerId;
-            _discordBot.FactorioDiscordDataReceived += FactorioDiscordDataReceived;
+            _discordBotContext.FactorioDiscordDataReceived += FactorioDiscordDataReceived;
         }
 
         private Task SendControlMessageNonLocking(FactorioServerData serverData, MessageData message)
@@ -141,7 +140,7 @@ namespace FactorioWebInterface.Models
             return sb.ToString();
         }
 
-        private void FactorioDiscordDataReceived(IDiscordBot sender, ServerMessageEventArgs eventArgs)
+        private void FactorioDiscordDataReceived(DiscordBotContext sender, ServerMessageEventArgs eventArgs)
         {
             var name = SanitizeDiscordChat(eventArgs.User.Username);
             var message = SanitizeDiscordChat(eventArgs.Message);
@@ -253,6 +252,25 @@ namespace FactorioWebInterface.Models
             }
         }
 
+        private async Task BuildAdminList(FactorioServerData serverData)
+        {
+            var settings = serverData.ServerSettings;
+
+            if (!settings.UseDefaultAdmins)
+            {
+                return;
+            }
+
+            var a = await GetAdminsAsync();
+            var admins = a.Select(x => x.Name).ToList();
+
+            serverData.ServerAdminList = admins;
+
+            var adminData = JsonConvert.SerializeObject(admins, Formatting.Indented);
+
+            await File.WriteAllTextAsync(serverData.ServerAdminListPath, adminData);
+        }
+
         private void SendToEachRunningServer(string data)
         {
             var clients = _factorioProcessHub.Clients;
@@ -305,7 +323,8 @@ namespace FactorioWebInterface.Models
 
         private async Task PrepareServer(FactorioServerData serverData)
         {
-            var task = BuildBanList(serverData);
+            var banTask = BuildBanList(serverData);
+            var adminTask = BuildAdminList(serverData);
 
             serverData.TrackingDataSets.Clear();
 
@@ -314,7 +333,8 @@ namespace FactorioWebInterface.Models
 
             RotateLogs(serverData);
 
-            await task;
+            await banTask;
+            await adminTask;
         }
 
         public bool IsValidServerId(string serverId)
@@ -1072,35 +1092,35 @@ namespace FactorioWebInterface.Models
             {
                 case Constants.ChatTag:
                     content = SanitizeGameChat(content);
-                    _ = _discordBot.SendToFactorioChannel(serverId, content);
+                    _ = _discordBotContext.SendToFactorioChannel(serverId, content);
                     break;
                 case Constants.ShoutTag:
                     content = SanitizeGameChat(content);
-                    _ = _discordBot.SendToFactorioChannel(serverId, content);
+                    _ = _discordBotContext.SendToFactorioChannel(serverId, content);
                     break;
                 case Constants.DiscordTag:
                     content = content.Replace("\\n", "\n");
                     content = SanitizeGameChat(content);
-                    _ = _discordBot.SendToFactorioChannel(serverId, content);
+                    _ = _discordBotContext.SendToFactorioChannel(serverId, content);
                     break;
                 case Constants.DiscordRawTag:
                     content = content.Replace("\\n", "\n");
-                    _ = _discordBot.SendToFactorioChannel(serverId, content);
+                    _ = _discordBotContext.SendToFactorioChannel(serverId, content);
                     break;
                 case Constants.DiscordBold:
                     content = content.Replace("\\n", "\n");
                     content = SanitizeGameChat(content);
                     content = Formatter.Bold(content);
-                    _ = _discordBot.SendToFactorioChannel(serverId, content);
+                    _ = _discordBotContext.SendToFactorioChannel(serverId, content);
                     break;
                 case Constants.DiscordAdminTag:
                     content = content.Replace("\\n", "\n");
                     content = SanitizeGameChat(content);
-                    _ = _discordBot.SendToFactorioAdminChannel(content);
+                    _ = _discordBotContext.SendToFactorioAdminChannel(content);
                     break;
                 case Constants.DiscordAdminRawTag:
                     content = content.Replace("\\n", "\n");
-                    _ = _discordBot.SendToFactorioAdminChannel(content);
+                    _ = _discordBotContext.SendToFactorioAdminChannel(content);
                     break;
                 case Constants.PlayerJoinTag:
                     _ = DoPlayerJoined(serverId, content);
@@ -1123,7 +1143,7 @@ namespace FactorioWebInterface.Models
                             Timestamp = DateTimeOffset.UtcNow
                         };
 
-                        _ = _discordBot.SendEmbedToFactorioChannel(serverId, embed);
+                        _ = _discordBotContext.SendEmbedToFactorioChannel(serverId, embed);
                         break;
                     }
                 case Constants.DiscordEmbedRawTag:
@@ -1137,7 +1157,7 @@ namespace FactorioWebInterface.Models
                             Timestamp = DateTimeOffset.UtcNow
                         };
 
-                        _ = _discordBot.SendEmbedToFactorioChannel(serverId, embed);
+                        _ = _discordBotContext.SendEmbedToFactorioChannel(serverId, embed);
                         break;
                     }
 
@@ -1153,7 +1173,7 @@ namespace FactorioWebInterface.Models
                             Timestamp = DateTimeOffset.UtcNow
                         };
 
-                        _ = _discordBot.SendEmbedToFactorioAdminChannel(embed);
+                        _ = _discordBotContext.SendEmbedToFactorioAdminChannel(embed);
                         break;
                     }
                 case Constants.DiscordAdminEmbedRawTag:
@@ -1167,7 +1187,7 @@ namespace FactorioWebInterface.Models
                             Timestamp = DateTimeOffset.UtcNow
                         };
 
-                        _ = _discordBot.SendEmbedToFactorioAdminChannel(embed);
+                        _ = _discordBotContext.SendEmbedToFactorioAdminChannel(embed);
                         break;
                     }
                 case Constants.StartScenarioTag:
@@ -1261,7 +1281,7 @@ namespace FactorioWebInterface.Models
             }
 
             string safeName = SanitizeGameChat(name);
-            var t1 = _discordBot.SendToFactorioChannel(serverId, $"**{safeName} has joined the game**");
+            var t1 = _discordBotContext.SendToFactorioChannel(serverId, $"**{safeName} has joined the game**");
 
             string topic;
 
@@ -1288,7 +1308,7 @@ namespace FactorioWebInterface.Models
                 serverData.ServerLock.Release();
             }
 
-            await _discordBot.SetChannelNameAndTopic(serverId, topic: topic);
+            await _discordBotContext.SetChannelNameAndTopic(serverId, topic: topic);
             await t1;
         }
 
@@ -1306,7 +1326,7 @@ namespace FactorioWebInterface.Models
             }
 
             string safeName = SanitizeGameChat(name);
-            var t1 = _discordBot.SendToFactorioChannel(serverId, $"**{safeName} has left the game**");
+            var t1 = _discordBotContext.SendToFactorioChannel(serverId, $"**{safeName} has left the game**");
 
             string topic;
 
@@ -1341,7 +1361,7 @@ namespace FactorioWebInterface.Models
                 serverData.ServerLock.Release();
             }
 
-            await _discordBot.SetChannelNameAndTopic(serverId, topic: topic);
+            await _discordBotContext.SetChannelNameAndTopic(serverId, topic: topic);
             await t1;
         }
 
@@ -1392,7 +1412,7 @@ namespace FactorioWebInterface.Models
                 serverData.ServerLock.Release();
             }
 
-            await _discordBot.SetChannelNameAndTopic(serverId, topic: topic);
+            await _discordBotContext.SetChannelNameAndTopic(serverId, topic: topic);
         }
 
         private async Task DoTrackedData(string serverId, string content)
@@ -1845,7 +1865,11 @@ namespace FactorioWebInterface.Models
                 var command = $"/ban {player} {reason}";
                 command.Substring(0, command.Length - 1);
 
-                _ = SendToFactorioProcess(serverId, command);
+                // /ban doesn't support names with spaces.
+                if (!player.Contains(' '))
+                {
+                    _ = SendToFactorioProcess(serverId, command);
+                }
 
                 if (!servers.TryGetValue(serverId, out var sourceServerData))
                 {
@@ -1858,25 +1882,31 @@ namespace FactorioWebInterface.Models
                     return;
                 }
 
-                SendBanCommandToEachRunningServerExcept(command, serverId);
+                // /ban doesn't support names with spaces.
+                if (!player.Contains(' '))
+                {
+                    SendBanCommandToEachRunningServerExcept(command, serverId);
+                }
 
                 await AddBanToDatabase(ban);
 
             }
             else if (data.StartsWith("/unban"))
             {
-                string[] words = data.Split(' ');
-
-                if (words.Length < 2)
+                if (data.Length < 8)
                 {
                     return;
                 }
 
-                string player = words[1];
+                string player = data.Substring(6).Trim();
 
                 var command = $"/unban {player}";
 
-                _ = SendToFactorioProcess(serverId, command);
+                // /unban doesn't support names with spaces.
+                if (!player.Contains(' '))
+                {
+                    _ = SendToFactorioProcess(serverId, command);
+                }
 
                 if (!servers.TryGetValue(serverId, out var sourceServerData))
                 {
@@ -1889,7 +1919,11 @@ namespace FactorioWebInterface.Models
                     return;
                 }
 
-                SendBanCommandToEachRunningServerExcept(command, serverId);
+                // /unban doesn't support names with spaces.
+                if (!player.Contains(' '))
+                {
+                    SendBanCommandToEachRunningServerExcept(command, serverId);
+                }
 
                 await RemoveBanFromDatabase(player, userName);
             }
@@ -1927,10 +1961,14 @@ namespace FactorioWebInterface.Models
 
             if (synchronizeWithServers)
             {
-                var command = $"/ban {ban.Username} {ban.Reason}";
-                command.Substring(0, command.Length - 1);
+                // /ban doesn't support names with spaces.
+                if (!ban.Username.Contains(' '))
+                {
+                    var command = $"/ban {ban.Username} {ban.Reason}";
+                    command.Substring(0, command.Length - 1);
 
-                SendBanCommandToEachRunningServer(command);
+                    SendBanCommandToEachRunningServer(command);
+                }
             }
 
             bool added = await AddBanToDatabase(ban);
@@ -1964,9 +2002,12 @@ namespace FactorioWebInterface.Models
 
             if (synchronizeWithServers)
             {
-                var command = $"/unban {username}";
-
-                SendBanCommandToEachRunningServer(command);
+                // /unban doesn't support names with spaces.
+                if (!username.Contains(' '))
+                {
+                    var command = $"/unban {username}";
+                    SendBanCommandToEachRunningServer(command);
+                }
             }
 
             await RemoveBanFromDatabase(username, admin);
@@ -2052,36 +2093,45 @@ namespace FactorioWebInterface.Models
                 return;
             }
 
-            string[] words = content.Split(' ');
+            int index = content.IndexOf(" was banned by ");
 
-            if (words.Length < 7)
+            if (index < 0)
             {
                 return;
             }
 
-            string player = words[0];
-
-            int index = 4;
-            if (words[1] == "(not")
+            string player = content.Substring(0, index).Trim();
+            if (player.EndsWith(" (not on map)"))
             {
-                if (words.Length < 10)
-                {
-                    return;
-                }
-                index += 3;
+                player = player.Substring(0, player.Length - 13);
             }
 
-            string admin = words[index];
+            index = index + 15;
+
+            if (index >= content.Length)
+            {
+                return;
+            }
+
+            string rest = content.Substring(index);
+
+            string[] words = rest.Split(' ');
+            if (words.Length < 2)
+            {
+                return;
+            }
+
+            string admin = words[0];
 
             if (admin == "<server>.")
             {
                 return;
             }
 
-            index++;
+            int reasonIndex = 1;
 
             // If the admin has a tag, that will appear after their name.
-            if (words[index] == "Reason:")
+            if (words[reasonIndex] == "Reason:")
             {
                 // case no tag, remove '.' at end of name.
                 admin = admin.Substring(0, admin.Length - 1);
@@ -2091,17 +2141,30 @@ namespace FactorioWebInterface.Models
                 // case tag, keep going utill we find 'Reason:'
                 do
                 {
-                    index++;
-                } while (words[index] != "Reason:");
+                    reasonIndex++;
+                    if (reasonIndex >= words.Length)
+                    {
+                        return;
+                    }
+                } while (words[reasonIndex] != "Reason:");
             }
 
-            index += 1;
-            string reason = string.Join(' ', words, index, words.Length - index);
+            reasonIndex += 1;
+            string reason = string.Join(' ', words, reasonIndex, words.Length - reasonIndex);
 
-            var command = $"/ban {player} {reason}";
-            command.Substring(0, command.Length - 1);
+            // /ban doesn't support names with spaces.
+            if (!player.Contains(' '))
+            {
+                var command = $"/ban {player} {reason}";
+                command.Substring(0, command.Length - 1);
 
-            SendBanCommandToEachRunningServerExcept(command, serverId);
+                SendBanCommandToEachRunningServerExcept(command, serverId);
+            }
+
+            if (reason.EndsWith(".."))
+            {
+                reason = reason.Substring(0, reason.Length - 1);
+            }
 
             var ban = new Ban()
             {
@@ -2150,10 +2213,14 @@ namespace FactorioWebInterface.Models
 
             ban.DateTime = DateTime.UtcNow;
 
-            var command = $"/ban {ban.Username} {ban.Reason}";
-            command.Substring(0, command.Length - 1);
+            // /ban doesn't support names with spaces.
+            if (!ban.Username.Contains(' '))
+            {
+                var command = $"/ban {ban.Username} {ban.Reason}";
+                command.Substring(0, command.Length - 1);
 
-            SendBanCommandToEachRunningServerExcept(command, serverId);
+                SendBanCommandToEachRunningServerExcept(command, serverId);
+            }
 
             await AddBanToDatabase(ban);
         }
@@ -2196,23 +2263,27 @@ namespace FactorioWebInterface.Models
                 return;
             }
 
-            string[] words = content.Split(' ');
-            if (words.Length < 5)
+            int index = content.IndexOf(" was unbanned by ");
+
+            if (index < 0)
             {
                 return;
             }
 
-            string admin = words[4];
+            string player = content.Substring(0, index).Trim();
+            string admin = content.Substring(index + 17).Trim();
+
             if (admin == "<server>.")
             {
                 return;
             }
 
-            string player = words[0];
-
-            var command = $"/unban {player}";
-
-            SendBanCommandToEachRunningServerExcept(command, serverId);
+            // /unban doesn't support names with spaces.
+            if (!player.Contains(' '))
+            {
+                var command = $"/unban {player}";
+                SendBanCommandToEachRunningServerExcept(command, serverId);
+            }
 
             await RemoveBanFromDatabase(player, admin);
         }
@@ -2251,8 +2322,12 @@ namespace FactorioWebInterface.Models
                 ban.Admin = "<script>";
             }
 
-            var command = $"/unban {ban.Username}";
-            SendBanCommandToEachRunningServerExcept(command, serverId);
+            // /unban doesn't support names with spaces.
+            if (!ban.Username.Contains(' '))
+            {
+                var command = $"/unban {ban.Username}";
+                SendBanCommandToEachRunningServerExcept(command, serverId);
+            }
 
             await RemoveBanFromDatabase(ban.Username, ban.Admin);
         }
@@ -2281,14 +2356,14 @@ namespace FactorioWebInterface.Models
                 Color = DiscordBot.successColor,
                 Timestamp = DateTimeOffset.UtcNow
             };
-            var t2 = _discordBot.SendEmbedToFactorioChannel(serverId, embed);
+            var t2 = _discordBotContext.SendEmbedToFactorioChannel(serverId, embed);
 
             string name = null;
             if (serverData.ExtraServerSettings.SetDiscordChannelName)
             {
                 name = $"s{serverId}-{serverData.ServerSettings.Name}";
             }
-            var t3 = _discordBot.SetChannelNameAndTopic(serverData.ServerId, name: name, topic: "Players online 0");
+            var t3 = _discordBotContext.SetChannelNameAndTopic(serverData.ServerId, name: name, topic: "Players online 0");
 
             await t1;
             await ServerConnected(serverData);
@@ -2337,7 +2412,7 @@ namespace FactorioWebInterface.Models
                 name = $"s{serverId}-offline";
             }
 
-            await _discordBot.SetChannelNameAndTopic(serverId, name: name, topic: "Server offline");
+            await _discordBotContext.SetChannelNameAndTopic(serverId, name: name, topic: "Server offline");
         }
 
         public async Task StatusChanged(string serverId, FactorioServerStatus newStatus, FactorioServerStatus oldStatus)
@@ -2385,7 +2460,7 @@ namespace FactorioWebInterface.Models
                     Color = DiscordBot.infoColor,
                     Timestamp = DateTimeOffset.UtcNow
                 };
-                discordTask = _discordBot.SendEmbedToFactorioChannel(serverId, embed);
+                discordTask = _discordBotContext.SendEmbedToFactorioChannel(serverId, embed);
 
                 _ = MarkChannelOffline(serverData);
                 await DoStoppedCallback(serverData);
@@ -2399,7 +2474,7 @@ namespace FactorioWebInterface.Models
                     Color = DiscordBot.failureColor,
                     Timestamp = DateTimeOffset.UtcNow
                 };
-                discordTask = _discordBot.SendEmbedToFactorioChannel(serverId, embed);
+                discordTask = _discordBotContext.SendEmbedToFactorioChannel(serverId, embed);
                 _ = MarkChannelOffline(serverData);
             }
 
@@ -3104,18 +3179,14 @@ namespace FactorioWebInterface.Models
             {
                 serverSettings = FactorioServerSettings.MakeDefault(_configuration);
 
-                var a = await GetAdminsAsync();
-                serverSettings.Admins = a.Select(x => x.Name).ToList();
-
                 serverData.ServerSettings = serverSettings;
 
                 var data = JsonConvert.SerializeObject(serverSettings, Formatting.Indented);
                 using (var fs = fi.CreateText())
                 {
                     await fs.WriteAsync(data);
+                    await fs.FlushAsync();
                 }
-
-                return serverSettings;
             }
             else
             {
@@ -3126,9 +3197,38 @@ namespace FactorioWebInterface.Models
                 }
 
                 serverData.ServerSettings = serverSettings;
-
-                return serverSettings;
             }
+
+            return serverSettings;
+        }
+
+        private async Task<List<string>> GetServerAdminList(FactorioServerData serverData)
+        {
+            var adminList = serverData.ServerAdminList;
+
+            if (adminList != null)
+            {
+                return adminList;
+            }
+
+            var a = await GetAdminsAsync();
+            adminList = a.Select(x => x.Name).ToList();
+
+            serverData.ServerAdminList = adminList;
+
+            var fi = new FileInfo(serverData.ServerAdminListPath);
+
+            if (!fi.Exists)
+            {
+                var data = JsonConvert.SerializeObject(adminList, Formatting.Indented);
+                using (var fs = fi.CreateText())
+                {
+                    await fs.WriteAsync(data);
+                    await fs.FlushAsync();
+                }
+            }
+
+            return adminList;
         }
 
         public async Task<FactorioServerSettingsWebEditable> GetEditableServerSettings(string serverId)
@@ -3143,26 +3243,23 @@ namespace FactorioWebInterface.Models
             {
                 await serverData.ServerLock.WaitAsync();
 
-                var serverSettigns = await GetServerSettings(serverData);
-
-                if (serverSettigns == null)
-                {
-                    return new FactorioServerSettingsWebEditable();
-                }
+                var serverSettings = await GetServerSettings(serverData);
+                var adminList = await GetServerAdminList(serverData);
 
                 var editableSettings = new FactorioServerSettingsWebEditable()
                 {
-                    Name = serverSettigns.Name,
-                    Description = serverSettigns.Description,
-                    Tags = serverSettigns.Tags,
-                    MaxPlayers = serverSettigns.MaxPlayers,
-                    GamePassword = serverSettigns.GamePassword,
-                    AutoPause = serverSettigns.AutoPause,
-                    Admins = serverSettigns.Admins,
-                    AutosaveInterval = serverSettigns.AutosaveInterval,
-                    AutosaveSlots = serverSettigns.AutosaveSlots,
-                    NonBlockingSaving = serverSettigns.NonBlockingSaving,
-                    PublicVisible = serverSettigns.Visibility.Public
+                    Name = serverSettings.Name,
+                    Description = serverSettings.Description,
+                    Tags = serverSettings.Tags,
+                    MaxPlayers = serverSettings.MaxPlayers,
+                    GamePassword = serverSettings.GamePassword,
+                    AutoPause = serverSettings.AutoPause,
+                    UseDefaultAdmins = serverSettings.UseDefaultAdmins,
+                    Admins = adminList,
+                    AutosaveInterval = serverSettings.AutosaveInterval,
+                    AutosaveSlots = serverSettings.AutosaveSlots,
+                    NonBlockingSaving = serverSettings.NonBlockingSaving,
+                    PublicVisible = serverSettings.Visibility.Public
                 };
 
                 return editableSettings;
@@ -3172,7 +3269,6 @@ namespace FactorioWebInterface.Models
                 serverData.ServerLock.Release();
             }
         }
-
 
         public async Task<Result> SaveEditableServerSettings(string serverId, FactorioServerSettingsWebEditable settings)
         {
@@ -3194,6 +3290,7 @@ namespace FactorioWebInterface.Models
                 serverSettigns.MaxPlayers = settings.MaxPlayers < 0 ? 0 : settings.MaxPlayers;
                 serverSettigns.GamePassword = settings.GamePassword;
                 serverSettigns.AutoPause = settings.AutoPause;
+                serverSettigns.UseDefaultAdmins = settings.UseDefaultAdmins;
                 serverSettigns.AutosaveSlots = settings.AutosaveSlots < 0 ? 0 : settings.AutosaveSlots;
                 serverSettigns.AutosaveInterval = settings.AutosaveInterval < 1 ? 1 : settings.AutosaveInterval;
                 serverSettigns.NonBlockingSaving = settings.NonBlockingSaving;
@@ -3201,9 +3298,7 @@ namespace FactorioWebInterface.Models
 
                 List<string> admins;
 
-                int count = settings.Admins.Count(x => !string.IsNullOrWhiteSpace(x));
-
-                if (count != 0)
+                if (!settings.UseDefaultAdmins)
                 {
                     admins = settings.Admins.Select(x => x.Trim())
                         .Where(x => !string.IsNullOrWhiteSpace(x))
@@ -3215,11 +3310,13 @@ namespace FactorioWebInterface.Models
                     admins = a.Select(x => x.Name).ToList();
                 }
 
-                serverSettigns.Admins = admins;
+                serverData.ServerAdminList = admins;
 
-                var data = JsonConvert.SerializeObject(serverSettigns, Formatting.Indented);
+                var settingsData = JsonConvert.SerializeObject(serverSettigns, Formatting.Indented);
+                var adminData = JsonConvert.SerializeObject(admins, Formatting.Indented);
 
-                await File.WriteAllTextAsync(serverData.ServerSettingsPath, data);
+                await File.WriteAllTextAsync(serverData.ServerSettingsPath, settingsData);
+                await File.WriteAllTextAsync(serverData.ServerAdminListPath, adminData);
 
                 return Result.OK;
             }

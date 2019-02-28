@@ -50,6 +50,7 @@ interface FactorioServerSettings {
     max_players: number;
     game_password: string;
     auto_pause: boolean;
+    use_default_admins: boolean;
     admins: string[];
     autosave_interval: number;
     autosave_slots: number;
@@ -116,6 +117,7 @@ const configTagsInput = document.getElementById('configTagsInput') as HTMLElemen
 const configMaxPlayersInput = document.getElementById('configMaxPlayersInput') as HTMLInputElement;
 const configPasswordInput = document.getElementById('configPasswordInput') as HTMLInputElement;
 const configPauseInput = document.getElementById('configPauseInput') as HTMLInputElement;
+const configAdminUseDefault = document.getElementById('configAdminUseDefault') as HTMLInputElement;
 const configAdminInput = document.getElementById('configAdminInput') as HTMLTextAreaElement;
 const configSaveButton = document.getElementById('configSaveButton') as HTMLButtonElement;
 const configAutoSaveIntervalInput = document.getElementById('configAutoSaveIntervalInput') as HTMLInputElement;
@@ -136,6 +138,10 @@ const connection = new signalR.HubConnectionBuilder()
 serverSelect.onchange = function (this: HTMLSelectElement) {
     window.location.href = `/admin/servers/${this.value}`;
 };
+
+configAdminUseDefault.onchange = () => {
+    configAdminInput.disabled = configAdminUseDefault.checked;
+}
 
 async function getFiles() {
     let tempFiles = await connection.invoke('GetTempSaveFiles') as FileMetaData[];
@@ -204,11 +210,14 @@ async function getSettings() {
     configMaxPlayersInput.value = settings.max_players + "";
     configPasswordInput.value = settings.game_password;
     configPauseInput.checked = settings.auto_pause;
+    configAdminUseDefault.checked = settings.use_default_admins;
     configAdminInput.value = settings.admins.join(', ');
     configAutoSaveIntervalInput.value = settings.autosave_interval + "";
     configAutoSaveSlotsInput.value = settings.autosave_slots + "";
     configNonBlockingSavingInput.checked = settings.non_blocking_saving;
     configPublicVisibleInput.checked = settings.public_visible;
+
+    configAdminInput.disabled = settings.use_default_admins;
 
     serverName.innerText = settings.name;
 }
@@ -969,6 +978,7 @@ configSaveButton.onclick = async () => {
         max_players: max_players,
         game_password: configPasswordInput.value,
         auto_pause: configPauseInput.checked,
+        use_default_admins: configAdminUseDefault.checked,
         admins: configAdminInput.value.split(','),
         autosave_interval: interval,
         autosave_slots: slots,

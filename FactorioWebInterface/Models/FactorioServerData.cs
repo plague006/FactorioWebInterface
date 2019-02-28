@@ -1,6 +1,6 @@
 ﻿using DSharpPlus;
-using Shared;
 using Newtonsoft.Json;
+using Shared;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -36,6 +36,7 @@ namespace FactorioWebInterface.Models
         public string ServerSettingsPath { get; set; }
         public string serverExtraSettingsPath { get; set; }
         public string ServerBanListPath { get; set; }
+        public string ServerAdminListPath { get; set; }
         public string Port { get; set; }
         public bool IsRemote { get; set; }
         public string SshIdentity { get; set; }
@@ -43,6 +44,7 @@ namespace FactorioWebInterface.Models
         public RingBuffer<MessageData> ControlMessageBuffer { get; set; }
         public FactorioServerSettings ServerSettings { get; set; }
         public FactorioServerExtraSettings ExtraServerSettings { get; set; }
+        public List<string> ServerAdminList { get; set; }
         //public bool SyncBans { get; set; }
         //public bool BuildBansFromDatabaseOnStart { get; set; }
 
@@ -86,6 +88,7 @@ namespace FactorioWebInterface.Models
                     ArchiveLogsDirectoryPath = Path.Combine(basePath, Constants.LogArchiveDirectoryName),
                     CurrentLogPath = Path.Combine(basePath, Constants.CurrentLogFileName),
                     ServerBanListPath = Path.Combine(basePath, Constants.ServerBanListFileName),
+                    ServerAdminListPath = Path.Combine(basePath, Constants.ServerAdminListFileName),
                     Port = port,
                     ServerLock = new SemaphoreSlim(1, 1),
                     ControlMessageBuffer = new RingBuffer<MessageData>(bufferSize),

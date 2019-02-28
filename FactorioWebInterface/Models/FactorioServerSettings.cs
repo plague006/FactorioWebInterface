@@ -58,18 +58,19 @@ namespace FactorioWebInterface.Models
         [JsonProperty(PropertyName = "auto_pause")]
         public bool AutoPause { get; set; }
 
+        [JsonProperty(PropertyName = "use_default_admins", DefaultValueHandling = DefaultValueHandling.Populate)]
+        [DefaultValue(true)]
+        public bool UseDefaultAdmins { get; set; }
+
         [JsonProperty(PropertyName = "only_admins_can_pause_the_game")]
         public bool OnlyAdminsCanPauseTheGame { get; set; }
 
         [JsonProperty(PropertyName = "autosave_only_on_server", DefaultValueHandling = DefaultValueHandling.Populate)]
-        [DefaultValue(true)]        
+        [DefaultValue(true)]
         public bool AutosaveOnlyOnServer { get; set; }
 
         [JsonProperty(PropertyName = "non_blocking_saving")]
         public bool NonBlockingSaving { get; set; }
-
-        [JsonProperty(PropertyName = "admins")]
-        public List<string> Admins { get; set; }
 
         public static FactorioServerSettings MakeDefault(IConfiguration configuration) => new FactorioServerSettings()
         {
@@ -90,10 +91,10 @@ namespace FactorioWebInterface.Models
             AutosaveSlots = 20,
             AfkAutokickInterval = 0,
             AutoPause = true,
+            UseDefaultAdmins = true,
             OnlyAdminsCanPauseTheGame = true,
             AutosaveOnlyOnServer = true,
-            NonBlockingSaving = false,
-            Admins = new List<string>()
+            NonBlockingSaving = false
         };
     }
 
