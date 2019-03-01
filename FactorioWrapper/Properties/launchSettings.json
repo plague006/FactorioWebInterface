@@ -2,7 +2,7 @@
   "profiles": {
     "FactorioWrapper": {
       "commandName": "Project",
-      "commandLineArgs": "6 \"/factorio/6/bin/x64/factorio\" \"--start-server-load-latest\" \"--server-settings\" \"/factorio/1/server-settings.json\" \"--port\" \"34206\""
+      "commandLineArgs": "1 /factorio/1/bin/x64/factorio.exe --start-server vanilla_17_2.zip --server-settings /factorio/1/server-settings.json --port 34201"
     }
   }
 }

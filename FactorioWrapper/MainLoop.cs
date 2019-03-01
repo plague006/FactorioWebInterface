@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
+using RconSharp;
 using Serilog;
 using Shared;
 using Shared.Utils;
@@ -23,7 +24,12 @@ namespace FactorioWrapper
         private readonly Settings settings;
         private readonly string serverId;
         private readonly string factorioFileName;
+
+#if WINDOWS
+        private string factorioArguments;
+#else
         private readonly string factorioArguments;
+#endif
 
         // This is to stop multiple threads writing to the factorio process concurrently.
         private readonly SemaphoreSlim factorioProcessLock = new SemaphoreSlim(1, 1);
@@ -41,12 +47,56 @@ namespace FactorioWrapper
         private volatile FactorioServerStatus status = FactorioServerStatus.WrapperStarting;
         private readonly SingleConsumerQueue<Func<Task>> messageQueue;
 
+#if WINDOWS
+        private volatile RconMessenger rcon;
+        private int rconPort;
+        private const string rconPassword = "no_one_will_guess_this_awesome_password.";
+
+        private void PrependRconArguments()
+        {
+            int index = factorioArguments.IndexOf("--port");
+
+            int start = index + 7;
+            int end = factorioArguments.IndexOf(' ', start);
+            if (end == -1)
+            {
+                end = factorioArguments.Length;
+            }
+
+            string port = factorioArguments.Substring(start, end - start);
+
+            int.TryParse(port, out rconPort);
+
+            factorioArguments += $" --rcon-port {rconPort} --rcon-password {rconPassword}";
+        }
+
+        private async Task ConnectRCON()
+        {
+            try
+            {
+                await factorioProcessLock.WaitAsync();
+
+                rcon = new RconMessenger();
+                bool isConnected = await rcon.ConnectAsync("127.0.0.1", rconPort);
+                bool authenticated = await rcon.AuthenticateAsync(rconPassword);
+            }
+            finally
+            {
+                factorioProcessLock.Release();
+            }
+        }
+#endif
+
         public MainLoop(Settings settings, string serverId, string factorioFileName, string factorioArguments)
         {
             this.settings = settings;
             this.serverId = serverId;
             this.factorioFileName = factorioFileName;
             this.factorioArguments = factorioArguments;
+
+#if WINDOWS
+            PrependRconArguments();
+#endif
 
             messageQueue = new SingleConsumerQueue<Func<Task>>(maxMessageQueueSize, async func =>
             {
@@ -178,7 +228,11 @@ namespace FactorioWrapper
                 var p = factorioProcess;
                 if (p != null && !p.HasExited)
                 {
+#if WINDOWS
+                    rcon?.ExecuteCommandAsync(data);
+#else
                     await p.StandardInput.WriteLineAsync(data);
+#endif
                 }
             }
             catch (Exception e)
@@ -356,6 +410,8 @@ namespace FactorioWrapper
             }
         }
 
+
+
         private async void FactorioProcess_OutputDataReceived(object sender, DataReceivedEventArgs e)
         {
             var data = e.Data;
@@ -381,6 +437,9 @@ namespace FactorioWrapper
 
                     if (line.StartsWith("Factorio initialised"))
                     {
+#if WINDOWS
+                        await ConnectRCON();
+#endif
                         lastUpdateTime = DateTime.UtcNow;
                         string command = BuildCurentTimeCommand(lastUpdateTime);
                         _ = SendToFactorio(command);
