@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using Shared;
 using Shared.Utils;
@@ -199,6 +200,7 @@ namespace FactorioWrapper
                 {
                     options.AccessTokenProvider = () => Task.FromResult(settings.Token);
                 })
+                .AddMessagePackProtocol()
                 .Build();
 
             connection.Closed += async (error) =>
