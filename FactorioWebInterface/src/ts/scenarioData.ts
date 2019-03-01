@@ -1,12 +1,13 @@
 ﻿import * as signalR from "@aspnet/signalr";
+import { MessagePackHubProtocol } from "@aspnet/signalr-protocol-msgpack"
 import * as $ from "jquery";
 
 !function () {
 
     interface ScenarioData {
-        data_set: string;
-        key: string;
-        value: string;
+        DataSet: string;
+        Key: string;
+        Value: string;
     }
 
     const dataTable = document.getElementById('dataTable') as HTMLTableElement;
@@ -83,6 +84,7 @@ import * as $ from "jquery";
 
     const connection = new signalR.HubConnectionBuilder()
         .withUrl("/scenarioDataHub")
+        .withHubProtocol(new MessagePackHubProtocol())
         .build();
 
     async function start() {
@@ -121,11 +123,11 @@ import * as $ from "jquery";
 
         for (let data of datas) {
             let row = document.createElement('tr');
-            createCell(row, data.key);
-            createCell(row, data.value);
+            createCell(row, data.Key);
+            createCell(row, data.Value);
             body.appendChild(row);
 
-            dataMap.set(data.key, row)
+            dataMap.set(data.Key, row)
 
             row.onclick = onRowClicked;
         }
@@ -146,36 +148,36 @@ import * as $ from "jquery";
     });
 
     connection.on('SendEntry', (data: ScenarioData) => {
-        if (data.data_set !== currentDataSet) {
+        if (data.DataSet !== currentDataSet) {
             return;
         }
 
         let jTable = $(dataTable);
         let rows: HTMLTableRowElement[] = jTable.data('rows');
 
-        if (data.value === null || data.value === undefined) {
-            if (dataMap.has(data.key)) {
-                let row = dataMap.get(data.key);
+        if (data.Value === null || data.Value === undefined) {
+            if (dataMap.has(data.Key)) {
+                let row = dataMap.get(data.Key);
                 row.remove();
                 let index = rows.indexOf(row)
                 rows.splice(index, 1);
-                dataMap.delete(data.key);
+                dataMap.delete(data.Key);
             }
         }
         else {
 
-            if (dataMap.has(data.key)) {
-                let row = dataMap.get(data.key);
-                row.cells[1].innerText = data.value
+            if (dataMap.has(data.Key)) {
+                let row = dataMap.get(data.Key);
+                row.cells[1].innerText = data.Value
             } else {
                 let body = dataTable.tBodies[0];
 
                 let row = document.createElement('tr');
-                createCell(row, data.key);
-                createCell(row, data.value);
+                createCell(row, data.Key);
+                createCell(row, data.Value);
                 body.appendChild(row);
 
-                dataMap.set(data.key, row)
+                dataMap.set(data.Key, row)
 
                 row.onclick = onRowClicked;
 
@@ -195,12 +197,12 @@ import * as $ from "jquery";
 
     updateButton.onclick = () => {
         let data = {} as ScenarioData;
-        data.data_set = dataSetInput.value;
-        data.key = keyInput.value;
+        data.DataSet = dataSetInput.value;
+        data.Key = keyInput.value;
 
         let value = valueInput.value;
         if (value.trim() !== "") {
-            data.value = value;
+            data.Value = value;
         }
 
         connection.invoke('UpdateData', data);

@@ -1,67 +1,68 @@
 ﻿import * as signalR from "@aspnet/signalr";
+import { MessagePackHubProtocol } from "@aspnet/signalr-protocol-msgpack"
 import * as $ from "jquery";
 
 enum MessageType {
-    Output,
-    Wrapper,
-    Control,
-    Status,
-    Discord
+    Output = "Output",
+    Wrapper = "Wrapper",
+    Control = "Control",
+    Status = "Status",
+    Discord = "Discord",
 }
 
 interface MessageData {
-    messageType: MessageType;
-    message: string;
+    MessageType: MessageType;
+    Message: string;
 }
 
 interface FileMetaData {
-    name: string;
-    directory: string;
-    createdTime: string;
-    lastModifiedTime: string;
-    size: number;
+    Name: string;
+    Directory: string;
+    CreatedTime: string;
+    LastModifiedTime: string;
+    Size: number;
 }
 
 interface ScenarioMetaData {
-    name: string;
-    createdTime: string;
-    lastModifiedTime: string;
+    Name: string;
+    CreatedTime: string;
+    LastModifiedTime: string;
 }
 
 interface FactorioContorlClientData {
-    status: string;
-    messages: MessageData[];
+    Status: string;
+    Messages: MessageData[];
 }
 
 interface Error {
-    key: string;
-    description: string;
+    Key: string;
+    Description: string;
 }
 
 interface Result {
-    success: boolean;
-    errors: Error[];
+    Success: boolean;
+    Errors: Error[];
 }
 
 interface FactorioServerSettings {
-    name: string;
-    description: string;
-    tags: string[];
-    max_players: number;
-    game_password: string;
-    auto_pause: boolean;
-    use_default_admins: boolean;
-    admins: string[];
-    autosave_interval: number;
-    autosave_slots: number;
-    non_blocking_saving: boolean;
-    public_visible: boolean;
+    Name: string;
+    Description: string;
+    Tags: string[];
+    MaxPlayers: number;
+    GamePassword: string;
+    AutoPause: boolean;
+    UseDefaultAdmins: boolean;
+    Admins: string[];
+    AutosaveInterval: number;
+    AutosaveSlots: number;
+    NonBlockingSaving: boolean;
+    PublicVisible: boolean;
 }
 
 interface FactorioServerExtraSettings {
-    syncBans: boolean;
-    buildBansFromDatabaseOnStart: boolean
-    setDiscordChannelName: boolean
+    SyncBans: boolean;
+    BuildBansFromDatabaseOnStart: boolean
+    SetDiscordChannelName: boolean
 }
 
 const maxMessageCount = 100;
@@ -134,6 +135,7 @@ let messageCount = 0;
 
 const connection = new signalR.HubConnectionBuilder()
     .withUrl("/factorioControlHub")
+    .withHubProtocol(new MessagePackHubProtocol())
     .build();
 
 serverSelect.onchange = function (this: HTMLSelectElement) {
@@ -195,12 +197,12 @@ function MakeTagInput(value: string) {
 async function getSettings() {
     let settings = await connection.invoke('GetServerSettings') as FactorioServerSettings;
 
-    configNameInput.value = settings.name;
-    configDescriptionInput.value = settings.description;
+    configNameInput.value = settings.Name;
+    configDescriptionInput.value = settings.Description;
 
     configTagsInput.innerHTML = '';
 
-    for (let item of settings.tags) {
+    for (let item of settings.Tags) {
         let input = MakeTagInput(item);
         configTagsInput.appendChild(input);
     }
@@ -208,27 +210,27 @@ async function getSettings() {
     let lastInput = MakeTagInput('');
     configTagsInput.appendChild(lastInput);
 
-    configMaxPlayersInput.value = settings.max_players + "";
-    configPasswordInput.value = settings.game_password;
-    configPauseInput.checked = settings.auto_pause;
-    configAdminUseDefault.checked = settings.use_default_admins;
-    configAdminInput.value = settings.admins.join(', ');
-    configAutoSaveIntervalInput.value = settings.autosave_interval + "";
-    configAutoSaveSlotsInput.value = settings.autosave_slots + "";
-    configNonBlockingSavingInput.checked = settings.non_blocking_saving;
-    configPublicVisibleInput.checked = settings.public_visible;
+    configMaxPlayersInput.value = settings.MaxPlayers + "";
+    configPasswordInput.value = settings.GamePassword;
+    configPauseInput.checked = settings.AutoPause;
+    configAdminUseDefault.checked = settings.UseDefaultAdmins;
+    configAdminInput.value = settings.Admins.join(', ');
+    configAutoSaveIntervalInput.value = settings.AutosaveInterval + "";
+    configAutoSaveSlotsInput.value = settings.AutosaveSlots + "";
+    configNonBlockingSavingInput.checked = settings.NonBlockingSaving;
+    configPublicVisibleInput.checked = settings.PublicVisible;
 
-    configAdminInput.disabled = settings.use_default_admins;
+    configAdminInput.disabled = settings.UseDefaultAdmins;
 
-    serverName.innerText = settings.name;
+    serverName.innerText = settings.Name;
 }
 
 async function getExtraSettings() {
     let settings = await connection.invoke('GetServerExtraSettings') as FactorioServerExtraSettings;
 
-    configSyncBans.checked = settings.syncBans;
-    configBuildBansFromDb.checked = settings.buildBansFromDatabaseOnStart;
-    configSetDiscordChannelName.checked = settings.setDiscordChannelName;
+    configSyncBans.checked = settings.SyncBans;
+    configBuildBansFromDb.checked = settings.BuildBansFromDatabaseOnStart;
+    configSetDiscordChannelName.checked = settings.SetDiscordChannelName;
 }
 
 async function getVersion() {
@@ -247,9 +249,9 @@ async function start() {
         getExtraSettings();
         getVersion();
 
-        statusText.innerText = data.status;
+        statusText.innerText = data.Status;
 
-        for (let message of data.messages) {
+        for (let message of data.Messages) {
             writeMessage(message);
         }
     } catch (ex) {
@@ -289,8 +291,8 @@ function send() {
 resumeButton.onclick = () => {
     connection.invoke("Resume")
         .then((result: Result) => {
-            if (!result.success) {
-                alert(JSON.stringify(result.errors));
+            if (!result.Success) {
+                alert(JSON.stringify(result.Errors));
             }
         });
 }
@@ -309,8 +311,8 @@ loadButton.onclick = () => {
 
     connection.invoke("Load", dir, name)
         .then((result: Result) => {
-            if (!result.success) {
-                alert(JSON.stringify(result.errors));
+            if (!result.Success) {
+                alert(JSON.stringify(result.Errors));
             }
         });
 }
@@ -328,8 +330,8 @@ startScenarioButton.onclick = () => {
 
     connection.invoke("StartScenario", name)
         .then((result: Result) => {
-            if (!result.success) {
-                alert(JSON.stringify(result.errors));
+            if (!result.Success) {
+                alert(JSON.stringify(result.Errors));
             }
         });
 }
@@ -337,8 +339,8 @@ startScenarioButton.onclick = () => {
 stopButton.onclick = () => {
     connection.invoke("Stop")
         .then((result: Result) => {
-            if (!result.success) {
-                alert(JSON.stringify(result.errors));
+            if (!result.Success) {
+                alert(JSON.stringify(result.Errors));
             }
         });
 }
@@ -346,8 +348,8 @@ stopButton.onclick = () => {
 saveButton.onclick = () => {
     connection.invoke("Save")
         .then((result: Result) => {
-            if (!result.success) {
-                alert(JSON.stringify(result.errors));
+            if (!result.Success) {
+                alert(JSON.stringify(result.Errors));
             }
         });
 };
@@ -355,8 +357,8 @@ saveButton.onclick = () => {
 async function install(version: string) {
     let result: Result = await connection.invoke("Update", version);
 
-    if (!result.success) {
-        alert(JSON.stringify(result.errors));
+    if (!result.Success) {
+        alert(JSON.stringify(result.Errors));
     }
 }
 
@@ -446,8 +448,8 @@ connection.on('SendCachedVersions', (versions: string[]) => {
 forceStopButton.onclick = () => {
     connection.invoke("ForceStop")
         .then((result: Result) => {
-            if (!result.success) {
-                alert(JSON.stringify(result.errors));
+            if (!result.Success) {
+                alert(JSON.stringify(result.Errors));
             }
         });
 }
@@ -460,23 +462,23 @@ function writeMessage(message: MessageData): void {
     let div = document.createElement("div");
     let data: string;
 
-    switch (message.messageType) {
+    switch (message.MessageType) {
         case MessageType.Output:
-            data = `${message.message}`;
+            data = `${message.Message}`;
             break;
         case MessageType.Wrapper:
-            data = `[Wrapper] ${message.message}`;
+            data = `[Wrapper] ${message.Message}`;
             break;
         case MessageType.Control:
             div.classList.add('has-background-warning');
-            data = `[Control] ${message.message}`;
+            data = `[Control] ${message.Message}`;
             break;
         case MessageType.Discord:
-            data = message.message;
+            data = message.Message;
             break;
         case MessageType.Status:
             div.classList.add('has-background-info', 'has-text-white');
-            data = message.message;
+            data = message.Message;
             break;
         default:
             data = "";
@@ -549,31 +551,31 @@ function updateFileTable(table: HTMLTableElement, files: FileMetaData[]) {
         let checkbox = document.createElement('input') as HTMLInputElement;
         checkbox.type = 'checkbox';
         checkbox.name = 'fileCheckbox';
-        checkbox.setAttribute('data-directory', file.directory);
-        checkbox.setAttribute('data-name', file.name);
+        checkbox.setAttribute('data-directory', file.Directory);
+        checkbox.setAttribute('data-name', file.Name);
         cell.appendChild(checkbox);
         row.appendChild(cell);
 
         let cell2 = document.createElement('td');
         let link = document.createElement('a') as HTMLAnchorElement;
-        link.innerText = file.name;
-        link.href = `/admin/servers?handler=file&directory=${file.directory}&name=${file.name}`;
+        link.innerText = file.Name;
+        link.href = `/admin/servers?handler=file&directory=${file.Directory}&name=${file.Name}`;
         cell2.appendChild(link);
         row.appendChild(cell2);
 
         let cell3 = document.createElement('td');
-        cell3.innerText = formatDate(file.createdTime);
-        cell3.setAttribute('data-date', file.createdTime);
+        cell3.innerText = formatDate(file.CreatedTime);
+        cell3.setAttribute('data-date', file.CreatedTime);
         row.appendChild(cell3);
 
         let cell4 = document.createElement('td');
-        cell4.innerText = formatDate(file.lastModifiedTime);
-        cell4.setAttribute('data-date', file.lastModifiedTime);
+        cell4.innerText = formatDate(file.LastModifiedTime);
+        cell4.setAttribute('data-date', file.LastModifiedTime);
         row.appendChild(cell4);
 
         let cell5 = document.createElement('td');
-        cell5.innerText = bytesToSize(file.size);
-        cell5.setAttribute('data-size', file.size.toString());
+        cell5.innerText = bytesToSize(file.Size);
+        cell5.setAttribute('data-size', file.Size.toString());
         row.appendChild(cell5);
 
         body.appendChild(row);
@@ -626,24 +628,24 @@ function updateLogFileTable(table: HTMLTableElement, files: FileMetaData[]) {
 
         let cell2 = document.createElement('td');
         let link = document.createElement('a') as HTMLAnchorElement;
-        link.innerText = file.name;
-        link.href = `/admin/servers?handler=logFile&directory=${file.directory}&name=${file.name}`;
+        link.innerText = file.Name;
+        link.href = `/admin/servers?handler=logFile&directory=${file.Directory}&name=${file.Name}`;
         cell2.appendChild(link);
         row.appendChild(cell2);
 
         let cell3 = document.createElement('td');
-        cell3.innerText = formatDate(file.createdTime);
-        cell3.setAttribute('data-date', file.createdTime);
+        cell3.innerText = formatDate(file.CreatedTime);
+        cell3.setAttribute('data-date', file.CreatedTime);
         row.appendChild(cell3);
 
         let cell4 = document.createElement('td');
-        cell4.innerText = formatDate(file.lastModifiedTime);
-        cell4.setAttribute('data-date', file.lastModifiedTime);
+        cell4.innerText = formatDate(file.LastModifiedTime);
+        cell4.setAttribute('data-date', file.LastModifiedTime);
         row.appendChild(cell4);
 
         let cell5 = document.createElement('td');
-        cell5.innerText = bytesToSize(file.size);
-        cell5.setAttribute('data-size', file.size.toString());
+        cell5.innerText = bytesToSize(file.Size);
+        cell5.setAttribute('data-size', file.Size.toString());
         row.appendChild(cell5);
 
         body.appendChild(row);
@@ -704,20 +706,20 @@ function updateBuildScenarioTable(table: HTMLTableElement, scenarios: ScenarioMe
         let checkbox = document.createElement('input') as HTMLInputElement;
         checkbox.type = 'checkbox';
         checkbox.name = 'scenarioCheckbox';
-        checkbox.setAttribute('data-name', scenario.name);
+        checkbox.setAttribute('data-name', scenario.Name);
         cell.appendChild(checkbox);
         row.appendChild(cell);
 
-        createCell(row, scenario.name);
+        createCell(row, scenario.Name);
 
         let cell3 = document.createElement('td');
-        cell3.innerText = formatDate(scenario.createdTime);
-        cell3.setAttribute('data-date', scenario.createdTime);
+        cell3.innerText = formatDate(scenario.CreatedTime);
+        cell3.setAttribute('data-date', scenario.CreatedTime);
         row.appendChild(cell3);
 
         let cell4 = document.createElement('td');
-        cell4.innerText = formatDate(scenario.lastModifiedTime);
-        cell4.setAttribute('data-date', scenario.lastModifiedTime);
+        cell4.innerText = formatDate(scenario.LastModifiedTime);
+        cell4.setAttribute('data-date', scenario.LastModifiedTime);
         row.appendChild(cell4);
 
         body.appendChild(row);
@@ -786,8 +788,9 @@ fileUploadInput.onchange = function (this: HTMLInputElement, ev: Event) {
         updateAllSaveFileTables();
 
         var result = JSON.parse(xhr.responseText) as Result;
-        if (!result.success) {
-            alert(JSON.stringify(result.errors))
+        if (!result.Success) {
+            console.log(result);
+            alert(JSON.stringify(result.Errors))
         }
     }
 
@@ -817,8 +820,8 @@ fileDeleteButton.onclick = async () => {
 
     let result: Result = await connection.invoke('DeleteFiles', files);
 
-    if (!result.success) {
-        alert(JSON.stringify(result.errors));
+    if (!result.Success) {
+        alert(JSON.stringify(result.Errors));
     }
 
     updateAllSaveFileTables();
@@ -847,8 +850,8 @@ fileMoveButton.onclick = async () => {
 
     let result: Result = await connection.invoke('MoveFiles', destination, files);
 
-    if (!result.success) {
-        alert(JSON.stringify(result.errors));
+    if (!result.Success) {
+        alert(JSON.stringify(result.Errors));
     }
 
     updateAllSaveFileTables();
@@ -877,8 +880,8 @@ fileCopyButton.onclick = async () => {
 
     let result: Result = await connection.invoke('CopyFiles', destination, files);
 
-    if (!result.success) {
-        alert(JSON.stringify(result.errors));
+    if (!result.Success) {
+        alert(JSON.stringify(result.Errors));
     }
 
     updateAllSaveFileTables();
@@ -904,8 +907,8 @@ saveRenameButton.onclick = async () => {
 
     let result: Result = await connection.invoke('RenameFile', dir, name, newName);
 
-    if (!result.success) {
-        alert(JSON.stringify(result.errors));
+    if (!result.Success) {
+        alert(JSON.stringify(result.Errors));
     }
 
     updateAllSaveFileTables();
@@ -926,8 +929,8 @@ saveDeflateButton.onclick = async () => {
     let name = checkbox.getAttribute('data-name');
 
     let result: Result = await connection.invoke('DeflateSave', dir, name, newName);
-    if (!result.success) {
-        alert(JSON.stringify(result.errors));
+    if (!result.Success) {
+        alert(JSON.stringify(result.Errors));
         return;
     }
 
@@ -938,8 +941,8 @@ connection.on('DeflateFinished', (result: Result) => {
     deflateProgress.hidden = true;
     updateAllSaveFileTables();
 
-    if (!result.success) {
-        alert(JSON.stringify(result.errors));
+    if (!result.Success) {
+        alert(JSON.stringify(result.Errors));
     }
 });
 
@@ -982,24 +985,24 @@ configSaveButton.onclick = async () => {
     }
 
     let settings: FactorioServerSettings = {
-        name: configNameInput.value,
-        description: configDescriptionInput.value,
-        tags: tags,
-        max_players: max_players,
-        game_password: configPasswordInput.value,
-        auto_pause: configPauseInput.checked,
-        use_default_admins: configAdminUseDefault.checked,
-        admins: configAdminInput.value.split(','),
-        autosave_interval: interval,
-        autosave_slots: slots,
-        non_blocking_saving: configNonBlockingSavingInput.checked,
-        public_visible: configPublicVisibleInput.checked
+        Name: configNameInput.value,
+        Description: configDescriptionInput.value,
+        Tags: tags,
+        MaxPlayers: max_players,
+        GamePassword: configPasswordInput.value,
+        AutoPause: configPauseInput.checked,
+        UseDefaultAdmins: configAdminUseDefault.checked,
+        Admins: configAdminInput.value.split(','),
+        AutosaveInterval: interval,
+        AutosaveSlots: slots,
+        NonBlockingSaving: configNonBlockingSavingInput.checked,
+        PublicVisible: configPublicVisibleInput.checked
     };
 
     let result: Result = await connection.invoke('SaveServerSettings', settings);
 
-    if (!result.success) {
-        alert(JSON.stringify(result.errors));
+    if (!result.Success) {
+        alert(JSON.stringify(result.Errors));
     }
 
     await getSettings();
@@ -1007,15 +1010,15 @@ configSaveButton.onclick = async () => {
 
 configExtraSaveButton.onclick = async () => {
     let settings: FactorioServerExtraSettings = {
-        syncBans: configSyncBans.checked,
-        buildBansFromDatabaseOnStart: configBuildBansFromDb.checked,
-        setDiscordChannelName: configSetDiscordChannelName.checked
+        SyncBans: configSyncBans.checked,
+        BuildBansFromDatabaseOnStart: configBuildBansFromDb.checked,
+        SetDiscordChannelName: configSetDiscordChannelName.checked
     }
 
     let result: Result = await connection.invoke('SaveServerExtraSettings', settings);
 
-    if (!result.success) {
-        alert(JSON.stringify(result.errors));
+    if (!result.Success) {
+        alert(JSON.stringify(result.Errors));
     }
 
     await getExtraSettings();

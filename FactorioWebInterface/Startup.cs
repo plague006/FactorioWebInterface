@@ -11,7 +11,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using System;
-using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -105,7 +104,7 @@ namespace FactorioWebInterface
             .AddGitHubWebHooks();
 
             services.AddSignalR()
-               .AddMessagePackProtocol();
+                .AddMessagePackProtocol();
 
             // The JwtBearer token is used by the FactorioWrapper process for authentication.
             services.AddAuthorization(options =>
