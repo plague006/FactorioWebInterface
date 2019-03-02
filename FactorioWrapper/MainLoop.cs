@@ -434,18 +434,27 @@ namespace FactorioWrapper
                     }
 
                     string line = match.Groups[1].Value;
-
-                    if (line.StartsWith("Factorio initialised"))
-                    {
 #if WINDOWS
+                    if (line == "Info UDPSocket.cpp:39: Opening socket for broadcast")
+                    {
                         await ConnectRCON();
-#endif
+
                         lastUpdateTime = DateTime.UtcNow;
                         string command = BuildCurentTimeCommand(lastUpdateTime);
                         _ = SendToFactorio(command);
 
                         await ChangeStatus(FactorioServerStatus.Running);
                     }
+#else
+                    if (line.StartsWith("Factorio initialised"))
+                    {
+                        lastUpdateTime = DateTime.UtcNow;
+                        string command = BuildCurentTimeCommand(lastUpdateTime);
+                        _ = SendToFactorio(command);
+
+                        await ChangeStatus(FactorioServerStatus.Running);
+                    }
+#endif
                 }
             }
             else
