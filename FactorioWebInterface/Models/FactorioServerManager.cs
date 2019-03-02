@@ -47,7 +47,7 @@ namespace FactorioWebInterface.Models
         //private SemaphoreSlim serverLock = new SemaphoreSlim(1, 1);
         private Dictionary<string, FactorioServerData> servers = FactorioServerData.Servers;
 
-        private string factorioWrapperName;
+        private readonly string factorioWrapperName;
 
         public FactorioServerManager
         (
