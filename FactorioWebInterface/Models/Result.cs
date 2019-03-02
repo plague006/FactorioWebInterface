@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using Newtonsoft.Json;
+using System.Collections.Generic;
 using System.Text;
 
 namespace FactorioWebInterface.Models
@@ -23,10 +24,13 @@ namespace FactorioWebInterface.Models
         public static Result Failure(IReadOnlyList<Error> errors) => new Result(false, errors);
         public static Result Failure(string key, string description = "") => Failure(new Error(key, description));
 
+        [JsonProperty(PropertyName = "Success")]
         public bool Success { get; }
+
+        [JsonProperty(PropertyName = "Errors")]
         public IReadOnlyList<Error> Errors { get; }
 
-        protected Result(bool success, IReadOnlyList<Error> errors)
+        public Result(bool success, IReadOnlyList<Error> errors)
         {
             Success = success;
             Errors = errors;
@@ -66,6 +70,12 @@ namespace FactorioWebInterface.Models
             Value = value;
         }
 
+        public Result(T value, bool success, IReadOnlyList<Error> errors) : base(success, errors)
+        {
+            Value = value;
+        }
+
+        [JsonProperty(PropertyName = "Value")]
         public T Value { get; set; }
     }
 }

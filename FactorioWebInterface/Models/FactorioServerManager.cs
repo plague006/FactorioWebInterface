@@ -47,7 +47,7 @@ namespace FactorioWebInterface.Models
         //private SemaphoreSlim serverLock = new SemaphoreSlim(1, 1);
         private Dictionary<string, FactorioServerData> servers = FactorioServerData.Servers;
 
-        private string factorioWrapperName;
+        private readonly string factorioWrapperName;
 
         public FactorioServerManager
         (
@@ -749,9 +749,10 @@ namespace FactorioWebInterface.Models
 
             _logger.LogInformation("server stopped :serverId {serverId} user: {userName}", serverId, userName);
         }
-
+#pragma warning disable CS1998
         public async Task<Result> Stop(string serverId, string userName)
         {
+#pragma warning restore CS1998
 #if WINDOWS
             return Result.Failure(Constants.NotSupportedErrorKey, "Stop is not supported on Windows.");
 #else
@@ -936,9 +937,10 @@ namespace FactorioWebInterface.Models
                 }
             });
         }
-
+#pragma warning disable CS1998
         public async Task<Result> Install(string serverId, string userName, string version)
         {
+#pragma warning restore CS1998
 #if WINDOWS
             return Result.Failure(Constants.NotSupportedErrorKey, "Install is not supported on windows.");
 #else

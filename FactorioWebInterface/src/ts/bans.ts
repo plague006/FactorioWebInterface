@@ -1,22 +1,23 @@
 ﻿import * as signalR from "@aspnet/signalr";
+import { MessagePackHubProtocol } from "@aspnet/signalr-protocol-msgpack"
 import * as $ from "jquery";
 
 !function () {
     interface Ban {
-        username: string;
-        reason: string;
-        admin: string;
-        dateTime: string;
+        Username: string;
+        Reason: string;
+        Admin: string;
+        DateTime: string;
     }
 
     interface Error {
-        key: string;
-        description: string;
+        Key: string;
+        Description: string;
     }
 
     interface Result {
-        success: boolean;
-        errors: Error[];
+        Success: boolean;
+        Errors: Error[];
     }
 
     const table = document.getElementById('bansTable') as HTMLTableElement;
@@ -72,6 +73,7 @@ import * as $ from "jquery";
 
     const connection = new signalR.HubConnectionBuilder()
         .withUrl("/factorioBanHub")
+        .withHubProtocol(new MessagePackHubProtocol())
         .build();
 
     async function start() {
@@ -88,8 +90,8 @@ import * as $ from "jquery";
     });
 
     connection.on('SendAddBan', async (ban: Ban) => {
-        let username = ban.username;
-        let dateString = formatDate(ban.dateTime);
+        let username = ban.Username;
+        let dateString = formatDate(ban.DateTime);
 
         if (dataMap.has(username)) {
             let oldRow = dataMap.get(username);
@@ -101,8 +103,8 @@ import * as $ from "jquery";
 
         let row = document.createElement('tr');
         createCell(row, username);
-        createCell(row, ban.reason);
-        createCell(row, ban.admin);
+        createCell(row, ban.Reason);
+        createCell(row, ban.Admin);
         createCell(row, dateString);
 
         let cell4 = document.createElement('td');
@@ -146,15 +148,15 @@ import * as $ from "jquery";
         let dateTime = dateInput.value + 'T' + timeInput.value;
 
         let ban: Ban = {
-            username: usernameInput.value,
-            reason: reasonInput.value,
-            admin: adminInput.value,
-            dateTime: dateTime
+            Username: usernameInput.value,
+            Reason: reasonInput.value,
+            Admin: adminInput.value,
+            DateTime: dateTime
         };
 
         let result = await connection.invoke('AddBan', ban, synchronizeWithServersCheckbox.checked) as Result;
-        if (!result.success) {
-            alert(JSON.stringify(result.errors));
+        if (!result.Success) {
+            alert(JSON.stringify(result.Errors));
         }
     }
 
@@ -182,8 +184,8 @@ import * as $ from "jquery";
 
         let result = await connection.invoke('RemoveBan', username, synchronizeWithServersCheckbox.checked) as Result;
 
-        if (!result.success) {
-            alert(JSON.stringify(result.errors));
+        if (!result.Success) {
+            alert(JSON.stringify(result.Errors));
         }
     }
 

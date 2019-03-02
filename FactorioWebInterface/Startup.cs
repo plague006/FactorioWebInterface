@@ -103,7 +103,8 @@ namespace FactorioWebInterface
             })
             .AddGitHubWebHooks();
 
-            services.AddSignalR();
+            services.AddSignalR()
+                .AddMessagePackProtocol();
 
             // The JwtBearer token is used by the FactorioWrapper process for authentication.
             services.AddAuthorization(options =>
