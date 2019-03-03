@@ -1,5 +1,7 @@
 ﻿using DSharpPlus;
 using Newtonsoft.Json;
+using Serilog;
+using Serilog.Core;
 using Shared;
 using System;
 using System.Collections.Generic;
@@ -16,7 +18,7 @@ namespace FactorioWebInterface.Models
 
         public static readonly int serverCount = 10;
         public static readonly int bufferSize = 100;
-        public static readonly int maxLogFiles = 20;
+        public static readonly int maxLogFiles = 10;
 
         public static string GlobalSavesDirectoryPath { get; } = Path.GetFullPath(Path.Combine(baseDirectoryPath, Constants.GlobalSavesDirectoryName));
         public static string ScenarioDirectoryPath { get; } = Path.GetFullPath(Path.Combine(baseDirectoryPath, Constants.ScenarioDirectoryName));
@@ -49,6 +51,10 @@ namespace FactorioWebInterface.Models
         public List<string> ServerAdminList { get; set; }
         //public bool SyncBans { get; set; }
         //public bool BuildBansFromDatabaseOnStart { get; set; }
+        public string ChatLogsDirectoryPath { get; set; }
+        public string ChatLogsArchiveDirectoryPath { get; set; }
+        public string ChatLogCurrentPath { get; set; }
+        public Logger ChatLogger { get; set; }
 
         public SortedList<string, int> OnlinePlayers { get; set; }
         public int OnlinePlayerCount { get; set; }
@@ -86,10 +92,16 @@ namespace FactorioWebInterface.Models
                     ServerSettingsPath = Path.Combine(basePath, Constants.ServerSettingsFileName),
                     ServerExtraSettingsPath = Path.Combine(basePath, Constants.ServerExtraSettingsFileName),
                     LocalScenarioDirectoryPath = Path.Combine(basePath, Constants.ScenarioDirectoryName),
+
                     LogsDirectoryPath = Path.Combine(basePath, Constants.LogDirectoryName),
-                    ExecutablePath = Path.Combine(basePath, Constants.ExecutablePath),
-                    ArchiveLogsDirectoryPath = Path.Combine(basePath, Constants.LogArchiveDirectoryName),
+                    ArchiveLogsDirectoryPath = Path.Combine(basePath, Constants.LogDirectoryName, Constants.ArchiveDirectoryName),
                     CurrentLogPath = Path.Combine(basePath, Constants.CurrentLogFileName),
+                    ChatLogsDirectoryPath = Path.Combine(basePath, Constants.ChatLogDirectoryName),
+                    ChatLogsArchiveDirectoryPath = Path.Combine(basePath, Constants.ChatLogDirectoryName, Constants.ArchiveDirectoryName),
+                    ChatLogCurrentPath = Path.Combine(basePath, Constants.ChatLogDirectoryName, Constants.CurrentChatLogName),
+
+                    ExecutablePath = Path.Combine(basePath, Constants.ExecutablePath),
+
                     ServerBanListPath = Path.Combine(basePath, Constants.ServerBanListFileName),
                     ServerAdminListPath = Path.Combine(basePath, Constants.ServerAdminListFileName),
                     Port = port,
@@ -125,10 +137,19 @@ namespace FactorioWebInterface.Models
                 ValidSaveDirectories.Add($"{serverId}/{Constants.TempSavesDirectoryName}");
                 ValidSaveDirectories.Add($"{serverId}/{Constants.LocalSavesDirectoryName}");
                 ValidSaveDirectories.Add($"{serverId}\\{Constants.TempSavesDirectoryName}");
-                ValidSaveDirectories.Add($"{serverId}\\{Constants.LocalSavesDirectoryName}");
+                ValidSaveDirectories.Add($"{serverId}\\{Constants.LocalSavesDirectoryName}");                
             }
+
             //Servers["7"].IsRemote = true;
-            //Servers["7"].SshIdentity = "usvserver";            
+            //Servers["7"].SshIdentity = "usvserver";
+        }
+
+        public void BuildChatLogger()
+        {
+            ChatLogger = new LoggerConfiguration()
+                .MinimumLevel.Information()
+                .WriteTo.Async(a => a.File(ChatLogCurrentPath, outputTemplate: "{Message:l}{NewLine}"))
+                .CreateLogger();
         }
     }
 }

@@ -197,6 +197,19 @@ namespace FactorioWebInterface.Hubs
             return Task.FromResult(new List<FileMetaData>());
         }
 
+        public Task<List<FileMetaData>> GetChatLogFiles()
+        {
+            string connectionId = Context.ConnectionId;
+            if (Context.Items.TryGetValue(connectionId, out object serverId))
+            {
+                string id = (string)serverId;
+                var files = _factorioServerManager.GetChatLogs(id);
+                return Task.FromResult(files);
+            }
+
+            return Task.FromResult(new List<FileMetaData>());
+        }
+
         public Task<Result> DeleteFiles(List<string> filePaths)
         {
             if (filePaths == null)

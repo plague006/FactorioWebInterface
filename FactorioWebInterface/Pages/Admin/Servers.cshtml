@@ -90,8 +90,8 @@
                                     </div>
                                     <div class="control">
                                         <label id="statusText" class="label"></label>
-                                    </div>                                    
-                                </div>                                
+                                    </div>
+                                </div>
                             </div>
                             <div class="column is-narrow">
                                 <div class="field is-grouped">
@@ -101,7 +101,7 @@
                                     <div class="control">
                                         <label id="versionText" class="label"></label>
                                     </div>
-                                </div>                                
+                                </div>
                             </div>
                             <div class="column is-narrow">
                                 <button id="getStatusButton" class="button is-info">
@@ -520,6 +520,20 @@
                 <h3 class="title is-3">Logs</h3>
 
                 <table id="logsFileTable" class="table is-bordered is-striped is-hoverable is-fullwidth">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Created Time</th>
+                            <th>Modified Time</th>
+                            <th>Size</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+
+                <h3 class="title is-3">Chat Logs</h3>
+
+                <table id="chatLogsFileTable" class="table is-bordered is-striped is-hoverable is-fullwidth">
                     <thead>
                         <tr>
                             <th>Name</th>

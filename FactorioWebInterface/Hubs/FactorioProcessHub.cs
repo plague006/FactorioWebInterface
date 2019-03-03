@@ -30,16 +30,6 @@ namespace FactorioWebInterface.Hubs
             return base.OnDisconnectedAsync(exception);
         }
 
-        public async Task RegisterServerId(string serverId)
-        {
-            string connectionId = Context.ConnectionId;
-            Context.Items[connectionId] = serverId;
-
-            await Groups.AddToGroupAsync(connectionId, serverId.ToString());
-
-            await _factorioServerManger.OnProcessRegistered(serverId);
-        }
-
         public async Task RegisterServerIdWithDateTime(string serverId, DateTime dateTime)
         {
             string connectionId = Context.ConnectionId;
@@ -50,37 +40,13 @@ namespace FactorioWebInterface.Hubs
             await _factorioServerManger.OnProcessRegistered(serverId);
         }
 
-        public Task SendFactorioOutputData(string data)
-        {
-            string connectionId = Context.ConnectionId;
-            if (Context.Items.TryGetValue(connectionId, out object serverId))
-            {
-                string id = (string)serverId;
-                _factorioServerManger.FactorioDataReceived(id, data);
-            }
-
-            return Task.FromResult(0);
-        }
-
         public Task SendFactorioOutputDataWithDateTime(string data, DateTime dateTime)
         {
             string connectionId = Context.ConnectionId;
             if (Context.Items.TryGetValue(connectionId, out object serverId))
             {
                 string id = (string)serverId;
-                _factorioServerManger.FactorioDataReceived(id, data);
-            }
-
-            return Task.FromResult(0);
-        }
-
-        public Task SendWrapperData(string data)
-        {
-            string connectionId = Context.ConnectionId;
-            if (Context.Items.TryGetValue(connectionId, out object serverId))
-            {
-                string id = (string)serverId;
-                _factorioServerManger.FactorioWrapperDataReceived(id, data);
+                _factorioServerManger.FactorioDataReceived(id, data, dateTime);
             }
 
             return Task.FromResult(0);
@@ -92,19 +58,7 @@ namespace FactorioWebInterface.Hubs
             if (Context.Items.TryGetValue(connectionId, out object serverId))
             {
                 string id = (string)serverId;
-                _factorioServerManger.FactorioWrapperDataReceived(id, data);
-            }
-
-            return Task.FromResult(0);
-        }
-
-        public Task StatusChanged(FactorioServerStatus newStatus, FactorioServerStatus oldStatus)
-        {
-            string connectionId = Context.ConnectionId;
-            if (Context.Items.TryGetValue(connectionId, out object serverId))
-            {
-                string id = (string)serverId;
-                return _factorioServerManger.StatusChanged(id, newStatus, oldStatus);
+                _factorioServerManger.FactorioWrapperDataReceived(id, data, dateTime);
             }
 
             return Task.FromResult(0);
@@ -116,7 +70,7 @@ namespace FactorioWebInterface.Hubs
             if (Context.Items.TryGetValue(connectionId, out object serverId))
             {
                 string id = (string)serverId;
-                return _factorioServerManger.StatusChanged(id, newStatus, oldStatus);
+                return _factorioServerManger.StatusChanged(id, newStatus, oldStatus, dateTime);
             }
 
             return Task.FromResult(0);
