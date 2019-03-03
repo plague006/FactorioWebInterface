@@ -89,6 +89,7 @@ const localSaveFilesTable: HTMLTableElement = document.getElementById('localSave
 const globalSaveFilesTable: HTMLTableElement = document.getElementById('globalSaveFilesTable') as HTMLTableElement;
 const scenarioTable: HTMLTableElement = document.getElementById('scenarioTable') as HTMLTableElement;
 const logsFileTable: HTMLTableElement = document.getElementById('logsFileTable') as HTMLTableElement;
+const chatLogsFileTable: HTMLTableElement = document.getElementById('chatLogsFileTable') as HTMLTableElement;
 
 const updateModal = document.getElementById('updateModal') as HTMLDivElement;
 const closeModalButton = document.getElementById('closeModalButton') as HTMLButtonElement;
@@ -180,7 +181,13 @@ async function getScenarios() {
 async function getLogs() {
     let logs = await connection.invoke('GetLogFiles') as FileMetaData[];
     buildLogFileTable(logsFileTable);
-    updateLogFileTable(logsFileTable, logs)
+    updateLogFileTable(logsFileTable, logs, 'logFile')
+}
+
+async function getChatLogs() {
+    let logs = await connection.invoke('GetChatLogFiles') as FileMetaData[];
+    buildLogFileTable(chatLogsFileTable);
+    updateLogFileTable(chatLogsFileTable, logs, 'chatLogFile')
 }
 
 function MakeTagInput(value: string) {
@@ -245,6 +252,7 @@ async function start() {
         getFiles();
         getScenarios();
         getLogs();
+        getChatLogs();
         getSettings();
         getExtraSettings();
         getVersion();
@@ -506,7 +514,7 @@ function bytesToSize(bytes: number) {
         return 'n/a';
     const i = Math.floor(Math.log(bytes) / Math.log(1024));
     if (i === 0)
-        return `${bytes} ${sizes[i]})`;
+        return `${bytes} ${sizes[i]}`;
     else
         return `${(bytes / (1024 ** i)).toFixed(1)} ${sizes[i]}`;
 }
@@ -618,7 +626,7 @@ function buildLogFileTable(table: HTMLTableElement) {
     jTable.data('ascending', false);
 }
 
-function updateLogFileTable(table: HTMLTableElement, files: FileMetaData[]) {
+function updateLogFileTable(table: HTMLTableElement, files: FileMetaData[], handler: string) {
     let body = table.tBodies[0];
 
     body.innerHTML = "";
@@ -629,7 +637,7 @@ function updateLogFileTable(table: HTMLTableElement, files: FileMetaData[]) {
         let cell2 = document.createElement('td');
         let link = document.createElement('a') as HTMLAnchorElement;
         link.innerText = file.Name;
-        link.href = `/admin/servers?handler=logFile&directory=${file.Directory}&name=${file.Name}`;
+        link.href = `/admin/servers?handler=${handler}&directory=${file.Directory}&name=${file.Name}`;
         cell2.appendChild(link);
         row.appendChild(cell2);
 

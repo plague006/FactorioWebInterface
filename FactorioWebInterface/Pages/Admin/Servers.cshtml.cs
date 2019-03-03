@@ -92,7 +92,40 @@ namespace FactorioWebInterface.Pages.Admin
                 return BadRequest();
             }
 
-            return File(file.OpenRead(), "application/text", file.Name);
+            try
+            {
+                return File(file.OpenRead(), "application/text", file.Name);
+            }
+            catch
+            {
+                return BadRequest();
+            }
+        }
+
+        public async Task<IActionResult> OnGetChatLogFile(string directory, string name)
+        {
+            var user = await _userManger.GetUserAsync(User);
+
+            if (user == null || user.Suspended)
+            {
+                HttpContext.Session.SetString("returnUrl", "servers/" + Id);
+                return RedirectToPage("signIn");
+            }
+
+            var file = _factorioServerManager.GetChatLogFile(directory, name);
+            if (file == null)
+            {
+                return BadRequest();
+            }
+
+            try
+            {
+                return File(file.OpenRead(), "application/text", file.Name);
+            }
+            catch
+            {
+                return BadRequest();
+            }
         }
 
         public async Task<IActionResult> OnPostFileUploadAsync(string directory, List<IFormFile> files)

@@ -157,13 +157,15 @@ namespace FactorioWebInterface.Models
             _ = SendToFactorioControl(eventArgs.ServerId, messageData);
         }
 
-        private static string MakeLogFilePath(FactorioServerData serverData, FileInfo file)
+        private static string MakeLogFilePath(FactorioServerData serverData, FileInfo file, DirectoryInfo logDirectory)
         {
             string timeStamp = file.CreationTimeUtc.ToString("yyyyMMddHHmmss");
-            return Path.Combine(serverData.LogsDirectoryPath, $"{Constants.CurrentLogName}{timeStamp}.log");
+            string logName = Path.GetFileNameWithoutExtension(file.Name);
+
+            return Path.Combine(logDirectory.FullName, $"{logName}{timeStamp}.log");
         }
 
-        private void RotateLogs(FactorioServerData serverData)
+        private void RotateFactorioLogs(FactorioServerData serverData)
         {
             try
             {
@@ -176,18 +178,28 @@ namespace FactorioWebInterface.Models
                 var currentLog = new FileInfo(serverData.CurrentLogPath);
                 if (!currentLog.Exists)
                 {
+                    using (_ = currentLog.Create()) { }
+                    currentLog.CreationTimeUtc = DateTime.UtcNow;
                     return;
                 }
 
-                string path = MakeLogFilePath(serverData, currentLog);
+                if (currentLog.Length == 0)
+                {
+                    currentLog.CreationTimeUtc = DateTime.UtcNow;
+                    return;
+                }
+
+                string path = MakeLogFilePath(serverData, currentLog, dir);
                 if (File.Exists(path))
                 {
-                    return;
+                    File.Delete(path);
                 }
 
-                currentLog.CopyTo(path);
+                currentLog.MoveTo(path);
 
-                currentLog.CreationTimeUtc = DateTime.UtcNow;
+                var newFile = new FileInfo(serverData.CurrentLogPath);
+                using (_ = newFile.Create()) { }
+                newFile.CreationTimeUtc = DateTime.UtcNow;
 
                 var logs = dir.GetFiles("*.log");
 
@@ -217,8 +229,94 @@ namespace FactorioWebInterface.Models
             }
             catch (Exception e)
             {
-                _logger.LogError(e, nameof(RotateLogs));
+                _logger.LogError(e, nameof(RotateFactorioLogs));
             }
+        }
+
+        private void RotateChatLogs(FactorioServerData serverData)
+        {
+            void BuildLogger(FileInfo file)
+            {
+                file.CreationTimeUtc = DateTime.UtcNow;
+                serverData.BuildChatLogger();
+            }
+
+            try
+            {
+                var dir = new DirectoryInfo(serverData.ChatLogsDirectoryPath);
+                if (!dir.Exists)
+                {
+                    dir.Create();
+                }
+
+                serverData.ChatLogger?.Dispose();
+                serverData.ChatLogger = null;
+
+                var currentLog = new FileInfo(serverData.ChatLogCurrentPath);
+                if (!currentLog.Exists)
+                {
+                    using (_ = currentLog.Create()) { }
+                    BuildLogger(currentLog);
+                    return;
+                }
+
+                if (currentLog.Length == 0)
+                {
+                    BuildLogger(currentLog);
+                    return;
+                }
+
+                string path = MakeLogFilePath(serverData, currentLog, dir);
+                if (File.Exists(path))
+                {
+                    File.Delete(path);
+                }
+
+                currentLog.MoveTo(path);
+
+                var newFile = new FileInfo(serverData.ChatLogCurrentPath);
+                using (_ = newFile.Create()) { }
+                BuildLogger(newFile);
+
+                var logs = dir.GetFiles("*.log");
+
+                int removeCount = logs.Length - FactorioServerData.maxLogFiles;
+                if (removeCount <= 0)
+                {
+                    return;
+                }
+
+                var archiveDir = new DirectoryInfo(serverData.ChatLogsArchiveDirectoryPath);
+                if (!archiveDir.Exists)
+                {
+                    archiveDir.Create();
+                }
+
+                // sort oldest first.
+                Array.Sort(logs, (a, b) => a.CreationTimeUtc.CompareTo(b.CreationTimeUtc));
+
+                for (int i = 0; i < removeCount && i < logs.Length; i++)
+                {
+                    var log = logs[i];
+
+                    var archivePath = Path.Combine(archiveDir.FullName, log.Name);
+
+                    log.MoveTo(archivePath);
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, nameof(RotateChatLogs));
+            }
+        }
+
+        private Task RotateLogs(FactorioServerData serverData)
+        {
+            return Task.Run(() =>
+            {
+                RotateFactorioLogs(serverData);
+                RotateChatLogs(serverData);
+            });
         }
 
         private async Task BuildBanList(FactorioServerData serverData)
@@ -325,16 +423,16 @@ namespace FactorioWebInterface.Models
         {
             var banTask = BuildBanList(serverData);
             var adminTask = BuildAdminList(serverData);
+            var logTask = RotateLogs(serverData);
 
             serverData.TrackingDataSets.Clear();
 
             serverData.OnlinePlayers.Clear();
             serverData.OnlinePlayerCount = 0;
 
-            RotateLogs(serverData);
-
             await banTask;
             await adminTask;
+            await logTask;
         }
 
         public bool IsValidServerId(string serverId)
@@ -1067,7 +1165,7 @@ namespace FactorioWebInterface.Models
             }
         }
 
-        public async Task FactorioDataReceived(string serverId, string data)
+        public async Task FactorioDataReceived(string serverId, string data, DateTime dateTime)
         {
             if (data == null)
             {
@@ -1095,12 +1193,14 @@ namespace FactorioWebInterface.Models
             switch (tag)
             {
                 case Constants.ChatTag:
-                    content = SanitizeGameChat(content);
-                    _ = _discordBotContext.SendToFactorioChannel(serverId, content);
+                    _ = _discordBotContext.SendToFactorioChannel(serverId, SanitizeGameChat(content));
+
+                    LogChat(serverId, content, dateTime);
                     break;
                 case Constants.ShoutTag:
-                    content = SanitizeGameChat(content);
-                    _ = _discordBotContext.SendToFactorioChannel(serverId, content);
+                    _ = _discordBotContext.SendToFactorioChannel(serverId, SanitizeGameChat(content));
+
+                    LogChat(serverId, content, dateTime);
                     break;
                 case Constants.DiscordTag:
                     content = content.Replace("\\n", "\n");
@@ -1128,9 +1228,13 @@ namespace FactorioWebInterface.Models
                     break;
                 case Constants.PlayerJoinTag:
                     _ = DoPlayerJoined(serverId, content);
+
+                    LogChat(serverId, $"{Constants.PlayerJoinTag} {content}", dateTime);
                     break;
                 case Constants.PlayerLeaveTag:
                     _ = DoPlayerLeft(serverId, content);
+
+                    LogChat(serverId, $"{Constants.PlayerLeaveTag} {content}", dateTime);
                     break;
                 case Constants.QueryPlayersTag:
                     _ = DoPlayerQuery(serverId, content);
@@ -1931,9 +2035,44 @@ namespace FactorioWebInterface.Models
 
                 await RemoveBanFromDatabase(player, userName);
             }
-            else
+            else if (data.StartsWith('/'))
             {
                 await SendToFactorioProcess(serverId, data);
+            }
+            else
+            {
+                if (!servers.TryGetValue(serverId, out var sourceServerData))
+                {
+                    _logger.LogError("Unknown serverId: {serverId}", serverId);
+                    return;
+                }
+
+                var messageData = new MessageData()
+                {
+                    Message = $"[Server] {userName}: {data}",
+                    MessageType = MessageType.Output
+                };
+
+                try
+                {
+                    await sourceServerData.ServerLock.WaitAsync();
+                    if (sourceServerData.Status == FactorioServerStatus.Running)
+                    {
+                        string message = SanitizeDiscordChat(data);
+                        string command = $"/silent-command game.print('[Server] {userName}: {message}')";
+                        _ = SendToFactorioProcess(serverId, command);
+
+                        LogChat(serverId, messageData.Message, DateTime.UtcNow);
+                    }
+                }
+                finally
+                {
+                    sourceServerData.ServerLock.Release();
+                }
+
+                _ = SendToFactorioControl(serverId, messageData);
+
+                _ = _discordBotContext.SendToFactorioChannel(serverId, messageData.Message);
             }
         }
 
@@ -2336,7 +2475,7 @@ namespace FactorioWebInterface.Models
             await RemoveBanFromDatabase(ban.Username, ban.Admin);
         }
 
-        public void FactorioWrapperDataReceived(string serverId, string data)
+        public void FactorioWrapperDataReceived(string serverId, string data, DateTime dateTime)
         {
             var messageData = new MessageData()
             {
@@ -2347,7 +2486,7 @@ namespace FactorioWebInterface.Models
             _ = SendToFactorioControl(serverId, messageData);
         }
 
-        private async Task ServerStarted(FactorioServerData serverData)
+        private async Task ServerStarted(FactorioServerData serverData, DateTime dateTime)
         {
             var serverId = serverData.ServerId;
 
@@ -2368,6 +2507,8 @@ namespace FactorioWebInterface.Models
                 name = $"s{serverId}-{serverData.ServerSettings.Name} {serverData.Version.Replace('.', '_')}";
             }
             var t3 = _discordBotContext.SetChannelNameAndTopic(serverData.ServerId, name: name, topic: "Players online 0");
+
+            LogChat(serverId, "[SERVER-STARTED]", dateTime);
 
             await t1;
             await ServerConnected(serverData);
@@ -2419,7 +2560,7 @@ namespace FactorioWebInterface.Models
             await _discordBotContext.SetChannelNameAndTopic(serverId, name: name, topic: "Server offline");
         }
 
-        public async Task StatusChanged(string serverId, FactorioServerStatus newStatus, FactorioServerStatus oldStatus)
+        public async Task StatusChanged(string serverId, FactorioServerStatus newStatus, FactorioServerStatus oldStatus, DateTime dateTime)
         {
             if (!servers.TryGetValue(serverId, out var serverData))
             {
@@ -2448,7 +2589,7 @@ namespace FactorioWebInterface.Models
 
             if (oldStatus == FactorioServerStatus.Starting && newStatus == FactorioServerStatus.Running)
             {
-                discordTask = ServerStarted(serverData);
+                discordTask = ServerStarted(serverData, dateTime);
             }
             else if (newStatus == FactorioServerStatus.Running && recordedOldStatus != FactorioServerStatus.Running)
             {
@@ -2467,6 +2608,25 @@ namespace FactorioWebInterface.Models
                 discordTask = _discordBotContext.SendEmbedToFactorioChannel(serverId, embed);
 
                 _ = MarkChannelOffline(serverData);
+
+                LogChat(serverId, "[SERVER-STOPPED]", dateTime);
+
+                try
+                {
+                    await serverData.ServerLock.WaitAsync();
+
+                    var logger = serverData.ChatLogger;
+                    if (logger != null)
+                    {
+                        logger.Dispose();
+                        serverData.ChatLogger = null;
+                    }
+                }
+                finally
+                {
+                    serverData.ServerLock.Release();
+                }
+
                 await DoStoppedCallback(serverData);
             }
             else if (newStatus == FactorioServerStatus.Crashed && oldStatus != FactorioServerStatus.Crashed)
@@ -2687,6 +2847,36 @@ namespace FactorioWebInterface.Models
             return logs;
         }
 
+        public List<FileMetaData> GetChatLogs(string serverId)
+        {
+            if (!servers.TryGetValue(serverId, out var serverData))
+            {
+                _logger.LogError("Unknown serverId: {serverId}", serverId);
+                return new List<FileMetaData>();
+            }
+
+            List<FileMetaData> logs = new List<FileMetaData>();
+
+            var logsDir = new DirectoryInfo(serverData.ChatLogsDirectoryPath);
+            if (logsDir.Exists)
+            {
+                var logfiles = logsDir.EnumerateFiles("*.log")
+                    .Select(x => new FileMetaData()
+                    {
+                        Name = x.Name,
+                        CreatedTime = x.CreationTimeUtc,
+                        LastModifiedTime = x.LastWriteTimeUtc,
+                        Directory = Path.Combine(serverId, Constants.ChatLogDirectoryName),
+                        Size = x.Length
+                    })
+                    .OrderByDescending(x => x.CreatedTime);
+
+                logs.AddRange(logfiles);
+            }
+
+            return logs;
+        }
+
         public FileInfo GetLogFile(string directoryName, string fileName)
         {
             string safeFileName = Path.GetFileName(fileName);
@@ -2714,6 +2904,38 @@ namespace FactorioWebInterface.Models
                 return file;
             }
             else if (file.Name == Constants.CurrentLogFileName)
+            {
+                return file;
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        public FileInfo GetChatLogFile(string directoryName, string fileName)
+        {
+            string safeFileName = Path.GetFileName(fileName);
+            string path = Path.Combine(FactorioServerData.baseDirectoryPath, directoryName, safeFileName);
+            path = Path.GetFullPath(path);
+
+            if (!path.StartsWith(FactorioServerData.baseDirectoryPath))
+            {
+                return null;
+            }
+
+            var file = new FileInfo(path);
+            if (!file.Exists)
+            {
+                return null;
+            }
+
+            if (file.Extension != ".log")
+            {
+                return null;
+            }
+
+            if (file.Directory.Name == Constants.ChatLogDirectoryName)
             {
                 return file;
             }
@@ -3491,6 +3713,45 @@ namespace FactorioWebInterface.Models
             }
 
             return serverData.Version;
+        }
+
+        private void LogChat(string serverId, string content, DateTime dateTime)
+        {
+            if (!servers.TryGetValue(serverId, out var serverData))
+            {
+                _logger.LogError("Unknown serverId: {serverId}", serverId);
+                return;
+            }
+
+            var logger = serverData.ChatLogger;
+
+            if (logger != null)
+            {
+                serverData.ChatLogger.Information("{dateTime} {content}", dateTime.ToString("yyyy-MM-dd HH:mm:ss"), content);
+                return;
+            }
+
+            Task.Run(async () =>
+            {
+                try
+                {
+                    await serverData.ServerLock.WaitAsync();
+
+                    logger = serverData.ChatLogger;
+                    if (logger != null)
+                    {
+                        serverData.ChatLogger.Information("{dateTime} {content}", dateTime.ToString("yyyy-MM-dd HH:mm:ss"), content);
+                        return;
+                    }
+
+                    serverData.BuildChatLogger();
+                    serverData.ChatLogger.Information("{dateTime} {content}", dateTime.ToString("yyyy-MM-dd HH:mm:ss"), content);
+                }
+                finally
+                {
+                    serverData.ServerLock.Release();
+                }
+            });
         }
     }
 }

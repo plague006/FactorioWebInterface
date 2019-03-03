@@ -25,6 +25,9 @@
         public const string LogArchiveDirectoryName = "archive_logs";
         public const string CurrentLogName = "factorio-current";
         public const string CurrentLogFileName = "factorio-current.log";
+        public const string ChatLogDirectoryName = "chat_logs";
+        public const string CurrentChatLogName = "chat-current.log";
+        public const string ArchiveDirectoryName = "archive";
 
 #if WINDOWS
         public const string ExecutablePath = "bin/x64/factorio.exe";
