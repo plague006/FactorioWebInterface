@@ -17,7 +17,7 @@ namespace FactorioWebInterface.Models
         public static readonly string basePublicDirectoryPath = Path.GetFullPath("/factorio/public/");
 
         public static readonly int serverCount = 10;
-        public static readonly int bufferSize = 100;
+        public static readonly int bufferSize = 200;
         public static readonly int maxLogFiles = 10;
 
         public static string GlobalSavesDirectoryPath { get; } = Path.GetFullPath(Path.Combine(baseDirectoryPath, Constants.GlobalSavesDirectoryName));
