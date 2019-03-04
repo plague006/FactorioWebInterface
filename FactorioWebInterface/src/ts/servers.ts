@@ -561,8 +561,8 @@ function buildFileTable(table: HTMLTableElement) {
     });
 
     jTable.data('name', r => r.children[1].firstChild.textContent.toLowerCase());
-    jTable.data('createdTime', r => r.children[2].getAttribute('data-date'));
-    jTable.data('lastModifiedTime', r => r.children[3].getAttribute('data-date'));
+    jTable.data('createdTime', r => r.children[2].textContent);
+    jTable.data('lastModifiedTime', r => r.children[3].textContent);
     jTable.data('size', r => parseInt(r.children[4].getAttribute('data-size')));
 
     jTable.data('sortProperty', 'lastModifiedTime');
@@ -595,12 +595,10 @@ function updateFileTable(table: HTMLTableElement, files: FileMetaData[]) {
 
         let cell3 = document.createElement('td');
         cell3.innerText = formatDate(file.CreatedTime);
-        cell3.setAttribute('data-date', file.CreatedTime);
         row.appendChild(cell3);
 
         let cell4 = document.createElement('td');
         cell4.innerText = formatDate(file.LastModifiedTime);
-        cell4.setAttribute('data-date', file.LastModifiedTime);
         row.appendChild(cell4);
 
         let cell5 = document.createElement('td');
@@ -640,8 +638,8 @@ function buildLogFileTable(table: HTMLTableElement) {
     let jTable = $(table);
 
     jTable.data('name', r => r.children[0].firstChild.textContent.toLowerCase());
-    jTable.data('createdTime', r => r.children[1].getAttribute('data-date'));
-    jTable.data('lastModifiedTime', r => r.children[2].getAttribute('data-date'));
+    jTable.data('createdTime', r => r.children[1].textContent);
+    jTable.data('lastModifiedTime', r => r.children[2].textContent);
     jTable.data('size', r => parseInt(r.children[3].getAttribute('data-size')));
 
     jTable.data('sortProperty', 'lastModifiedTime');
@@ -665,12 +663,10 @@ function updateLogFileTable(table: HTMLTableElement, files: FileMetaData[], hand
 
         let cell3 = document.createElement('td');
         cell3.innerText = formatDate(file.CreatedTime);
-        cell3.setAttribute('data-date', file.CreatedTime);
         row.appendChild(cell3);
 
         let cell4 = document.createElement('td');
         cell4.innerText = formatDate(file.LastModifiedTime);
-        cell4.setAttribute('data-date', file.LastModifiedTime);
         row.appendChild(cell4);
 
         let cell5 = document.createElement('td');
@@ -717,8 +713,8 @@ function buildScenarioTable(table: HTMLTableElement) {
     });
 
     jTable.data('name', r => r.children[1].firstChild.textContent.toLowerCase());
-    jTable.data('createdTime', r => r.children[2].getAttribute('data-date'));
-    jTable.data('lastModifiedTime', r => r.children[3].getAttribute('data-date'));
+    jTable.data('createdTime', r => r.children[2].textContent);
+    jTable.data('lastModifiedTime', r => r.children[3].textContent);
 
     jTable.data('sortProperty', 'lastModifiedTime');
     jTable.data('ascending', false);
@@ -744,12 +740,10 @@ function updateBuildScenarioTable(table: HTMLTableElement, scenarios: ScenarioMe
 
         let cell3 = document.createElement('td');
         cell3.innerText = formatDate(scenario.CreatedTime);
-        cell3.setAttribute('data-date', scenario.CreatedTime);
         row.appendChild(cell3);
 
         let cell4 = document.createElement('td');
         cell4.innerText = formatDate(scenario.LastModifiedTime);
-        cell4.setAttribute('data-date', scenario.LastModifiedTime);
         row.appendChild(cell4);
 
         body.appendChild(row);
@@ -772,9 +766,19 @@ function updateBuildScenarioTable(table: HTMLTableElement, scenarios: ScenarioMe
     sortTable(table, property);
 }
 
+function pad(number) {
+    return number < 10 ? '0' + number : number;
+}
+
 function formatDate(dateString: string): string {
     let date = new Date(dateString);
-    return date.toUTCString();
+    let year = pad(date.getUTCFullYear());
+    let month = pad(date.getUTCMonth() + 1);
+    let day = pad(date.getUTCDate());
+    let hour = pad(date.getUTCHours());
+    let min = pad(date.getUTCMinutes());
+    let sec = pad(date.getUTCSeconds());
+    return year + '-' + month + '-' + day + ' ' + hour + ':' + min + ':' + sec;
 }
 
 function createCell(parent: HTMLElement, content: string) {
