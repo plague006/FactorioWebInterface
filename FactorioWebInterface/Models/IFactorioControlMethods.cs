@@ -14,6 +14,7 @@ namespace FactorioWebInterface.Models
 
     public class MessageData
     {
+        public string ServerId { get; set; }
         public MessageType MessageType { get; set; }
         public string Message { get; set; }
     }

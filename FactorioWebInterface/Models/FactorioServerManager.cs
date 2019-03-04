@@ -106,6 +106,7 @@ namespace FactorioWebInterface.Models
             {
                 message = new MessageData()
                 {
+                    ServerId = serverData.ServerId,
                     MessageType = MessageType.Status,
                     Message = $"[STATUS] Change from {oldStatusString} to {newStatusString}"
                 };
@@ -114,6 +115,7 @@ namespace FactorioWebInterface.Models
             {
                 message = new MessageData()
                 {
+                    ServerId = serverData.ServerId,
                     MessageType = MessageType.Status,
                     Message = $"[STATUS] Change from {oldStatusString} to {newStatusString} by user {byUser}"
                 };
@@ -150,6 +152,7 @@ namespace FactorioWebInterface.Models
 
             var messageData = new MessageData()
             {
+                ServerId = eventArgs.ServerId,
                 MessageType = MessageType.Discord,
                 Message = $"[Discord] {eventArgs.User.Username}: {eventArgs.Message}"
             };
@@ -517,6 +520,7 @@ namespace FactorioWebInterface.Models
 
                         var message = new MessageData()
                         {
+                            ServerId = serverId,
                             MessageType = MessageType.Control,
                             Message = $"Server resumed by user: {userName}"
                         };
@@ -631,6 +635,7 @@ namespace FactorioWebInterface.Models
 
                         var message = new MessageData()
                         {
+                            ServerId = serverId,
                             MessageType = MessageType.Control,
                             Message = $"Server load file: {saveFile.Name} by user: {userName}"
                         };
@@ -740,6 +745,7 @@ namespace FactorioWebInterface.Models
 
             var message = new MessageData()
             {
+                ServerId = serverId,
                 MessageType = MessageType.Control,
                 Message = $"Server load scenario: {scenarioName} by user: {userName}"
             };
@@ -837,6 +843,7 @@ namespace FactorioWebInterface.Models
         {
             var message = new MessageData()
             {
+                ServerId = serverId,
                 MessageType = MessageType.Control,
                 Message = $"Server stopped by user {userName}"
             };
@@ -914,6 +921,7 @@ namespace FactorioWebInterface.Models
                     case FactorioServerStatus.Updated:
                         var message = new MessageData()
                         {
+                            ServerId = serverId,
                             MessageType = MessageType.Control,
                             Message = $"Server killed by user {userName}"
                         };
@@ -952,6 +960,7 @@ namespace FactorioWebInterface.Models
 
             var message = new MessageData()
             {
+                ServerId = serverId,
                 MessageType = MessageType.Control,
                 Message = $"Server saved by user {userName}"
             };
@@ -992,6 +1001,7 @@ namespace FactorioWebInterface.Models
 
                         var messageData = new MessageData()
                         {
+                            ServerId = serverId,
                             MessageType = MessageType.Status,
                             Message = $"[STATUS]: Changed from {oldStatus} to {FactorioServerStatus.Updated}"
                         };
@@ -1009,6 +1019,7 @@ namespace FactorioWebInterface.Models
 
                         var messageData = new MessageData()
                         {
+                            ServerId = serverId,
                             MessageType = MessageType.Status,
                             Message = $"[STATUS]: Changed from {oldStatus} to {FactorioServerStatus.Crashed}"
                         };
@@ -1018,6 +1029,7 @@ namespace FactorioWebInterface.Models
 
                         var messageData2 = new MessageData()
                         {
+                            ServerId = serverId,
                             MessageType = MessageType.Control,
                             Message = result.ToString()
                         };
@@ -1140,7 +1152,7 @@ namespace FactorioWebInterface.Models
             {
                 serverData.ServerLock.Release();
             }
-
+            
             await _factorioControlHub.Clients.Group(serverId).SendMessage(data);
         }
 
@@ -1174,6 +1186,7 @@ namespace FactorioWebInterface.Models
 
             var messageData = new MessageData()
             {
+                ServerId = serverId,
                 MessageType = MessageType.Output,
                 Message = data
             };
@@ -2049,6 +2062,7 @@ namespace FactorioWebInterface.Models
 
                 var messageData = new MessageData()
                 {
+                    ServerId = serverId,
                     Message = $"[Server] {userName}: {data}",
                     MessageType = MessageType.Output
                 };
@@ -2479,6 +2493,7 @@ namespace FactorioWebInterface.Models
         {
             var messageData = new MessageData()
             {
+                ServerId = serverId,
                 MessageType = MessageType.Wrapper,
                 Message = data
             };
@@ -2650,6 +2665,7 @@ namespace FactorioWebInterface.Models
             {
                 var messageData = new MessageData()
                 {
+                    ServerId = serverId,
                     MessageType = MessageType.Status,
                     Message = $"[STATUS]: Changed from {oldStatus} to {newStatus}"
                 };

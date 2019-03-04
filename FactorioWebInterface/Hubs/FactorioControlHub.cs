@@ -1,4 +1,5 @@
 ﻿using FactorioWebInterface.Models;
+using FactorioWebInterface.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using System;
@@ -20,9 +21,15 @@ namespace FactorioWebInterface.Hubs
         public async Task<FactorioContorlClientData> SetServerId(string serverId)
         {
             string connectionId = Context.ConnectionId;
-            Context.Items[connectionId] = serverId;
 
-            await Groups.RemoveFromGroupAsync(connectionId, serverId);
+            string oldServerId = Context.GetDataOrDefault<string>();
+            if (oldServerId != null)
+            {
+                await Groups.RemoveFromGroupAsync(connectionId, oldServerId);
+            }
+
+            Context.SetData(serverId);
+
             await Groups.AddToGroupAsync(connectionId, serverId);
 
             return new FactorioContorlClientData()
@@ -35,148 +42,90 @@ namespace FactorioWebInterface.Hubs
         public override Task OnDisconnectedAsync(Exception exception)
         {
             string connectionId = Context.ConnectionId;
-            if (Context.Items.TryGetValue(connectionId, out object serverId))
+            if (Context.TryGetData(out string serverId))
             {
-                string id = (string)serverId;
-                Groups.RemoveFromGroupAsync(connectionId, id);
+                Groups.RemoveFromGroupAsync(connectionId, serverId);
             }
+
             return base.OnDisconnectedAsync(exception);
         }
 
         public Task<Result> ForceStop()
         {
-            string connectionId = Context.ConnectionId;
-            if (Context.Items.TryGetValue(connectionId, out object serverId))
-            {
-                string name = Context.User.Identity.Name;
-                string id = (string)serverId;
-                return _factorioServerManager.ForceStop(id, name);
-            }
+            string serverId = Context.GetDataOrDefault<string>();
+            string name = Context.User.Identity.Name;
 
-            var error = Result.Failure(Constants.ServerIdErrorKey, $"The server id for the connection is invalid.");
-            return Task.FromResult(error);
+            return _factorioServerManager.ForceStop(serverId, name);
         }
 
         public Task GetStatus()
         {
-            string connectionId = Context.ConnectionId;
-            if (Context.Items.TryGetValue(connectionId, out object serverId))
-            {
-                string id = (string)serverId;
-                return _factorioServerManager.RequestStatus(id);
-            }
-            else
-            {
-                // todo log error.
-                return Task.FromResult(0);
-            }
+            string serverId = Context.GetDataOrDefault<string>();
+
+            return _factorioServerManager.RequestStatus(serverId);
         }
 
         public Task<Result> Load(string directoryName, string fileName)
         {
-            string connectionId = Context.ConnectionId;
-            if (Context.Items.TryGetValue(connectionId, out object serverId))
-            {
-                string userName = Context.User.Identity.Name;
-                string id = (string)serverId;
-                return _factorioServerManager.Load(id, directoryName, fileName, userName);
-            }
+            string serverId = Context.GetDataOrDefault<string>();
+            string userName = Context.User.Identity.Name;
 
-            var error = Result.Failure(Constants.ServerIdErrorKey, $"The server id for the connection is invalid.");
-            return Task.FromResult(error);
+            return _factorioServerManager.Load(serverId, directoryName, fileName, userName);
         }
 
         public Task SendToFactorio(string data)
         {
-            string connectionId = Context.ConnectionId;
-            if (Context.Items.TryGetValue(connectionId, out object serverId))
-            {
-                string userName = Context.User.Identity.Name;
-                string id = (string)serverId;
-                _factorioServerManager.FactorioControlDataReceived(id, data, userName);
-            }
+            string serverId = Context.GetDataOrDefault<string>();
+            string userName = Context.User.Identity.Name;
 
-            return Task.FromResult(0);
+            return _factorioServerManager.FactorioControlDataReceived(serverId, data, userName);
         }
 
         public Task<Result> Resume()
         {
-            string connectionId = Context.ConnectionId;
-            if (Context.Items.TryGetValue(connectionId, out object serverId))
-            {
-                string name = Context.User.Identity.Name;
-                string id = (string)serverId;
-                return _factorioServerManager.Resume(id, name);
-            }
+            string serverId = Context.GetDataOrDefault<string>();
+            string name = Context.User.Identity.Name;
 
-            var error = Result.Failure(Constants.ServerIdErrorKey, $"The server id for the connection is invalid.");
-            return Task.FromResult(error);
+            return _factorioServerManager.Resume(serverId, name);
         }
 
         public Task<Result> StartScenario(string scenarioName)
         {
-            string connectionId = Context.ConnectionId;
-            if (Context.Items.TryGetValue(connectionId, out object serverId))
-            {
-                string name = Context.User.Identity.Name;
-                string id = (string)serverId;
-                return _factorioServerManager.StartScenario(id, scenarioName, name);
-            }
+            string serverId = Context.GetDataOrDefault<string>();
+            string name = Context.User.Identity.Name;
 
-            var error = Result.Failure(Constants.ServerIdErrorKey, $"The server id for the connection is invalid.");
-            return Task.FromResult(error);
+            return _factorioServerManager.StartScenario(serverId, scenarioName, name);
         }
 
         public Task<Result> Stop()
         {
-            string connectionId = Context.ConnectionId;
-            if (Context.Items.TryGetValue(connectionId, out object serverId))
-            {
-                string name = Context.User.Identity.Name;
-                string id = (string)serverId;
-                return _factorioServerManager.Stop(id, name);
-            }
+            string serverId = Context.GetDataOrDefault<string>();
+            string name = Context.User.Identity.Name;
 
-            var error = Result.Failure(Constants.ServerIdErrorKey, $"The server id for the connection is invalid.");
-            return Task.FromResult(error);
+            return _factorioServerManager.Stop(serverId, name);
         }
 
         public Task<MessageData[]> GetMesssages()
         {
-            string connectionId = Context.ConnectionId;
-            if (Context.Items.TryGetValue(connectionId, out object serverId))
-            {
-                string id = (string)serverId;
-                return _factorioServerManager.GetFactorioControlMessagesAsync(id);
-            }
+            string serverId = Context.GetDataOrDefault<string>();
 
-            return Task.FromResult(new MessageData[0]);
+            return _factorioServerManager.GetFactorioControlMessagesAsync(serverId);
         }
 
         public Task<FileMetaData[]> GetTempSaveFiles()
         {
-            string connectionId = Context.ConnectionId;
-            if (Context.Items.TryGetValue(connectionId, out object serverId))
-            {
-                string id = (string)serverId;
-                var files = _factorioServerManager.GetTempSaveFiles(id);
-                return Task.FromResult(files);
-            }
+            string serverId = Context.GetDataOrDefault<string>();
 
-            return Task.FromResult(new FileMetaData[0]);
+            var files = _factorioServerManager.GetTempSaveFiles(serverId);
+            return Task.FromResult(files);
         }
 
         public Task<FileMetaData[]> GetLocalSaveFiles()
         {
-            string connectionId = Context.ConnectionId;
-            if (Context.Items.TryGetValue(connectionId, out object serverId))
-            {
-                string id = (string)serverId;
-                var files = _factorioServerManager.GetLocalSaveFiles(id);
-                return Task.FromResult(files);
-            }
+            string serverId = Context.GetDataOrDefault<string>();
 
-            return Task.FromResult(new FileMetaData[0]);
+            var files = _factorioServerManager.GetLocalSaveFiles(serverId);
+            return Task.FromResult(files);
         }
 
         public Task<FileMetaData[]> GetGlobalSaveFiles()
@@ -186,28 +135,18 @@ namespace FactorioWebInterface.Hubs
 
         public Task<List<FileMetaData>> GetLogFiles()
         {
-            string connectionId = Context.ConnectionId;
-            if (Context.Items.TryGetValue(connectionId, out object serverId))
-            {
-                string id = (string)serverId;
-                var files = _factorioServerManager.GetLogs(id);
-                return Task.FromResult(files);
-            }
+            string serverId = Context.GetDataOrDefault<string>();
 
-            return Task.FromResult(new List<FileMetaData>());
+            var files = _factorioServerManager.GetLogs(serverId);
+            return Task.FromResult(files);
         }
 
         public Task<List<FileMetaData>> GetChatLogFiles()
         {
-            string connectionId = Context.ConnectionId;
-            if (Context.Items.TryGetValue(connectionId, out object serverId))
-            {
-                string id = (string)serverId;
-                var files = _factorioServerManager.GetChatLogs(id);
-                return Task.FromResult(files);
-            }
+            string serverId = Context.GetDataOrDefault<string>();
 
-            return Task.FromResult(new List<FileMetaData>());
+            var files = _factorioServerManager.GetChatLogs(serverId);
+            return Task.FromResult(files);
         }
 
         public Task<Result> DeleteFiles(List<string> filePaths)
@@ -262,66 +201,38 @@ namespace FactorioWebInterface.Hubs
 
         public Task<FactorioServerSettingsWebEditable> GetServerSettings()
         {
-            string connectionId = Context.ConnectionId;
-            if (Context.Items.TryGetValue(connectionId, out object serverId))
-            {
-                string id = (string)serverId;
-                return _factorioServerManager.GetEditableServerSettings(id);
-            }
+            string serverId = Context.GetDataOrDefault<string>();
 
-            return Task.FromResult(new FactorioServerSettingsWebEditable());
+            return _factorioServerManager.GetEditableServerSettings(serverId);
         }
 
         public async Task<Result> SaveServerSettings(FactorioServerSettingsWebEditable settings)
         {
-            string connectionId = Context.ConnectionId;
-            if (Context.Items.TryGetValue(connectionId, out object serverId))
-            {
-                string id = (string)serverId;
-                return await _factorioServerManager.SaveEditableServerSettings(id, settings);
-            }
+            string serverId = Context.GetDataOrDefault<string>();
 
-            var error = Result.Failure(Constants.ServerIdErrorKey, $"The server id for the connection is invalid.");
-            return error;
+            return await _factorioServerManager.SaveEditableServerSettings(serverId, settings);
         }
 
         public Task<FactorioServerExtraSettings> GetServerExtraSettings()
         {
-            string connectionId = Context.ConnectionId;
-            if (Context.Items.TryGetValue(connectionId, out object serverId))
-            {
-                string id = (string)serverId;
-                return _factorioServerManager.GetExtraServerSettings(id);
-            }
+            string serverId = Context.GetDataOrDefault<string>();
 
-            return Task.FromResult(new FactorioServerExtraSettings());
+            return _factorioServerManager.GetExtraServerSettings(serverId);
         }
 
         public async Task<Result> SaveServerExtraSettings(FactorioServerExtraSettings settings)
         {
-            string connectionId = Context.ConnectionId;
-            if (Context.Items.TryGetValue(connectionId, out object serverId))
-            {
+            string serverId = Context.GetDataOrDefault<string>();
 
-                string id = (string)serverId;
-                return await _factorioServerManager.SaveExtraServerSettings(id, settings);
-            }
-
-            var error = Result.Failure(Constants.ServerIdErrorKey, $"The server id for the connection is invalid.");
-            return error;
+            return await _factorioServerManager.SaveExtraServerSettings(serverId, settings);
         }
 
         public Task<Result> Save()
         {
-            string connectionId = Context.ConnectionId;
-            if (Context.Items.TryGetValue(connectionId, out object serverId))
-            {
-                string name = Context.User.Identity.Name;
-                string id = (string)serverId;
-                return _factorioServerManager.Save(id, name, "currently-running.zip");
-            }
-            var error = Result.Failure(Constants.ServerIdErrorKey, $"The server id for the connection is invalid.");
-            return Task.FromResult(error);
+            string serverId = Context.GetDataOrDefault<string>();
+            string name = Context.User.Identity.Name;
+
+            return _factorioServerManager.Save(serverId, name, "currently-running.zip");
         }
 
         public Task<ScenarioMetaData[]> GetScenarios()
@@ -336,15 +247,10 @@ namespace FactorioWebInterface.Hubs
 
         public async Task<Result> Update(string version = "latest")
         {
-            string connectionId = Context.ConnectionId;
-            if (Context.Items.TryGetValue(connectionId, out object serverId))
-            {
-                string name = Context.User.Identity.Name;
-                string id = (string)serverId;
-                return await _factorioServerManager.Install(id, name, version);
-            }
-            var error = Result.Failure(Constants.ServerIdErrorKey, $"The server id for the connection is invalid.");
-            return error;
+            string serverId = Context.GetDataOrDefault<string>();
+            string name = Context.User.Identity.Name;
+
+            return await _factorioServerManager.Install(serverId, name, version);
         }
 
         public Task RequestGetDownloadableVersions()
@@ -390,14 +296,9 @@ namespace FactorioWebInterface.Hubs
 
         public Task<string> GetVersion()
         {
-            string connectionId = Context.ConnectionId;
-            if (Context.Items.TryGetValue(connectionId, out object serverId))
-            {
-                string id = (string)serverId;
-                return Task.FromResult(_factorioServerManager.GetVersion(id));
-            }
+            string serverId = Context.GetDataOrDefault<string>();
 
-            return Task.FromResult("");
+            return Task.FromResult(_factorioServerManager.GetVersion(serverId));
         }
     }
 }

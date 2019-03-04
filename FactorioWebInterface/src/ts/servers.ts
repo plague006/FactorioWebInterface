@@ -11,6 +11,7 @@ enum MessageType {
 }
 
 interface MessageData {
+    ServerId: string;
     MessageType: MessageType;
     Message: string;
 }
@@ -71,7 +72,6 @@ const divMessages: HTMLDivElement = document.querySelector("#divMessages");
 const tbMessage: HTMLInputElement = document.querySelector("#tbMessage");
 const btnSend: HTMLButtonElement = document.querySelector("#btnSend");
 const serverName = document.getElementById('serverName') as HTMLHeadingElement;
-const serverIdInput: HTMLInputElement = document.getElementById('serverIdInput') as HTMLInputElement;
 const serverSelect = document.getElementById('serverSelect') as HTMLSelectElement;
 const resumeButton: HTMLButtonElement = document.getElementById('resumeButton') as HTMLButtonElement;
 const loadButton: HTMLButtonElement = document.getElementById('loadButton') as HTMLButtonElement;
@@ -139,29 +139,11 @@ const connection = new signalR.HubConnectionBuilder()
     .withHubProtocol(new MessagePackHubProtocol())
     .build();
 
-serverSelect.onchange = function (this: HTMLSelectElement) {
-    window.location.href = `/admin/servers/${this.value}`;
-};
-
 configAdminUseDefault.onchange = () => {
     configAdminInput.disabled = configAdminUseDefault.checked;
 }
 
 async function getFiles() {
-    let tempFiles = await connection.invoke('GetTempSaveFiles') as FileMetaData[];
-    buildFileTable(tempSaveFilesTable, tempFiles);
-    updateFileTable(tempSaveFilesTable, tempFiles);
-
-    let localFiles = await connection.invoke('GetLocalSaveFiles') as FileMetaData[];
-    buildFileTable(localSaveFilesTable, localFiles);
-    updateFileTable(localSaveFilesTable, localFiles);
-
-    let globalFiles = await connection.invoke('GetGlobalSaveFiles') as FileMetaData[];
-    buildFileTable(globalSaveFilesTable, globalFiles);
-    updateFileTable(globalSaveFilesTable, globalFiles);
-}
-
-async function updateAllSaveFileTables() {
     let tempFiles = await connection.invoke('GetTempSaveFiles') as FileMetaData[];
     updateFileTable(tempSaveFilesTable, tempFiles);
 
@@ -174,19 +156,16 @@ async function updateAllSaveFileTables() {
 
 async function getScenarios() {
     let scenarios = await connection.invoke('GetScenarios') as ScenarioMetaData[];
-    buildScenarioTable(scenarioTable);
     updateBuildScenarioTable(scenarioTable, scenarios);
 }
 
 async function getLogs() {
     let logs = await connection.invoke('GetLogFiles') as FileMetaData[];
-    buildLogFileTable(logsFileTable);
     updateLogFileTable(logsFileTable, logs, 'logFile')
 }
 
 async function getChatLogs() {
     let logs = await connection.invoke('GetChatLogFiles') as FileMetaData[];
-    buildLogFileTable(chatLogsFileTable);
     updateLogFileTable(chatLogsFileTable, logs, 'chatLogFile')
 }
 
@@ -244,24 +223,46 @@ async function getVersion() {
     versionText.textContent = await connection.invoke('GetVersion')
 }
 
+function onPageLoad() {
+    buildFileTable(tempSaveFilesTable);
+    buildFileTable(localSaveFilesTable);
+    buildFileTable(globalSaveFilesTable);
+    buildScenarioTable(scenarioTable);
+    buildLogFileTable(logsFileTable);
+    buildLogFileTable(chatLogsFileTable);
+
+    let value = serverSelect.value;
+    history.replaceState({ value: value }, '', `/admin/servers/${value}`);
+}
+
+onPageLoad();
+
+async function updatePage() {
+    let data = await connection.invoke('SetServerId', serverSelect.value) as FactorioContorlClientData;
+
+    messageCount = 0;
+    divMessages.innerHTML = "";
+
+    getFiles();
+    getScenarios();
+    getLogs();
+    getChatLogs();
+    getSettings();
+    getExtraSettings();
+    getVersion();
+
+    statusText.innerText = data.Status;
+
+    for (let message of data.Messages) {
+        writeMessage(message);
+    }
+}
+
 async function start() {
     try {
         await connection.start();
-        let data = await connection.invoke('SetServerId', serverIdInput.value) as FactorioContorlClientData;
 
-        getFiles();
-        getScenarios();
-        getLogs();
-        getChatLogs();
-        getSettings();
-        getExtraSettings();
-        getVersion();
-
-        statusText.innerText = data.Status;
-
-        for (let message of data.Messages) {
-            writeMessage(message);
-        }
+        await updatePage();
     } catch (ex) {
         console.log(ex.message);
         setTimeout(() => start(), 2000);
@@ -271,6 +272,21 @@ async function start() {
 connection.onclose(async () => {
     await start();
 });
+
+serverSelect.onchange = function (this: HTMLSelectElement) {
+    let value = this.value;
+    history.pushState({ value: value }, '', `/admin/servers/${value}`);
+    updatePage();
+};
+
+onpopstate = function (e) {
+    let state = e.state;
+    console.log(state);
+    if (state) {
+        serverSelect.value = state.value;
+        updatePage();
+    }
+};
 
 connection.on("SendMessage", writeMessage)
 
@@ -467,6 +483,12 @@ getStatusButton.onclick = () => {
 }
 
 function writeMessage(message: MessageData): void {
+    let serverId = message.ServerId;
+    if (serverId !== serverSelect.value) {
+        console.log(message);
+        return;
+    }
+
     let div = document.createElement("div");
     let data: string;
 
@@ -519,7 +541,7 @@ function bytesToSize(bytes: number) {
         return `${(bytes / (1024 ** i)).toFixed(1)} ${sizes[i]}`;
 }
 
-function buildFileTable(table: HTMLTableElement, files: FileMetaData[]) {
+function buildFileTable(table: HTMLTableElement) {
     let cells = table.tHead.rows[0].cells;
 
     let input = cells[0].firstChild as HTMLInputElement;
@@ -771,7 +793,7 @@ fileUploadInput.onchange = function (this: HTMLInputElement, ev: Event) {
     }
 
     let formData = new FormData();
-    formData.set('directory', `${serverIdInput.value}/local_saves`);
+    formData.set('directory', `${serverSelect.value}/local_saves`);
 
     let files = fileUploadInput.files
     for (let i = 0; i < files.length; i++) {
@@ -793,7 +815,7 @@ fileUploadInput.onchange = function (this: HTMLInputElement, ev: Event) {
 
     xhr.onloadend = function (event) {
         fileProgressContiner.hidden = true;
-        updateAllSaveFileTables();
+        getFiles();
 
         var result = JSON.parse(xhr.responseText) as Result;
         if (!result.Success) {
@@ -832,7 +854,7 @@ fileDeleteButton.onclick = async () => {
         alert(JSON.stringify(result.Errors));
     }
 
-    updateAllSaveFileTables();
+    getFiles();
 }
 
 fileMoveButton.onclick = async () => {
@@ -862,7 +884,7 @@ fileMoveButton.onclick = async () => {
         alert(JSON.stringify(result.Errors));
     }
 
-    updateAllSaveFileTables();
+    getFiles();
 }
 
 fileCopyButton.onclick = async () => {
@@ -892,7 +914,7 @@ fileCopyButton.onclick = async () => {
         alert(JSON.stringify(result.Errors));
     }
 
-    updateAllSaveFileTables();
+    getFiles();
 }
 
 saveRenameButton.onclick = async () => {
@@ -919,7 +941,7 @@ saveRenameButton.onclick = async () => {
         alert(JSON.stringify(result.Errors));
     }
 
-    updateAllSaveFileTables();
+    getFiles();
 }
 
 saveDeflateButton.onclick = async () => {
@@ -947,7 +969,7 @@ saveDeflateButton.onclick = async () => {
 
 connection.on('DeflateFinished', (result: Result) => {
     deflateProgress.hidden = true;
-    updateAllSaveFileTables();
+    getFiles();
 
     if (!result.Success) {
         alert(JSON.stringify(result.Errors));
