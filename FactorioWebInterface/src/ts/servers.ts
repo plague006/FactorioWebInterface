@@ -66,7 +66,7 @@ interface FactorioServerExtraSettings {
     SetDiscordChannelName: boolean
 }
 
-const maxMessageCount = 100;
+const maxMessageCount = 200;
 
 const divMessages: HTMLDivElement = document.querySelector("#divMessages");
 const tbMessage: HTMLInputElement = document.querySelector("#tbMessage");
@@ -517,15 +517,24 @@ function writeMessage(message: MessageData): void {
 
     div.innerText = data;
 
-    if (messageCount === 100) {
+    let left = window.scrollX;
+    let top = window.scrollY;
+
+    if (messageCount === maxMessageCount) {
         let first = divMessages.firstChild
         divMessages.removeChild(first);
     } else {
         messageCount++;
     }
 
-    divMessages.appendChild(div);
-    divMessages.scrollTop = divMessages.scrollHeight;
+    if (divMessages.scrollTop + divMessages.clientHeight >= divMessages.scrollHeight) {
+        divMessages.appendChild(div);
+        divMessages.scrollTop = divMessages.scrollHeight;
+    } else {
+        divMessages.appendChild(div);
+    }
+
+    window.scrollTo(left, top);
 }
 
 const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
