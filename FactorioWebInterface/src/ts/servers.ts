@@ -133,6 +133,8 @@ const configSetDiscordChannelName = document.getElementById('configSetDiscordCha
 const configExtraSaveButton = document.getElementById('configExtraSaveButton') as HTMLButtonElement;
 
 let messageCount = 0;
+let commandHistory: string[] = [];
+let commandHistoryIndex = 0;
 
 const connection = new signalR.HubConnectionBuilder()
     .withUrl("/factorioControlHub")
@@ -299,17 +301,49 @@ connection.on('SendVersion', (version: string) => {
     versionText.textContent = version;
 });
 
+function mod(n: number, m: number) {
+    return ((n % m) + m) % m;
+}
+
+function rotateCommand(offset: number) {
+    let newIndex = mod(commandHistoryIndex + offset, commandHistory.length);
+
+    commandHistoryIndex = newIndex;
+    tbMessage.value = commandHistory[newIndex];
+}
+
 tbMessage.addEventListener("keyup", (e: KeyboardEvent) => {
-    if (e.keyCode === 13) {
+    let key = e.keyCode;
+
+    if (key === 13) { // enter
         send();
+    } else if (key === 38) { // up
+        rotateCommand(-1);
+    } else if (key === 40) { // down
+        rotateCommand(1);
     }
 });
 
 btnSend.addEventListener("click", send);
 
-function send() {
-    connection.send("SendToFactorio", tbMessage.value)
-        .then(() => tbMessage.value = "");
+async function send() {
+    let message = tbMessage.value;
+    if (message === '') {
+        return;
+    }
+
+    tbMessage.value = '';
+
+    if (commandHistoryIndex === commandHistory.length || commandHistory[commandHistoryIndex] !== message) {
+        commandHistory.push(message);
+    } else {
+        let removed = commandHistory.splice(commandHistoryIndex, 1);
+        commandHistory.push(removed[0]);
+    }
+
+    commandHistoryIndex = commandHistory.length;
+
+    await connection.send("SendToFactorio", message);
 }
 
 resumeButton.onclick = () => {
