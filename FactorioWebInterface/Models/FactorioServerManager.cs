@@ -2655,6 +2655,24 @@ namespace FactorioWebInterface.Models
                 };
                 discordTask = _discordBotContext.SendEmbedToFactorioChannel(serverId, embed);
                 _ = MarkChannelOffline(serverData);
+
+                LogChat(serverId, "[SERVER-CRASHED]", dateTime);
+
+                try
+                {
+                    await serverData.ServerLock.WaitAsync();
+
+                    var logger = serverData.ChatLogger;
+                    if (logger != null)
+                    {
+                        logger.Dispose();
+                        serverData.ChatLogger = null;
+                    }
+                }
+                finally
+                {
+                    serverData.ServerLock.Release();
+                }
             }
 
             var groups = _factorioControlHub.Clients.Group(serverId);

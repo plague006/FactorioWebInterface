@@ -7,7 +7,7 @@ import * as $ from "jquery";
         Username: string;
         Reason: string;
         Admin: string;
-        DateTime: string;
+        DateTime: Date;
     }
 
     interface Error {
@@ -145,13 +145,13 @@ import * as $ from "jquery";
         event.preventDefault();
         event.stopPropagation();
 
-        let dateTime = dateInput.value + 'T' + timeInput.value;
+        let date = new Date(dateInput.value + 'T' + timeInput.value);
 
         let ban: Ban = {
             Username: usernameInput.value,
             Reason: reasonInput.value,
             Admin: adminInput.value,
-            DateTime: dateTime
+            DateTime: date
         };
 
         let result = await connection.invoke('AddBan', ban, synchronizeWithServersCheckbox.checked) as Result;
@@ -203,8 +203,7 @@ import * as $ from "jquery";
         return number < 10 ? '0' + number : number;
     }
 
-    function formatDate(dateString: string): string {
-        let date = new Date(dateString);
+    function formatDate(date: Date): string {
         let year = pad(date.getUTCFullYear());
         let month = pad(date.getUTCMonth() + 1);
         let day = pad(date.getUTCDate());
