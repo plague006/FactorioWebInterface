@@ -23,5 +23,6 @@
       }
     }
   },
-  "WebHookGitHubCallbackFile": "/factorio/github_webhook"
+  "WebHookGitHubCallbackFile": "/factorio/github_webhook",
+  "PlaguesScriptDefaultPath": "/factorio/plaguesplayground.sh"
 }
