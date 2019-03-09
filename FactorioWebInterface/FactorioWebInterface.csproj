@@ -25,6 +25,7 @@
     <None Remove="FactorioWebInterface.db" />
     <None Remove="Scenario.db" />
     <None Remove="src\ts\admins.ts" />
+    <None Remove="src\ts\plaguesplayground.ts" />
     <None Remove="src\ts\saves.ts" />
     <None Remove="wwwroot\lib\bootstrap\dist\css\bootstrap-theme.css" />
     <None Remove="wwwroot\lib\bootstrap\dist\css\bootstrap-theme.css.map" />
@@ -92,6 +93,7 @@
   <ItemGroup>
     <TypeScriptCompile Include="src\ts\admins.ts" />
     <TypeScriptCompile Include="src\ts\bans.ts" />
+    <TypeScriptCompile Include="src\ts\plaguesPlayground.ts" />
     <TypeScriptCompile Include="src\ts\saves.ts" />
     <TypeScriptCompile Include="src\ts\servers.ts" />
   </ItemGroup>

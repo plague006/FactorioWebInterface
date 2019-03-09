@@ -245,7 +245,7 @@ namespace FactorioWebInterface.Utils
             {
                 return await RunProcessToEndAsync(fileName, arguments, cts.Token);
             }
-        }
+        }        
     }
 }
 

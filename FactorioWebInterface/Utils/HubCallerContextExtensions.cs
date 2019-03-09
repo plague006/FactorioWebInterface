@@ -34,5 +34,10 @@ namespace FactorioWebInterface.Utils
         {
             context.Items[typeof(T)] = value;
         }
+
+        public static bool RemoveData<T>(this HubCallerContext context)
+        {
+            return context.Items.Remove(typeof(T));
+        }
     }
 }

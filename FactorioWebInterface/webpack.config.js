@@ -10,6 +10,7 @@ module.exports = {
         admins: "./src/ts/admins.ts",
         saves: "./src/ts/saves.ts",
         scenarioData: "./src/ts/scenarioData.ts",
+        plaguesplayground: "./src/ts/plaguesPlayground.ts"
     },
     output: {
         path: path.resolve(__dirname, "wwwroot"),
