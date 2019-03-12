@@ -116,7 +116,7 @@ const deflateProgress = document.getElementById('deflateProgress') as HTMLSpanEl
 
 const configNameInput = document.getElementById('configNameInput') as HTMLInputElement;
 const configDescriptionInput = document.getElementById('configDescriptionInput') as HTMLInputElement;
-const configTagsInput = document.getElementById('configTagsInput') as HTMLElement;
+const configTagsInput = document.getElementById('configTagsInput') as HTMLTextAreaElement;
 const configMaxPlayersInput = document.getElementById('configMaxPlayersInput') as HTMLInputElement;
 const configPasswordInput = document.getElementById('configPasswordInput') as HTMLInputElement;
 const configPauseInput = document.getElementById('configPauseInput') as HTMLInputElement;
@@ -171,32 +171,17 @@ async function getChatLogs() {
     updateLogFileTable(chatLogsFileTable, logs, 'chatLogFile')
 }
 
-function MakeTagInput(value: string) {
-    let listItem = document.createElement('li');
-    let input = document.createElement('input');
-    input.setAttribute('style', 'width:100%;');
-    listItem.appendChild(input);
-
-    input.value = value;
-
-    return listItem;
-}
-
 async function getSettings() {
     let settings = await connection.invoke('GetServerSettings') as FactorioServerSettings;
 
     configNameInput.value = settings.Name;
     configDescriptionInput.value = settings.Description;
 
-    configTagsInput.innerHTML = '';
-
+    let text = '';
     for (let item of settings.Tags) {
-        let input = MakeTagInput(item);
-        configTagsInput.appendChild(input);
+        text += (item + '\n');
     }
-
-    let lastInput = MakeTagInput('');
-    configTagsInput.appendChild(lastInput);
+    configTagsInput.value = text;
 
     configMaxPlayersInput.value = settings.MaxPlayers + "";
     configPasswordInput.value = settings.GamePassword;
@@ -1023,28 +1008,9 @@ connection.on('DeflateFinished', (result: Result) => {
     }
 });
 
-configTagsInput.oninput = function (this, e: Event) {
-    let target = e.target as HTMLInputElement;
-    let bottomInput = configTagsInput.lastChild.firstChild;
-
-    if (target === bottomInput) {
-        let lastInput = MakeTagInput('');
-        configTagsInput.appendChild(lastInput);
-    }
-}
-
 configSaveButton.onclick = async () => {
-
-    let tags = [];
-    let children = configTagsInput.children;
-    for (var i = 0; i < children.length; i++) {
-        let child = children[i];
-        let input = child.firstChild as HTMLInputElement;
-        let value = input.value.trim();
-        if (value !== '') {
-            tags.push(value);
-        }
-    }
+    let text = configTagsInput.value;
+    let tags = text.trim().split('\n');
 
     let max_players = parseInt(configMaxPlayersInput.value);
     if (isNaN(max_players)) {

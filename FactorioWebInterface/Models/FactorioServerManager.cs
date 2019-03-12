@@ -1152,7 +1152,7 @@ namespace FactorioWebInterface.Models
             {
                 serverData.ServerLock.Release();
             }
-            
+
             await _factorioControlHub.Clients.Group(serverId).SendMessage(data);
         }
 
@@ -3546,7 +3546,7 @@ namespace FactorioWebInterface.Models
 
                 serverSettigns.Name = settings.Name;
                 serverSettigns.Description = settings.Description;
-                serverSettigns.Tags = settings.Tags;
+                serverSettigns.Tags = settings.Tags.Select(x => x.Replace(' ', '\u00a0')).ToList(); // \u00a0 is &nbsp;. Factorio splits tags on space, but not on &nbsp;.
                 serverSettigns.MaxPlayers = settings.MaxPlayers < 0 ? 0 : settings.MaxPlayers;
                 serverSettigns.GamePassword = settings.GamePassword;
                 serverSettigns.AutoPause = settings.AutoPause;
