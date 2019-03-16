@@ -544,9 +544,8 @@ namespace FactorioWrapper
             }
             catch (Exception e)
             {
-#if DEBUG
                 Log.Error(e, nameof(TryConnectAsync));
-#endif
+
                 return false;
             }
         }
