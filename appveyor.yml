@@ -1,0 +1,51 @@
+# Build version format comes from the AppVeyor UI
+branches:
+  only:
+    - master
+    - develop
+pull_requests:
+  do_not_increment_build_number: true
+image:
+  - Visual Studio 2017
+install:
+  - ps: cd FactorioWebInterface
+  - ps: $env:Path += ";C:\Program Files\nodejs\"
+  - npm install
+  - ps: New-Item -ItemType file FactorioWebInterface.db | Out-Null
+  - ps: New-Item -ItemType file Scenario.db | Out-Null
+  - ps: cd ..
+  - ps: New-Item -ItemType file FactorioWrapper/token.txt | Out-Null
+  - cmd: copy FactorioWrapper\settings.template.json FactorioWrapper\settings.json
+  - cmd: dotnet restore
+  - NuGet restore -Verbosity quiet
+configuration:
+  - Release
+  - Debug
+matrix:
+  fast_finish: true # set this flag to immediately finish build once one of the jobs fails.
+  # allow_failures:
+  #   - configuration: Release
+build:
+  verbosity: minimal
+after_build:
+  - cmd: cd FactorioWebInterface
+  - cmd: npm run release
+  - cmd: cd ..
+  - cmd: dotnet publish FactorioWebInterface --output %appveyor_build_folder%\dist -c Release -r linux-x64 --self-contained false
+test: off
+  # on:
+  #   configuration: Debug
+artifacts:
+  - path: dist
+    name: FactorioWebInterface
+  # - path: FactorioWebInterface
+  #   name: Download
+deploy:
+  - provider: GitHub
+    auth_token:
+      secure: S7PcWL8nNaQhzP7tAdXI1dDr8tuks+DXdLV7th1bsl0mRQYidmMa47Q41P4j1lab
+    artifact: FactorioWebInterface
+    draft: true
+    force_update: true
+    on:
+      configuration: Release
